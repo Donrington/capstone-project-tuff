@@ -1,0 +1,190 @@
+/* The <dialog> itself is an invisible full-viewport layer; .panel is the card.
+   That keeps "did they click outside?" a simple target check. */
+.dialog {
+  display: none;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: var(--space-4);
+  border: none;
+  background: transparent;
+  overflow: hidden;
+  transition:
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+.dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.dialog::backdrop {
+  background: rgba(5, 5, 6, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition:
+    opacity 0.24s ease,
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+.dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100dvh - var(--space-8));
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  scale: 0.96;
+  translate: 0 12px;
+  transition:
+    opacity 0.24s ease,
+    scale 0.24s var(--ease-out-expo),
+    translate 0.24s var(--ease-out-expo);
+}
+.dialog[open] .panel {
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
+}
+@starting-style {
+  .dialog[open] .panel {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 12px;
+  }
+}
+
+.sm {
+  max-width: 420px;
+}
+.md {
+  max-width: 560px;
+}
+.lg {
+  max-width: 760px;
+}
+/* Takeover: fills the viewport, for the challenge-complete celebration. */
+.full {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.title {
+  font: 800 22px/1.15 var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.desc {
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+/* No visible title — the close button alone, tucked into the corner. */
+.headBare {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-4) var(--space-4) 0;
+}
+.close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.close:hover {
+  background: var(--border-subtle);
+  color: var(--ink);
+}
+
+.body {
+  padding: 0 var(--space-6) var(--space-6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Phones: dock to the bottom as a sheet and rise from below. */
+@media (max-width: 719px) {
+  .dialog {
+    padding: 0;
+  }
+  .dialog[open] {
+    align-items: end;
+  }
+  .panel,
+  .sm,
+  .md,
+  .lg {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom);
+    translate: 0 100%;
+    scale: 1;
+  }
+  /* A takeover stays a takeover on phones — never a sheet. */
+  .full {
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+  @starting-style {
+    .dialog[open] .panel {
+      translate: 0 100%;
+      scale: 1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .dialog::backdrop,
+  .panel {
+    transition: none;
+  }
+}

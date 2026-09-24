@@ -1,0 +1,32 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font: 700 12px/1 var(--font-sans);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.volt {
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+}
+.surge {
+  background: var(--accent-surge);
+  color: var(--ink-on-vivid);
+}
+.success {
+  background: var(--status-success);
+  color: var(--ink-on-vivid);
+}
+.neutral {
+  background: var(--surface-2);
+  color: var(--ink-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.streak {
+  background: var(--surface-2);
+  color: var(--status-warning);
+  border: 1px solid var(--border-subtle);
+}

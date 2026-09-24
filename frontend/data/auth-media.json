@@ -1,0 +1,23 @@
+{
+  "_note": "Auth-panel clips generated with Artlist (Kling 3.0, 1080p, 1:1, 8s, no audio). `src` and `poster` are what the app plays. They start out pointing at Artlist's signed CDN URLs (valid until 2036) so the page works immediately; `npm run media:fetch` downloads them into public/media, builds web-ready seamless loops and poster frames, and rewrites `src`/`poster` to the local copies. Self-host before production.",
+  "clips": {
+    "signup": {
+      "src": "https://cms-toolkit-artifacts.artlist.io/content/-t-e-x-t_-t-o_-v-i-d-e-o-v1/media__7/-t-e-x-t_-t-o_-v-i-d-e-o-17a9ba8d-0a2a-4418-8684-d193af5794ef.mp4?Expires=2105464750&Key-Pair-Id=K2ZDLYDZI2R1DF&Signature=um9e8PAv08n6uFoPRfpOikosmPIEJt6KE~Iqy~3rziq0fkhxZdPFIZuMXVgUA6tj9b-4OOLb1c1RCEo9dfrBaDK8fAHPWX3CGE0HBNLu8DEy7078GpM9z9GL2FyUWy15PM5ONmgp1fXCxrkS4sfkmIECfm2BIk~odQFMlLBqsx12ANqpDCoKGaYeuFWQBTz6D7Km0IvIUd9y3sH5Clj~hPYfbBru1vSXGae1x0i5b1~Jvj5HV8166jg~NnYguhF3egPem~Sl0hwRezPtlYO13WIrFNCl-yoogefLL1vhIIJzPfekhNjlK0xIFg5FQvhSVN9ko9oBnovypwj98hffoQ__",
+      "poster": "https://cms-toolkit-public-artifacts.artlist.io/content/video/video-thumbnails/generated-thumbnail-51d6d3d4-5d08-4e2e-bee7-7c26c6d6d735.jpg",
+      "remote": {
+        "src": "https://cms-toolkit-artifacts.artlist.io/content/-t-e-x-t_-t-o_-v-i-d-e-o-v1/media__7/-t-e-x-t_-t-o_-v-i-d-e-o-17a9ba8d-0a2a-4418-8684-d193af5794ef.mp4?Expires=2105464750&Key-Pair-Id=K2ZDLYDZI2R1DF&Signature=um9e8PAv08n6uFoPRfpOikosmPIEJt6KE~Iqy~3rziq0fkhxZdPFIZuMXVgUA6tj9b-4OOLb1c1RCEo9dfrBaDK8fAHPWX3CGE0HBNLu8DEy7078GpM9z9GL2FyUWy15PM5ONmgp1fXCxrkS4sfkmIECfm2BIk~odQFMlLBqsx12ANqpDCoKGaYeuFWQBTz6D7Km0IvIUd9y3sH5Clj~hPYfbBru1vSXGae1x0i5b1~Jvj5HV8166jg~NnYguhF3egPem~Sl0hwRezPtlYO13WIrFNCl-yoogefLL1vhIIJzPfekhNjlK0xIFg5FQvhSVN9ko9oBnovypwj98hffoQ__",
+        "poster": "https://cms-toolkit-public-artifacts.artlist.io/content/video/video-thumbnails/generated-thumbnail-51d6d3d4-5d08-4e2e-bee7-7c26c6d6d735.jpg"
+      },
+      "description": "Three Nigerian athletes, two women and a man, doing battle-rope waves in a dark gym"
+    },
+    "signin": {
+      "src": "https://cms-toolkit-artifacts.artlist.io/content/-t-e-x-t_-t-o_-v-i-d-e-o-v1/media__10/-t-e-x-t_-t-o_-v-i-d-e-o-5936598b-8c2a-4536-83fb-e530b05ea65a.mp4?Expires=2105464797&Key-Pair-Id=K2ZDLYDZI2R1DF&Signature=kgzkRXq7raGO9MYGLEwht6yu8SdsM5UuPxhpgA3Gmb3P9~IW6gubs1o74mDOxRJ9F5zdroVVZFTzXgS05siZKmvBe3WbYcJkw0dl5RyPm-oH9xjyhsXECCPjtjj9B3LmvBkkJLCUomykaBF~cDVoanOainJv~M4nnoELaGIk9X~wq7qGBybsMDoWO~cQT3taApapwtkcCoAWvUyi4209ONTHIYCYf6hLxfhrgBeeHnOQKzsIKj7mrATzERhkHMuGYvhGfZlJR1UkHbxCfrhCW7g30npat1jir-t5Gifibl3vPD2hW~KsbcRjrykWHp9fVlGdsKHDSYiCwBAWzX9MMg__",
+      "poster": "https://cms-toolkit-public-artifacts.artlist.io/content/video/video-thumbnails/generated-thumbnail-dd7f3382-2803-4121-ad2c-c966c4b0ef34.jpg",
+      "remote": {
+        "src": "https://cms-toolkit-artifacts.artlist.io/content/-t-e-x-t_-t-o_-v-i-d-e-o-v1/media__10/-t-e-x-t_-t-o_-v-i-d-e-o-5936598b-8c2a-4536-83fb-e530b05ea65a.mp4?Expires=2105464797&Key-Pair-Id=K2ZDLYDZI2R1DF&Signature=kgzkRXq7raGO9MYGLEwht6yu8SdsM5UuPxhpgA3Gmb3P9~IW6gubs1o74mDOxRJ9F5zdroVVZFTzXgS05siZKmvBe3WbYcJkw0dl5RyPm-oH9xjyhsXECCPjtjj9B3LmvBkkJLCUomykaBF~cDVoanOainJv~M4nnoELaGIk9X~wq7qGBybsMDoWO~cQT3taApapwtkcCoAWvUyi4209ONTHIYCYf6hLxfhrgBeeHnOQKzsIKj7mrATzERhkHMuGYvhGfZlJR1UkHbxCfrhCW7g30npat1jir-t5Gifibl3vPD2hW~KsbcRjrykWHp9fVlGdsKHDSYiCwBAWzX9MMg__",
+        "poster": "https://cms-toolkit-public-artifacts.artlist.io/content/video/video-thumbnails/generated-thumbnail-dd7f3382-2803-4121-ad2c-c966c4b0ef34.jpg"
+      },
+      "description": "A Nigerian woman athlete mid push-up on a dark gym floor"
+    }
+  }
+}

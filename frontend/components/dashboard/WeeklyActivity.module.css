@@ -1,0 +1,197 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  height: 100%;
+}
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.label {
+  font: 700 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.total {
+  margin-top: var(--space-1);
+  font: 800 32px/1.1 var(--font-heading);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.totalUnit {
+  font: 500 14px/1 var(--font-sans);
+  letter-spacing: 0;
+  color: var(--ink-tertiary);
+}
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+  color: var(--status-success);
+  font: 700 12px/1 var(--font-sans);
+  white-space: nowrap;
+}
+
+/* Plot: 7 equal slots. Bars cap at 24px and grow from one baseline. */
+/* Fixed height so bar percentages resolve: 24px top band for the cap label,
+   24px bottom band for day labels, bars in between. */
+.plot {
+  --band: 24px;
+  position: relative;
+  height: 190px;
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+  padding-top: var(--band);
+}
+.goal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* --g = goal / scale max, measured against the bar area only */
+  bottom: calc(var(--band) + (100% - var(--band) * 2) * var(--g));
+  height: 0;
+  border-top: 1px solid var(--border-strong);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Left end, clear of today's cap label on the right. */
+.goalLabel {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  font: 600 11px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+  background: var(--surface);
+  padding-right: 6px;
+}
+.col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  outline: none;
+  cursor: default;
+  z-index: 1;
+}
+.slot {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.bar {
+  width: min(24px, 70%);
+  height: var(--h);
+  border-radius: 4px 4px 0 0;
+  background: var(--ink-tertiary);
+  transform-origin: bottom;
+  animation: grow 900ms var(--ease-out-expo) both;
+  transition: filter 0.2s ease;
+}
+.col:nth-child(2) .bar { animation-delay: 60ms; }
+.col:nth-child(3) .bar { animation-delay: 110ms; }
+.col:nth-child(4) .bar { animation-delay: 160ms; }
+.col:nth-child(5) .bar { animation-delay: 210ms; }
+.col:nth-child(6) .bar { animation-delay: 260ms; }
+.col:nth-child(7) .bar { animation-delay: 310ms; }
+.col:nth-child(8) .bar { animation-delay: 360ms; }
+@keyframes grow {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+.today .bar {
+  background: var(--accent-volt);
+  box-shadow: 0 0 22px -4px color-mix(in srgb, var(--accent-volt) 70%, transparent);
+}
+.capLabel {
+  position: absolute;
+  bottom: calc(var(--h) + 6px);
+  left: 50%;
+  translate: -50% 0;
+  font: 700 12px/1 var(--font-sans);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.day {
+  height: var(--band);
+  display: flex;
+  align-items: flex-end;
+  font: 600 12px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.today .day {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* Hover/focus: the whole column slot is the hit target; the bar lifts and a
+   tooltip leads with the value. */
+.col:hover .bar,
+.col:focus-visible .bar {
+  filter: brightness(1.35);
+}
+.col:focus-visible .day {
+  color: var(--accent-volt);
+}
+.tooltip {
+  position: absolute;
+  bottom: calc(var(--h) + 10px);
+  left: 50%;
+  translate: -50% 4px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    translate 0.2s var(--ease-out-expo);
+}
+.tooltip strong {
+  font: 800 14px/1 var(--font-sans);
+  color: var(--ink);
+}
+.tooltip span {
+  font: 500 11px/1 var(--font-sans);
+  color: var(--ink-secondary);
+}
+.col:hover .tooltip,
+.col:focus-visible .tooltip {
+  opacity: 1;
+  translate: -50% 0;
+}
+.today:hover .capLabel,
+.today:focus-visible .capLabel {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

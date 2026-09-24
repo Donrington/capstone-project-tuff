@@ -1,0 +1,43 @@
+.avatar {
+  position: relative;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+/* Sits over the initials, which show through if the photo fails to load. */
+.photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sm {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+.md {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+}
+.lg {
+  width: 64px;
+  height: 64px;
+  font-size: 20px;
+}
+.xl {
+  width: 96px;
+  height: 96px;
+  font-size: 30px;
+}
+.activeRing {
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent-volt);
+}

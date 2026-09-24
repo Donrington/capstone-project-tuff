@@ -1,0 +1,1049 @@
+/* ---------------------------------------------------------------------------
+   About. Same material as the auth page: dark canvas with volt/surge light,
+   film grain, curved panels, glass chips, line-by-line headline rises.
+   Scroll reveals are pure CSS (scroll-driven animations): browsers without
+   them, and anyone with reduced motion, just see the finished page.
+--------------------------------------------------------------------------- */
+
+.page {
+  --on-media: #f4f4f5;
+  --panel-ease: cubic-bezier(0.77, 0, 0.175, 1);
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  /* clip, not hidden: hidden would make this a scroll container and break
+     the sticky nav. It stops the tilted marquee from widening the page. */
+  overflow-x: clip;
+  background:
+    radial-gradient(1100px 620px at 100% -10%, color-mix(in srgb, var(--accent-volt) 7%, transparent), transparent 60%),
+    radial-gradient(900px 560px at -10% 42%, color-mix(in srgb, var(--accent-surge) 6%, transparent), transparent 60%),
+    radial-gradient(900px 560px at 110% 88%, color-mix(in srgb, var(--accent-volt) 5%, transparent), transparent 60%),
+    var(--canvas);
+}
+/* Film grain, as on the auth page */
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* In-page links move focus to their section; the section itself doesn't
+   need a ring for that. */
+.page:focus,
+.page [tabindex="-1"]:focus {
+  outline: none;
+}
+
+.container {
+  width: min(1240px, calc(100% - var(--space-4) * 2));
+  margin-inline: auto;
+}
+
+/* Anchor jumps land the section's first line just under the sticky nav
+   (64px bar + 12px offset + 12px air), not its top padding. */
+.section {
+  --pad: var(--space-16);
+  padding-block: var(--pad);
+  scroll-margin-top: calc(88px - var(--pad));
+}
+
+/* ------------------------------------------------------------ shared type */
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 700 12px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.kicker::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-volt);
+}
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 760px;
+}
+.sectionTitle {
+  font: 800 clamp(34px, 4.6vw, 64px) / 1.02 var(--font-heading);
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.body {
+  max-width: 520px;
+  font: 400 17px/27px var(--font-sans);
+  color: var(--ink-secondary);
+  text-wrap: pretty;
+}
+.volt {
+  color: var(--accent-volt);
+}
+.ink {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------- hero */
+
+.hero {
+  display: grid;
+  gap: var(--space-8);
+  padding-block: var(--space-6) var(--space-12);
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.heroTitle {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-4);
+  /* Capped so the longest line ("the ones who") stays one line in the
+     desktop column. */
+  font: 800 clamp(44px, 5.8vw, 84px) / 0.95 var(--font-heading);
+  letter-spacing: -0.045em;
+  color: var(--ink);
+}
+.line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+.lineInner {
+  display: block;
+  animation: lineUp 1000ms var(--ease-out-expo) both;
+  animation-delay: calc(180ms + var(--line, 0) * 110ms);
+}
+.line:last-child .lineInner {
+  color: var(--accent-volt);
+}
+.heroSub {
+  max-width: 520px;
+  margin-top: var(--space-6);
+  font: 400 17px/27px var(--font-sans);
+  color: var(--ink-secondary);
+  text-wrap: pretty;
+  animation: fadeUp 900ms var(--ease-out-expo) both 560ms;
+}
+.heroCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  animation: fadeUp 900ms var(--ease-out-expo) both 680ms;
+}
+.heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+  animation: fadeUp 900ms var(--ease-out-expo) both 800ms;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--ink-secondary);
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+}
+.liveDot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-volt);
+  animation: pulse 2.2s ease-out infinite;
+}
+
+/* Media first on phones, like the auth page's banner. */
+.heroVisual {
+  position: relative;
+  order: -1;
+}
+.heroMedia {
+  position: relative;
+  height: clamp(300px, 54vw, 440px);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  isolation: isolate;
+  background: #070708;
+  box-shadow: 0 40px 90px -45px rgba(0, 0, 0, 0.85);
+  /* The auth panel's signature: it arrives from a bulging curve. */
+  animation: panelIn 1300ms var(--panel-ease) both 80ms;
+}
+.heroMedia::after,
+.communityMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+}
+
+/* Brand-gradient mesh: shows until a clip's first frame paints, and stays
+   if a clip can't load at all — never a black box. */
+.mesh {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  background:
+    radial-gradient(38% 38% at 28% 32%, color-mix(in srgb, var(--accent-volt) 38%, transparent), transparent 70%),
+    radial-gradient(42% 42% at 74% 72%, color-mix(in srgb, var(--accent-surge) 38%, transparent), transparent 70%),
+    radial-gradient(70% 70% at 50% 50%, #17171b, #070708);
+  filter: blur(24px);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.video {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: mediaIn 1800ms var(--ease-out-expo) both 300ms;
+}
+/* The clips are square — keep faces in frame as the panels change shape. */
+.heroVideo {
+  object-position: 62% 32%;
+}
+.communityVideo {
+  object-position: 64% 42%;
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(7, 7, 8, 0.45) 0%, rgba(7, 7, 8, 0) 28%),
+    linear-gradient(0deg, rgba(7, 7, 8, 0.92) 0%, rgba(7, 7, 8, 0.45) 32%, rgba(7, 7, 8, 0) 62%);
+}
+
+/* A glass card floating over the clip — the app's own activity feed. */
+.floatCard {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 340px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 10, 12, 0.46);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  animation:
+    fadeUp 900ms var(--ease-out-expo) both 1100ms,
+    bob 7s ease-in-out infinite 2000ms;
+}
+.floatAvatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--on-media);
+  font: 700 13px/1 var(--font-sans);
+  box-shadow:
+    0 0 0 2px #0a0a0c,
+    0 0 0 4px var(--accent-volt);
+}
+.floatBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.floatTitle {
+  font: 700 13px/1.3 var(--font-sans);
+  color: var(--on-media);
+}
+.floatMeta {
+  font: 500 12px/1.3 var(--font-sans);
+  color: rgba(244, 244, 245, 0.66);
+}
+.floatBar,
+.pvBar {
+  display: block;
+  height: 6px;
+  margin-top: 2px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.floatBar > span,
+.pvBar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-volt);
+}
+.floatBar > span {
+  width: 74%;
+}
+
+.badge {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 5;
+  width: 92px;
+  animation: popIn 900ms var(--ease-spring) both 1000ms;
+}
+
+/* ---------------------------------------------------------------- marquee */
+
+.marqueeWrap {
+  padding-block: var(--space-8);
+}
+
+/* ------------------------------------------------------------------ story */
+
+.statement {
+  max-width: 1040px;
+  margin-top: var(--space-5);
+  font: 800 clamp(28px, 4vw, 56px) / 1.08 var(--font-heading);
+  letter-spacing: -0.035em;
+  color: var(--ink-tertiary);
+  text-wrap: balance;
+}
+.storyGrid {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 920px;
+  margin-top: var(--space-10);
+}
+.storyGrid p {
+  font: 400 17px/28px var(--font-sans);
+  color: var(--ink-secondary);
+  text-wrap: pretty;
+}
+
+/* A curve that draws itself as you scroll past. Fully drawn by default, so
+   it's never missing where scroll timelines aren't supported. */
+.arc {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-10);
+  overflow: visible;
+}
+.arc path {
+  fill: none;
+  stroke: var(--accent-volt);
+  stroke-width: 3;
+  stroke-linecap: round;
+  /* The gap is a hair longer than the path, so while hidden no zero-length
+     dash sits at the start to draw a round-cap dot. */
+  stroke-dasharray: 1 1.02;
+  stroke-dashoffset: 0;
+  opacity: 0.55;
+}
+
+/* ----------------------------------------------------------- how it works */
+
+.steps {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-10) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--space-8);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(90% 60% at 0% 0%, color-mix(in srgb, var(--accent-volt) 6%, transparent), transparent 60%),
+    var(--surface);
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform 0.35s var(--ease-out-expo),
+    border-color 0.25s ease;
+}
+.step:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+}
+.stepTitle {
+  margin-top: var(--space-3);
+  font: 800 26px/1.1 var(--font-heading);
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.stepText {
+  max-width: 34ch;
+  font: 400 15px/23px var(--font-sans);
+  color: var(--ink-secondary);
+}
+/* A giant outlined numeral tucked into the corner, clipped by the card. */
+.stepNum {
+  position: absolute;
+  right: -4px;
+  bottom: -26px;
+  z-index: -1;
+  font: 800 132px/1 var(--font-heading);
+  letter-spacing: -0.06em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--border-strong);
+  pointer-events: none;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  min-height: 184px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+.pvStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+.pvCenter {
+  align-items: center;
+  text-align: center;
+}
+.pvRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.pvLabel {
+  font: 700 12px/1 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.pvUnit {
+  font: 600 12px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.pvChips {
+  display: flex;
+  gap: var(--space-2);
+}
+.pvChip {
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-strong);
+  color: var(--ink-secondary);
+  font: 700 13px/1 var(--font-sans);
+}
+.pvChipOn {
+  border-color: var(--accent-volt);
+  background: color-mix(in srgb, var(--accent-volt) 14%, var(--surface-2));
+  color: var(--ink);
+}
+.pvBar > span {
+  width: 80%;
+}
+.pvMeta {
+  font: 400 13px/1.3 var(--font-sans);
+  color: var(--ink-secondary);
+}
+.pvMeta b {
+  color: var(--accent-volt);
+  font-weight: 800;
+}
+.pvCode {
+  font: 800 clamp(26px, 2.6vw, 32px) / 1 var(--font-heading);
+  letter-spacing: 0.02em;
+  color: var(--accent-volt);
+}
+.pvAvatars {
+  display: flex;
+}
+.pvAvatars > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--ink);
+  font: 700 11px/1 var(--font-sans);
+  box-shadow: 0 0 0 2px var(--surface-2);
+}
+.pvAvatars > span:first-child {
+  margin-left: 0;
+}
+.pvAvatars > .pvMore {
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+}
+.pvShare {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--ink);
+  font: 700 12px/1 var(--font-sans);
+}
+.pvBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pvBoard li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+}
+.pvBoard .pvMe {
+  background: color-mix(in srgb, var(--accent-volt) 12%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-volt) 45%, transparent);
+}
+.pvRank {
+  width: 16px;
+  font: 800 14px/1 var(--font-heading);
+  color: var(--ink-tertiary);
+}
+.pvName {
+  flex: 1;
+  min-width: 0;
+  font: 600 13px/1.2 var(--font-sans);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pvScore {
+  font: 700 13px/1 var(--font-sans);
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pvScore em {
+  font-style: normal;
+  color: var(--status-success);
+}
+
+/* -------------------------------------------------------------- community */
+
+.community {
+  display: grid;
+  gap: var(--space-10);
+  align-items: center;
+}
+.communityMedia {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-height: 640px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  isolation: isolate;
+  background: #070708;
+  box-shadow: 0 40px 90px -45px rgba(0, 0, 0, 0.85);
+}
+.teamPill {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 10, 12, 0.42);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  color: var(--on-media);
+  font: 700 12px/1 var(--font-sans);
+  animation: bob 8s ease-in-out infinite;
+}
+.rivalCard {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 10, 12, 0.46);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  animation: bob 7s ease-in-out infinite 1200ms;
+}
+.rivalLine {
+  font: 500 14px/1.3 var(--font-sans);
+  color: rgba(244, 244, 245, 0.8);
+}
+.rivalLine b {
+  color: var(--on-media);
+  font-weight: 800;
+}
+/* Your team in surge, the rival in gray — as on the teams page. */
+.split {
+  display: flex;
+  gap: 4px;
+  height: 8px;
+}
+.splitUs,
+.splitThem {
+  border-radius: var(--radius-full);
+}
+.splitUs {
+  flex: 48;
+  background: var(--accent-surge);
+}
+.splitThem {
+  flex: 52;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.communityText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font: 600 15px/1.35 var(--font-sans);
+  color: var(--ink);
+}
+.featureIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+}
+
+/* ------------------------------------------------------------------ stats */
+
+.statsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-6);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(60% 90% at 0% 0%, color-mix(in srgb, var(--accent-volt) 8%, transparent), transparent 60%),
+    radial-gradient(60% 90% at 100% 100%, color-mix(in srgb, var(--accent-surge) 7%, transparent), transparent 60%),
+    var(--surface);
+}
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8) var(--space-6);
+  margin: 0;
+}
+/* Number first on screen; label first for screen readers. */
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-2);
+}
+.stat dt {
+  font: 500 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.stat dd {
+  margin: 0;
+  font: 800 clamp(36px, 5vw, 64px) / 1 var(--font-heading);
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- values */
+
+.values {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-10) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.value {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  transition:
+    transform 0.35s var(--ease-out-expo),
+    border-color 0.25s ease;
+}
+.value:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+}
+/* An organic blob, slowly breathing between curves. */
+.valueIcon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: var(--space-2);
+  border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  background: color-mix(in srgb, var(--accent-volt) 14%, var(--surface-2));
+  color: var(--accent-volt);
+  animation: blob 9s ease-in-out infinite alternate;
+}
+.value:nth-child(2) .valueIcon {
+  animation-delay: -3s;
+}
+.value:nth-child(3) .valueIcon {
+  animation-delay: -6s;
+}
+.valueTitle {
+  font: 800 22px/1.15 var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.valueText {
+  font: 400 15px/23px var(--font-sans);
+  color: var(--ink-secondary);
+}
+
+/* ------------------------------------------------------------ final call */
+
+.ctaPanel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-16) var(--space-6);
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #070708;
+  text-align: center;
+  box-shadow: 0 40px 90px -45px rgba(0, 0, 0, 0.85);
+}
+.ctaMesh {
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background:
+    radial-gradient(34% 44% at 22% 30%, color-mix(in srgb, var(--accent-volt) 30%, transparent), transparent 70%),
+    radial-gradient(38% 48% at 80% 74%, color-mix(in srgb, var(--accent-surge) 32%, transparent), transparent 70%),
+    radial-gradient(70% 70% at 50% 50%, #151518, #070708);
+  filter: blur(28px);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.ctaTitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font: 800 clamp(40px, 7vw, 104px) / 0.95 var(--font-heading);
+  letter-spacing: -0.045em;
+  color: var(--on-media);
+  text-wrap: balance;
+}
+.ctaText {
+  max-width: 460px;
+  margin-top: var(--space-5);
+  font: 400 17px/27px var(--font-sans);
+  color: rgba(244, 244, 245, 0.78);
+}
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+/* ------------------------------------------------------------- breakpoints */
+
+@media (min-width: 720px) {
+  .container {
+    width: min(1240px, calc(100% - var(--space-8) * 2));
+  }
+  .section {
+    --pad: calc(var(--space-16) * 1.5);
+  }
+  .storyGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .statsPanel {
+    padding: var(--space-12) var(--space-10);
+  }
+  .ctaPanel {
+    padding: calc(var(--space-16) * 1.5) var(--space-10);
+  }
+  .floatCard {
+    left: var(--space-5);
+    bottom: var(--space-5);
+  }
+}
+
+@media (min-width: 900px) {
+  .steps,
+  .values {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    align-items: center;
+    gap: var(--space-16);
+    min-height: min(780px, calc(100dvh - 96px));
+    padding-block: var(--space-8) var(--space-16);
+  }
+  .heroVisual {
+    order: 0;
+  }
+  .heroMedia {
+    height: min(640px, calc(100dvh - 176px));
+    min-height: 500px;
+  }
+  /* The badge breaks out over the panel's top-left corner. */
+  .badge {
+    top: var(--space-10);
+    right: auto;
+    left: -54px;
+    width: 132px;
+  }
+  .community {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: var(--space-16);
+  }
+  .statsGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* -------------------------------------------------------------- keyframes */
+
+@keyframes lineUp {
+  from {
+    translate: 0 110%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    scale: 0.94;
+    border-radius: 240px 40px 40px 240px / 50% 40px 40px 50%;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    border-radius: var(--radius-2xl);
+  }
+}
+@keyframes mediaIn {
+  from {
+    opacity: 0;
+    scale: 1.08;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes drift {
+  from {
+    transform: translate3d(-4%, -3%, 0) rotate(0deg) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.08);
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(215, 255, 61, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(215, 255, 61, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(215, 255, 61, 0);
+  }
+}
+@keyframes blob {
+  from {
+    border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
+  }
+  to {
+    border-radius: 58% 42% 45% 55% / 42% 58% 42% 58%;
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 calc(40px + var(--i, 0) * 22px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1.01;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fill {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes ctaMorph {
+  from {
+    scale: 0.94;
+    border-radius: 50% 50% 40px 40px / 26% 26% 40px 40px;
+  }
+  to {
+    scale: 1;
+    border-radius: var(--radius-2xl);
+  }
+}
+
+/* ------------------------------------------ scroll-driven, where supported */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* `animation-timeline` must come after the `animation` shorthand, which
+       resets it. Ranges end once an element is fully on screen, so nothing
+       near the bottom of the page can get stuck half-revealed. */
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 85%;
+    }
+    .arc path {
+      animation: draw linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 55%;
+    }
+    .pvBar > span {
+      transform-origin: left center;
+      animation: fill linear both;
+      animation-timeline: view();
+      animation-range: entry 30% cover 45%;
+    }
+    /* The closing panel arrives from a curve, echoing the hero. */
+    .ctaPanel {
+      animation: ctaMorph linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -1,0 +1,29 @@
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(70% 90% at 0% 0%, color-mix(in srgb, var(--accent-volt) 6%, transparent), transparent 60%),
+    var(--surface);
+}
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+.name {
+  font: 800 clamp(24px, 4vw, 32px) / 1.15 var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.meta {
+  font: 400 15px/22px var(--font-sans);
+  color: var(--ink-secondary);
+}

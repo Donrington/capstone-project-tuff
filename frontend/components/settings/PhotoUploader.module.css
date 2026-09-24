@@ -1,0 +1,124 @@
+.section {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+/* Matches FormField's label exactly, so "Profile photo" reads as one more
+   field in the list rather than a differently-styled aside. */
+.label {
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-1);
+  font: 700 13px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  color: var(--ink-secondary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: rgba(5, 5, 6, 0.55);
+  color: var(--ink);
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.change,
+.remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 700 13px/1 var(--font-sans);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.change:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+.remove {
+  border-color: transparent;
+  background: transparent;
+  color: var(--status-danger);
+}
+.remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+}
+.change:disabled,
+.remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hint,
+.error {
+  max-width: 38ch;
+  font: 400 12px/17px var(--font-sans);
+}
+.hint {
+  color: var(--ink-tertiary);
+}
+.error {
+  color: var(--status-danger);
+}
+
+/* Phones: the avatar centers above its controls instead of squeezing into a
+   tight row — see the width math in the roadmap note for why. */
+@media (max-width: 560px) {
+  .row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-4);
+  }
+  .controls {
+    align-items: center;
+  }
+  .buttons {
+    justify-content: center;
+  }
+  .hint,
+  .error {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

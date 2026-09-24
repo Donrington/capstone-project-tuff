@@ -1,0 +1,61 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+  padding: 0 var(--space-1);
+}
+.box {
+  appearance: none;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface-2) center / 14px 14px no-repeat;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.box:hover {
+  border-color: var(--ink-tertiary);
+}
+.box:checked {
+  background-color: var(--accent-volt);
+  border-color: var(--accent-volt);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b0b0d' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+.box:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 22%, transparent);
+}
+.boxError {
+  border-color: var(--status-danger);
+}
+.label {
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.label a {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-strong);
+}
+.label a:hover {
+  text-decoration-color: var(--accent-volt);
+}
+.error {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--status-danger);
+  padding-left: calc(var(--space-1) + 20px + var(--space-3));
+}

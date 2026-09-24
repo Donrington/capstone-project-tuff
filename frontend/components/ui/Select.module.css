@@ -1,0 +1,74 @@
+.group {
+  display: flex;
+  flex-direction: column;
+}
+.label {
+  margin-bottom: var(--space-2);
+  padding: 0 var(--space-1);
+  font: 700 13px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  color: var(--ink-secondary);
+}
+.control {
+  position: relative;
+}
+.select {
+  appearance: none;
+  width: 100%;
+  height: 52px;
+  padding: 0 48px 0 20px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 400 15px/1 var(--font-sans);
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+/* The dropdown itself is drawn by the OS — keep it on brand where we can. */
+.select option {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.select:hover:not(:disabled):not(:focus-visible) {
+  border-color: var(--ink-tertiary);
+}
+.select:focus-visible {
+  border-color: var(--accent-volt);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 22%, transparent);
+}
+.select:disabled {
+  color: var(--ink-tertiary);
+  background: var(--surface);
+  cursor: not-allowed;
+}
+.error,
+.error:hover:not(:disabled):not(:focus-visible) {
+  border-color: var(--status-danger);
+}
+.error:focus-visible {
+  border-color: var(--status-danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-danger) 22%, transparent);
+}
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  translate: 0 -50%;
+  color: var(--ink-tertiary);
+  pointer-events: none;
+}
+.helper {
+  margin-top: 6px;
+  padding: 0 var(--space-1);
+  font: 400 12px/16px var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.helperError {
+  color: var(--status-danger);
+}

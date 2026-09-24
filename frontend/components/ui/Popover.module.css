@@ -1,0 +1,37 @@
+.panel {
+  position: fixed;
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--ink);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9);
+  overscroll-behavior: contain;
+}
+
+.panel:popover-open {
+  opacity: 1;
+  translate: 0 0;
+}
+.panel {
+  opacity: 0;
+  translate: 0 -6px;
+  transition:
+    opacity 0.16s ease,
+    translate 0.16s var(--ease-out-expo),
+    display 0.16s allow-discrete,
+    overlay 0.16s allow-discrete;
+}
+@starting-style {
+  .panel:popover-open {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+}

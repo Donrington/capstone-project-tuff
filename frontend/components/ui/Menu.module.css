@@ -1,0 +1,65 @@
+.menu {
+  min-width: 220px;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-secondary);
+  font: 600 14px/1.2 var(--font-sans);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.item:hover,
+.item:focus-visible {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.label {
+  flex: 1;
+}
+.icon {
+  flex-shrink: 0;
+  color: var(--ink-tertiary);
+}
+.item:hover .icon,
+.item:focus-visible .icon {
+  color: var(--accent-volt);
+}
+.check {
+  flex-shrink: 0;
+  color: var(--accent-volt);
+}
+.danger {
+  color: var(--status-danger);
+}
+.danger:hover,
+.danger:focus-visible {
+  background: color-mix(in srgb, var(--status-danger) 14%, transparent);
+  color: var(--status-danger);
+}
+.danger .icon,
+.danger:hover .icon,
+.danger:focus-visible .icon {
+  color: currentColor;
+}
+.separated {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-3);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}

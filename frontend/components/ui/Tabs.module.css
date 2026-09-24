@@ -1,0 +1,36 @@
+.tabs {
+  position: relative;
+  display: inline-flex;
+  padding: 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+}
+.gooLayer {
+  position: absolute;
+  inset: 6px;
+  z-index: 0;
+  pointer-events: none;
+}
+.blob {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--accent-volt);
+}
+.tabBtn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 22px;
+  border-radius: var(--radius-full);
+  font: 700 15px/20px var(--font-sans);
+  cursor: pointer;
+  color: var(--ink-secondary);
+  transition: color 0.25s ease;
+}
+.active {
+  color: var(--ink-on-vivid);
+}

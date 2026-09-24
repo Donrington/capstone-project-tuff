@@ -1,0 +1,333 @@
+/* The About page's bar, in the app nav's language (components/nav): a frosted
+   pill, icon links with the volt notch on the active one, a drawer on small
+   screens. Colours come from the --nav-* tokens in globals.css. */
+
+.bar {
+  position: sticky;
+  top: var(--space-3);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* Same width as the page's .container, so the bar lines up with the
+     sections and the footer. */
+  width: min(1240px, calc(100% - var(--space-4) * 2));
+  height: 64px;
+  margin: var(--space-3) auto 0;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(50% 160% at 0% 0%, color-mix(in srgb, var(--accent-volt) 8%, transparent), transparent 70%),
+    color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent),
+    var(--nav-shadow);
+  animation: navIn 800ms var(--ease-out-expo) both;
+}
+@media (min-width: 720px) {
+  .bar {
+    width: min(1240px, calc(100% - var(--space-8) * 2));
+  }
+}
+
+/* Reading progress: a volt-to-surge line along the bar's bottom edge that
+   fills as the page scrolls. Pure CSS; left out where scroll timelines
+   aren't supported. */
+.bar::after {
+  content: "";
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent-volt), var(--accent-surge));
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .bar::after {
+    animation: readProgress linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+}
+.logo {
+  height: 24px;
+  width: auto;
+}
+
+/* ------------------------------------------------------------ icon buttons */
+
+.menuButton,
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.menuButton:hover,
+.iconButton:hover {
+  background: var(--surface-3);
+}
+
+/* ---------------------------------------------------------- section links */
+
+.links {
+  display: none;
+  margin: 0 auto;
+}
+.linkList {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: var(--radius-full);
+  color: var(--nav-fg);
+  font: 700 14px/1 var(--font-sans);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.link:hover {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  color: var(--ink);
+}
+.icon {
+  flex: none;
+  transition: color 0.2s ease;
+}
+.link[aria-current="true"] {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-fg);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.link[aria-current="true"] .icon {
+  color: var(--accent-volt);
+}
+/* The same volt notch as the app nav's active link. */
+.link[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 3px;
+  background: var(--accent-volt);
+  box-shadow: 0 0 10px var(--accent-volt);
+}
+
+/* ---------------------------------------------------------------- actions */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+/* On narrow phones the bar keeps one clear call to action; "Sign in" is in
+   the drawer. Two classes so this beats Button's own `display` no matter
+   which stylesheet loads last. */
+.actions .signIn {
+  display: none;
+}
+
+@media (min-width: 420px) {
+  .actions .signIn {
+    display: inline-flex;
+  }
+}
+@media (min-width: 900px) {
+  .menuButton {
+    display: none;
+  }
+  .brand {
+    padding-left: var(--space-4);
+  }
+  .links {
+    display: block;
+  }
+  .actions {
+    margin-left: 0;
+  }
+}
+
+/* ----------------------------------------------------------------- drawer */
+
+.drawer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: hidden;
+  transition:
+    display 0.45s allow-discrete,
+    overlay 0.45s allow-discrete;
+}
+.drawer[open] {
+  display: block;
+}
+.drawer::backdrop {
+  background: rgba(5, 5, 6, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition:
+    opacity 0.3s ease,
+    display 0.45s allow-discrete,
+    overlay 0.45s allow-discrete;
+}
+.drawer[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.drawerPanel {
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  width: min(320px, calc(100vw - 48px));
+  padding: var(--space-5) 18px var(--space-4);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-subtle);
+  background: var(--nav-bg);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.9);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  translate: calc(-100% - var(--space-4)) 0;
+  transition: translate 0.45s var(--ease-out-expo);
+}
+.drawer[open] .drawerPanel {
+  translate: 0 0;
+}
+@starting-style {
+  .drawer[open] .drawerPanel {
+    translate: calc(-100% - var(--space-4)) 0;
+  }
+}
+
+.drawerHead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+.drawerBrand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-left: 6px;
+}
+.drawerLogo {
+  height: 26px;
+  width: auto;
+}
+.drawerLabel {
+  margin: 0 0 var(--space-2) 14px;
+  font: 700 12px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.drawerLinks .linkList {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.drawerLinks .link {
+  width: 100%;
+  height: 48px;
+  gap: 14px;
+  font-size: 15px;
+}
+.drawerActions {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-5);
+}
+
+@media (min-width: 900px) {
+  .drawer,
+  .drawer[open] {
+    display: none;
+  }
+}
+
+@keyframes navIn {
+  from {
+    opacity: 0;
+    translate: 0 -12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes readProgress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+  .link,
+  .icon,
+  .drawer,
+  .drawer::backdrop,
+  .drawerPanel {
+    transition: none;
+  }
+}

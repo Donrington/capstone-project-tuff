@@ -1,0 +1,82 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: 100%;
+  padding: var(--space-6) var(--space-6) var(--space-10);
+  text-align: center;
+  overflow: hidden;
+}
+
+.ringWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+/* The shapes spawn at the ring's centre and GSAP throws them outward. */
+.burst {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.shape {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  opacity: 0;
+}
+.volt {
+  background: var(--accent-volt);
+  border-radius: 50%;
+}
+.surge {
+  background: var(--accent-surge);
+}
+
+.count {
+  font: 800 clamp(48px, 12vw, 88px) / 1 var(--font-heading);
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.countUnit {
+  font-size: 0.36em;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink-tertiary);
+}
+
+.headline {
+  max-width: 18ch;
+  font: 800 clamp(24px, 5vw, 36px) / 1.1 var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.sub {
+  font: 400 16px/24px var(--font-sans);
+  color: var(--ink-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 719px) {
+  .actions {
+    flex-direction: column-reverse;
+    width: 100%;
+    max-width: 320px;
+  }
+  .actions > * {
+    width: 100%;
+  }
+}

@@ -1,0 +1,95 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.empty {
+  padding: var(--space-4) 0;
+  font: 400 15px/22px var(--font-sans);
+  color: var(--ink-secondary);
+}
+
+.unit {
+  padding-right: 10px;
+  font: 600 13px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: 0 var(--space-1);
+}
+.quickChip {
+  padding: 8px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--ink-secondary);
+  font: 700 13px/1 var(--font-sans);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease;
+}
+.quickChip:hover {
+  border-color: var(--accent-volt);
+  background: color-mix(in srgb, var(--accent-volt) 12%, var(--surface-2));
+  color: var(--ink);
+}
+
+.preview {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-3);
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.previewFrom {
+  font-weight: 700;
+  color: var(--ink-tertiary);
+}
+.previewTo {
+  font-weight: 800;
+  color: var(--accent-volt);
+}
+.clears {
+  display: block;
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--status-success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (max-width: 719px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+  .actions > * {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

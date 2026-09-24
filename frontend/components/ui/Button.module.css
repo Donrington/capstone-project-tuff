@@ -1,0 +1,203 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 22px;
+  border-radius: var(--radius-full);
+  font: 700 15px/20px var(--font-sans);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s var(--ease-spring);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  background: var(--surface-2);
+  color: var(--ink-tertiary);
+  box-shadow: none;
+  transform: none;
+}
+.lg {
+  height: 52px;
+  padding: 0 28px;
+  font-size: 16px;
+}
+.fullWidth {
+  width: 100%;
+}
+
+.primary {
+  background:
+    linear-gradient(100deg, transparent 28%, rgba(255, 255, 255, 0.8) 48%, transparent 68%),
+    radial-gradient(circle at 50% 120%, var(--accent-volt) 0%, color-mix(in srgb, var(--accent-volt) 80%, transparent) 60%, transparent 100%),
+    var(--accent-volt);
+  color: var(--ink-on-vivid);
+  box-shadow:
+    inset -6px -6px 3px -5px rgba(255, 255, 255, 0.95),
+    inset 6px 6px 3px -5px rgba(255, 255, 255, 0.5),
+    inset 0 0 16px 0 color-mix(in srgb, var(--accent-volt) 20%, transparent),
+    0 12px 32px -14px color-mix(in srgb, var(--accent-volt) 70%, transparent);
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s var(--ease-spring);
+}
+.primary:hover:not(:disabled) {
+  box-shadow:
+    inset -6px -6px 3px -5px rgba(255, 255, 255, 1),
+    inset 6px 6px 3px -5px rgba(255, 255, 255, 0.65),
+    inset 0 0 20px 0 color-mix(in srgb, var(--accent-volt) 30%, transparent),
+    0 16px 40px -14px color-mix(in srgb, var(--accent-volt) 85%, transparent);
+  transform: translateY(-1px);
+}
+.primary[aria-busy="true"]:disabled {
+  background:
+    linear-gradient(100deg, transparent 28%, rgba(255, 255, 255, 0.8) 48%, transparent 68%),
+    radial-gradient(circle at 50% 120%, var(--accent-volt) 0%, color-mix(in srgb, var(--accent-volt) 80%, transparent) 60%, transparent 100%),
+    var(--accent-volt);
+  color: var(--ink-on-vivid);
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.secondary {
+  background:
+    linear-gradient(100deg, transparent 28%, rgba(255, 255, 255, 0.75) 48%, transparent 68%),
+    radial-gradient(circle at 50% 120%, var(--accent-surge) 0%, color-mix(in srgb, var(--accent-surge) 80%, transparent) 60%, transparent 100%),
+    var(--accent-surge);
+  color: var(--ink-on-vivid);
+  box-shadow:
+    inset -6px -6px 3px -5px rgba(255, 255, 255, 0.9),
+    inset 6px 6px 3px -5px rgba(255, 255, 255, 0.45),
+    inset 0 0 16px 0 color-mix(in srgb, var(--accent-surge) 20%, transparent),
+    0 12px 32px -14px color-mix(in srgb, var(--accent-surge) 70%, transparent);
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s var(--ease-spring);
+}
+.secondary:hover:not(:disabled) {
+  box-shadow:
+    inset -6px -6px 3px -5px rgba(255, 255, 255, 1),
+    inset 6px 6px 3px -5px rgba(255, 255, 255, 0.6),
+    inset 0 0 20px 0 color-mix(in srgb, var(--accent-surge) 30%, transparent),
+    0 16px 40px -14px color-mix(in srgb, var(--accent-surge) 85%, transparent);
+  transform: translateY(-1px);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--ink-tertiary);
+}
+
+/* Metallic premium button */
+@property --metal-pos {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+.metalWrap {
+  position: relative;
+  border-radius: var(--radius-full);
+  padding: 1.5px;
+  display: inline-flex;
+}
+.metalWrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    115deg,
+    #6b6b74 0%,
+    #f4f4f6 18%,
+    #8a8a93 32%,
+    #d8d8de 46%,
+    #55555e 60%,
+    #eaeaee 74%,
+    #75757e 88%,
+    #f4f4f6 100%
+  );
+  background-size: 220% 220%;
+  background-position: var(--metal-pos) 50%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: metal-shift 3.2s ease-in-out infinite;
+}
+@keyframes metal-shift {
+  0%,
+  100% {
+    --metal-pos: 0%;
+  }
+  50% {
+    --metal-pos: 100%;
+  }
+}
+.metal {
+  position: relative;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--surface-3) 0%, var(--surface-2) 100%);
+  color: var(--ink);
+  overflow: hidden;
+}
+.shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.16) 46%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.16) 54%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: shine-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shine-sweep {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+  50% {
+    background-position: -20% 0;
+  }
+}
+.label {
+  position: relative;
+  z-index: 1;
+}
+.spark {
+  position: relative;
+  z-index: 1;
+  color: var(--accent-volt);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metalWrap::before,
+  .shine {
+    animation: none;
+  }
+  .btn,
+  .btn:active,
+  .primary:hover:not(:disabled) {
+    transform: none;
+  }
+}

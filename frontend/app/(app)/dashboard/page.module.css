@@ -1,0 +1,265 @@
+.page {
+  width: 100%;
+}
+
+/* ------------------------------ header bits ------------------------------ */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 48px;
+  width: min(320px, 60vw);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--ink-tertiary);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.search:focus-within {
+  border-color: var(--accent-volt);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 18%, transparent);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font: 400 14px/1 var(--font-sans);
+}
+.search input::placeholder {
+  color: var(--ink-tertiary);
+}
+/* --------------------------------- bento --------------------------------- */
+.bento {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "ring"
+    "feat"
+    "week"
+    "chal"
+    "team"
+    "lead";
+}
+@media (min-width: 720px) {
+  .bento {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ring feat"
+      "week week"
+      "lead chal"
+      "lead team";
+  }
+}
+@media (min-width: 1200px) {
+  .bento {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas:
+      "ring ring feat feat"
+      "week week lead lead"
+      "chal team lead lead";
+  }
+}
+
+.ring {
+  grid-area: ring;
+}
+.feat {
+  grid-area: feat;
+}
+.week {
+  grid-area: week;
+}
+.lead {
+  grid-area: lead;
+}
+.chal {
+  grid-area: chal;
+}
+.team {
+  grid-area: team;
+}
+
+.tile,
+.reveal {
+  animation: tileIn 850ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+@keyframes tileIn {
+  from {
+    opacity: 0;
+    translate: 0 22px;
+    scale: 0.985;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  overflow: hidden;
+}
+.tileHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.tileLabel {
+  font: 700 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.tileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 700 12px/1 var(--font-sans);
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.tileLink:hover {
+  background: var(--surface-3);
+}
+
+/* Today: ring + stat list, with a soft volt glow behind the ring */
+.ring {
+  background:
+    radial-gradient(60% 70% at 25% 60%, color-mix(in srgb, var(--accent-volt) 7%, transparent), transparent 70%),
+    var(--surface);
+}
+.ringBody {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-around;
+  gap: var(--space-8);
+  padding: var(--space-2) 0;
+}
+.stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.stats li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.statIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.statText {
+  display: flex;
+  flex-direction: column;
+}
+.statText strong {
+  font: 800 20px/1.1 var(--font-heading);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.statText small {
+  font: 400 12px/16px var(--font-sans);
+  color: var(--ink-tertiary);
+}
+
+/* Compact challenge tile — the whole tile is the link */
+.chal {
+  color: inherit;
+  text-decoration: none;
+  background:
+    radial-gradient(80% 70% at 20% 70%, color-mix(in srgb, var(--accent-volt) 7%, transparent), transparent 70%),
+    var(--surface);
+  transition:
+    border-color 0.25s ease,
+    transform 0.35s var(--ease-out-expo),
+    background 0.25s ease;
+}
+.chal:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  transform: translateY(-3px);
+}
+.arrow {
+  color: var(--ink-secondary);
+  transition:
+    transform 0.3s var(--ease-spring),
+    color 0.2s ease;
+}
+.chal:hover .arrow {
+  color: var(--accent-volt);
+  transform: translate(2px, -2px);
+}
+.chalBody {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: auto 0;
+}
+.chalText {
+  min-width: 0;
+}
+.chalTitle {
+  font: 700 18px/1.2 var(--font-heading);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.chalMeta {
+  margin-top: 4px;
+  font: 400 13px/18px var(--font-sans);
+  color: var(--ink-secondary);
+}
+
+@media (max-width: 719px) {
+  .tile {
+    padding: var(--space-5) var(--space-4);
+  }
+  .search {
+    flex: 1;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .reveal {
+    animation: none;
+  }
+  .chal:hover {
+    transform: none;
+  }
+}

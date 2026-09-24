@@ -1,0 +1,12 @@
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+@media (min-width: 960px) {
+  .row {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}

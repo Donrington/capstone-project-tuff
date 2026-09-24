@@ -1,0 +1,277 @@
+/* The About page footer. One loud gesture, the logo in the volt-to-surge
+   gradient, under one quiet row of links and socials. No client JS: the
+   hovers and the scroll reveal are CSS.
+
+   Alignment: the card and the legal row below it share --pad, so every
+   row starts and ends on the same two vertical lines at any width. The top
+   row reflows with container queries on the card, so it responds to the
+   space it actually has. */
+
+.footer {
+  --grad: linear-gradient(90deg, var(--accent-volt), var(--accent-surge));
+  --pad: 40px;
+
+  /* Same width as the About page's .container, so the card lines up with
+     the sections above it. */
+  width: min(1240px, calc(100% - var(--space-4) * 2));
+  margin-inline: auto;
+  padding-bottom: var(--space-4);
+}
+@media (min-width: 720px) {
+  .footer {
+    width: min(1240px, calc(100% - var(--space-8) * 2));
+  }
+}
+@media (max-width: 1023px) {
+  .footer {
+    --pad: 32px;
+  }
+}
+@media (max-width: 639px) {
+  .footer {
+    --pad: 24px;
+  }
+}
+
+.card {
+  position: relative;
+  isolation: isolate;
+  /* clip, not hidden: hidden would make the card a scroll container, and the
+     logo reveal would track the card instead of the page. */
+  overflow: clip;
+  container-type: inline-size;
+  padding: var(--pad);
+  border-radius: var(--radius-2xl);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+/* A gradient hairline on the top edge that fades out before the corners. */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-volt) 30%, var(--accent-surge) 70%, transparent);
+}
+@media (max-width: 639px) {
+  .card {
+    border-radius: var(--radius-xl);
+  }
+}
+
+/* ---------------------------------------------------------------- top row */
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5) var(--space-8);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+  font: 500 17px/1 var(--font-sans);
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+/* The underline grows from the left in the brand gradient. */
+.linkText {
+  padding-block: 5px;
+  background: var(--grad) 0 100% / 0 2px no-repeat;
+  transition: background-size 200ms var(--ease-out-expo);
+}
+.link:hover,
+.link:focus-visible {
+  color: var(--ink);
+}
+.link:hover .linkText,
+.link:focus-visible .linkText {
+  background-size: 100% 2px;
+}
+
+.socials {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.social {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  color: var(--ink);
+  font-size: 19px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+  opacity: 0.8;
+  transition:
+    opacity 180ms ease,
+    color 180ms ease,
+    transform 180ms var(--ease-out-expo);
+}
+/* The gradient fill fades in on hover. Gradients can't transition, so it's
+   a layer whose opacity does. */
+.social::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-volt), var(--accent-surge));
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.social svg {
+  position: relative;
+}
+.social:hover,
+.social:focus-visible {
+  opacity: 1;
+  color: var(--ink-on-vivid);
+  transform: translateY(-2px);
+}
+.social:hover::before,
+.social:focus-visible::before {
+  opacity: 1;
+}
+
+/* Links and socials stop fitting on one line: stack them. */
+@container (width < 720px) {
+  .top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .links {
+    column-gap: var(--space-6);
+  }
+  .link {
+    font-size: 16px;
+  }
+}
+/* Phone widths: links in two even columns, socials spread edge to edge so
+   both rows share the same left and right lines. */
+@container (width < 440px) {
+  .links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
+  }
+  .socials {
+    justify-content: space-between;
+  }
+}
+
+/* ------------------------------------------------------------------- logo */
+
+/* The logo spans the card's inner width. The gradient is a CSS background,
+   masked by the one-colour logo SVG (viewBox 1079 x 194). */
+.wordmark {
+  aspect-ratio: 1079 / 194;
+  margin-top: clamp(40px, 8cqw, 104px);
+  background: var(--grad);
+  background: linear-gradient(90deg in oklch, var(--accent-volt), var(--accent-surge));
+  -webkit-mask: url("/logo/logo-mono.svg") center / 100% 100% no-repeat;
+  mask: url("/logo/logo-mono.svg") center / 100% 100% no-repeat;
+}
+
+/* The logo rises into place as the footer scrolls in. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .wordmark {
+      animation: wordmark-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+@keyframes wordmark-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24%);
+  }
+}
+
+/* ------------------------------------------------------------- legal row */
+
+/* Three columns with the email truly centred; on phones the email takes
+   its own line above the copyright and legal links. */
+.legal {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: var(--space-6);
+  padding: var(--space-2) var(--pad) 0;
+  color: var(--ink-secondary);
+  font: 400 14px/20px var(--font-sans);
+}
+.legal p {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+}
+.address {
+  font-style: normal;
+}
+.legal nav {
+  justify-self: end;
+}
+.legalLinks {
+  display: flex;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.legalLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+.legalLink:hover,
+.legalLink:focus-visible {
+  color: var(--ink);
+}
+@media (max-width: 639px) {
+  .legal {
+    grid-template-columns: 1fr auto;
+  }
+  .address {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link,
+  .linkText,
+  .social,
+  .social::before,
+  .legalLink {
+    transition: none;
+  }
+  .social:hover,
+  .social:focus-visible {
+    transform: none;
+  }
+}
