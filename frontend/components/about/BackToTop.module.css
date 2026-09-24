@@ -1,0 +1,51 @@
+/* Fixed bottom-right, under the nav bar's z-index (30) so it never competes
+   with the sticky bar or the drawer. */
+.button {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+  box-shadow: 0 20px 40px -16px color-mix(in srgb, var(--accent-volt) 60%, transparent);
+  cursor: pointer;
+  opacity: 0;
+  translate: 0 12px;
+  pointer-events: none;
+  transition:
+    opacity 220ms ease,
+    translate 220ms var(--ease-out-expo),
+    background 180ms ease;
+}
+.button[data-visible="true"] {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+}
+.button:hover {
+  background: var(--accent-volt-hover);
+}
+.button:focus-visible {
+  outline: 2px solid var(--accent-volt);
+  outline-offset: 3px;
+}
+
+@media (min-width: 720px) {
+  .button {
+    right: var(--space-6);
+    bottom: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: opacity 180ms ease;
+    translate: 0 0;
+  }
+}

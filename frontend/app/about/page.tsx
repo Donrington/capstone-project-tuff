@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowRight, Check, Flame, Footprints, MessageCircle, UsersRound } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { AboutNav, type AboutContext } from "@/components/about/AboutNav";
+import { BackToTop } from "@/components/about/BackToTop";
 import { CircleBadge } from "@/components/about/CircleBadge";
 import { LoopingVideo } from "@/components/about/LoopingVideo";
 import { Marquee } from "@/components/about/Marquee";
@@ -338,6 +339,7 @@ export default async function AboutPage({
       </main>
 
       <SiteFooter />
+      <BackToTop />
     </div>
   );
 }
