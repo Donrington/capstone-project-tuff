@@ -7,6 +7,9 @@ Team fitness challenges, streaks, and leaderboards.
 | [`frontend/`](frontend/) | The web app: Next.js (App Router), React, TypeScript. See its [README](frontend/README.md). |
 | [`backend/`](backend/) | The API: Node.js, Express, TypeScript, MongoDB. Scaffolded, mostly unbuilt — see its [README](backend/README.md) for the file layout, the API contract, and how the work is split. |
 
+Working on this repo? Read [CONTRIBUTING.md](CONTRIBUTING.md) first — nobody
+pushes to `main` directly; everything goes through a branch and a PR.
+
 ## Run the frontend
 
 ```bash
