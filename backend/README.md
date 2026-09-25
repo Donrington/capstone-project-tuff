@@ -27,6 +27,8 @@ return `{"ok":true}` once it's running.
 
 ## How it's organized
 
+(Same tree, on its own page: [`FILE_LAYOUT.md`](FILE_LAYOUT.md).)
+
 ```
 src/
   server.ts              Entry point: connect DB, start listening.
