@@ -5,7 +5,7 @@ Team fitness challenges, streaks, and leaderboards.
 | Folder | What it is |
 |---|---|
 | [`frontend/`](frontend/) | The web app: Next.js (App Router), React, TypeScript. See its [README](frontend/README.md). |
-| [`backend/`](backend/) | The API: Node.js, Express, TypeScript, MongoDB. Scaffolded, mostly unbuilt — see its [README](backend/README.md) for the file layout, the API contract, and how the work is split. |
+| `backend/` | The API. Not in this repo yet — untracked while the team settles on the approach. |
 
 Working on this repo? Read [CONTRIBUTING.md](CONTRIBUTING.md) first — nobody
 pushes to `main` directly; everything goes through a branch and a PR.
@@ -16,15 +16,6 @@ pushes to `main` directly; everything goes through a branch and a PR.
 cd frontend
 npm install
 npm run dev          # http://localhost:3000
-```
-
-## Run the backend
-
-```bash
-cd backend
-npm install
-cp .env.example .env    # fill in MONGODB_URI and the JWT secrets
-npm run dev              # http://localhost:4000
 ```
 
 ## Deploy the frontend (Vercel)

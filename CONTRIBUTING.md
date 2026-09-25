@@ -74,9 +74,10 @@ GitHub shows the whole PR as one diff when it's reviewed.
 - **If your PR sits for more than a day**, ping the owner directly rather
   than waiting silently.
 - **Never commit `.env`, `node_modules`, or anything with a real password,
-  API key, or secret in it.** Both `frontend/.gitignore` and
-  `backend/.gitignore` already exclude the usual suspects — if `git status`
-  ever shows one of those as ready to commit, stop and ask before pushing.
+  API key, or secret in it.** `frontend/.gitignore` (and `backend/.gitignore`
+  once `backend/` is back in the repo) already exclude the usual suspects —
+  if `git status` ever shows one of those as ready to commit, stop and ask
+  before pushing.
 - **Merge conflict?** Usually it means `main` moved on since you branched.
   From your branch:
   ```bash
