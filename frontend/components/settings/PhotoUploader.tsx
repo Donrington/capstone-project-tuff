@@ -16,7 +16,7 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 export function PhotoUploader({ user }: { user: User }) {
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [photoUrl, setPhotoUrl] = useState(user.photoUrl ?? null);
+  const [photoUrl, setPhotoUrl] = useState(user.profilePicture ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

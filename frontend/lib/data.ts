@@ -136,7 +136,7 @@ export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[
 );
 
 /** Everyone on your team except you — for invites and team challenges. */
-export const getTeammates = cache(async (): Promise<Pick<User, "id" | "name" | "initials">[]> => {
+export const getTeammates = cache(async (): Promise<{ id: string; name: string; initials: string }[]> => {
   const { user, leaderboard } = db();
   return settle(
     leaderboard.week
@@ -272,13 +272,14 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
 
 // TODO(backend): PATCH /me
 export async function updateProfile(input: {
-  name: string;
+  firstName: string;
+  lastName: string;
   displayName: string;
   bio: string;
 }): Promise<User> {
   const database = db();
-  database.user.name = input.name;
-  database.user.firstName = input.name.split(" ")[0] || input.name;
+  database.user.firstName = input.firstName;
+  database.user.lastName = input.lastName;
   database.user.displayName = input.displayName;
   database.user.bio = input.bio;
   return database.user;
@@ -291,7 +292,7 @@ export async function updateProfile(input: {
 // single in-memory record, not a database column.
 export async function updateProfilePhoto(dataUrl: string | null): Promise<User> {
   const database = db();
-  database.user.photoUrl = dataUrl ?? undefined;
+  database.user.profilePicture = dataUrl ?? undefined;
   return database.user;
 }
 

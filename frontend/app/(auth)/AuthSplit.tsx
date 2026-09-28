@@ -210,16 +210,28 @@ function SignUpForm({ headingRef, onSwitch }: FormProps) {
         <span>or with email</span>
       </div>
       <form action={formAction} className={styles.form} noValidate>
-        <FormField
-          id="signup-name"
-          label="Full name"
-          name="name"
-          autoComplete="name"
-          placeholder="Your full name"
-          defaultValue={state.values?.name}
-          error={Boolean(errors.name)}
-          helperText={errors.name}
-        />
+        <div className={styles.nameRow}>
+          <FormField
+            id="signup-firstName"
+            label="First name"
+            name="firstName"
+            autoComplete="given-name"
+            placeholder="First name"
+            defaultValue={state.values?.firstName}
+            error={Boolean(errors.firstName)}
+            helperText={errors.firstName}
+          />
+          <FormField
+            id="signup-lastName"
+            label="Last name"
+            name="lastName"
+            autoComplete="family-name"
+            placeholder="Last name"
+            defaultValue={state.values?.lastName}
+            error={Boolean(errors.lastName)}
+            helperText={errors.lastName}
+          />
+        </div>
         <FormField
           id="signup-email"
           label="Email"
