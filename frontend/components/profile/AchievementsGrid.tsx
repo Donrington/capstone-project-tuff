@@ -31,7 +31,7 @@ export function AchievementsGrid({ achievements }: { achievements: Achievement[]
               </span>
               <div className={styles.text}>
                 <p className={styles.name}>{a.name}</p>
-                <p className={styles.rule}>{a.rule}</p>
+                <p className={styles.rule}>{a.description}</p>
                 <p className={styles.status}>
                   {earned
                     ? `Earned ${earnedLabel(a.earnedAt!)}`

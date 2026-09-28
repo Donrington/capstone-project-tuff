@@ -65,11 +65,11 @@ export const team: TeamSummary = {
 export const challenges: Challenge[] = [
   {
     id: "10k-steps",
-    name: "10K Steps Challenge",
+    title: "10K Steps Challenge",
     description:
       "Every step counts toward the team total — sync your tracker to log today's walk.",
     unit: "steps",
-    target: 10000,
+    goal: 10000,
     current: 3840,
     startDate: "2026-09-19",
     endDate: "2026-09-26",
@@ -81,11 +81,11 @@ export const challenges: Challenge[] = [
   },
   {
     id: "pushup-power-week",
-    name: "Push-Up Power Week",
+    title: "Push-Up Power Week",
     description:
       "You're 60 reps ahead of pace. One more clean set closes today out.",
     unit: "reps",
-    target: 400,
+    goal: 400,
     current: 296,
     startDate: "2026-09-16",
     endDate: "2026-09-23",
@@ -98,10 +98,10 @@ export const challenges: Challenge[] = [
   },
   {
     id: "plank-ladder",
-    name: "Plank Ladder",
+    title: "Plank Ladder",
     description: "Add ten seconds a day. Today's hold: 1 minute 40.",
     unit: "seconds",
-    target: 140,
+    goal: 140,
     current: 100,
     startDate: "2026-09-14",
     endDate: "2026-09-28",
@@ -385,38 +385,69 @@ export const profileStats: ProfileStats = {
 };
 
 export const achievements: Achievement[] = [
-  { id: "first-log", name: "First Log", rule: "Log your first activity.", earnedAt: "2026-03-02" },
+  {
+    id: "first-log",
+    name: "First Log",
+    description: "Log your first activity.",
+    requirement: "Log your first activity.",
+    earnedAt: "2026-03-02",
+  },
   {
     id: "streak-7",
     name: "7-Day Streak",
-    rule: "Keep a streak alive for 7 days.",
+    description: "Keep a streak alive for 7 days.",
+    requirement: "Keep a streak alive for 7 days.",
     earnedAt: "2026-03-10",
   },
-  { id: "team-player", name: "Team Player", rule: "Join a team.", earnedAt: "2026-03-02" },
+  {
+    id: "team-player",
+    name: "Team Player",
+    description: "Join a team.",
+    requirement: "Join a team.",
+    earnedAt: "2026-03-02",
+  },
   {
     id: "century-club",
     name: "Century Club",
-    rule: "Log 100 push-ups in one day.",
+    description: "Log 100 push-ups in one day.",
+    requirement: "Log 100 push-ups in one day.",
     earnedAt: "2026-06-14",
   },
   {
     id: "streak-30",
     name: "30-Day Streak",
-    rule: "Keep a streak alive for 30 days.",
+    description: "Keep a streak alive for 30 days.",
+    requirement: "Keep a streak alive for 30 days.",
     earnedAt: null,
     progress: { current: 9, target: 30 },
   },
   {
     id: "challenge-clearer",
     name: "Challenge Clearer",
-    rule: "Clear 5 challenges.",
+    description: "Clear 5 challenges.",
+    requirement: "Clear 5 challenges.",
     earnedAt: null,
     progress: { current: 4, target: 5 },
   },
 ];
 
 export const personalBests: PersonalBest[] = [
-  { id: "pb-pushups", label: "Most push-ups in a day", value: "112 reps", achievedAt: "2026-06-14" },
-  { id: "pb-plank", label: "Longest plank", value: "3:45", achievedAt: "2026-08-02" },
-  { id: "pb-steps", label: "Most steps in a day", value: "14,820 steps", achievedAt: "2026-07-19" },
+  {
+    id: "pb-pushups",
+    label: "Most push-ups in a day",
+    value: "112 reps",
+    achievedAt: "2026-06-14",
+  },
+  {
+    id: "pb-plank",
+    label: "Longest plank",
+    value: "3:45",
+    achievedAt: "2026-08-02",
+  },
+  {
+    id: "pb-steps",
+    label: "Most steps in a day",
+    value: "14,820 steps",
+    achievedAt: "2026-07-19",
+  },
 ];

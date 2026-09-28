@@ -84,7 +84,7 @@ export function ChallengesBrowser({
                 progressPercent: challengePercent(c),
                 statLeft: (
                   <>
-                    <b>{formatCount(c.current)}</b> / {formatCount(c.target)} {c.unit}
+                    <b>{formatCount(c.current)}</b> / {formatCount(c.goal)} {c.unit}
                   </>
                 ),
                 statRight: `Day ${c.dayIndex} of ${c.totalDays}`,

@@ -20,9 +20,9 @@ export function ActiveChallengeTiles({ challenges }: { challenges: Challenge[] }
               <Link href={`/challenges/${c.id}`} className={styles.tile}>
                 <ProgressRing size="compact" percent={challengePercent(c)} />
                 <span className={styles.text}>
-                  <span className={styles.name}>{c.name}</span>
+                  <span className={styles.name}>{c.title}</span>
                   <span className={styles.meta}>
-                    {formatCount(c.current)} / {formatCount(c.target)} {c.unit}
+                    {formatCount(c.current)} / {formatCount(c.goal)} {c.unit}
                   </span>
                 </span>
                 <ArrowUpRight size={16} className={styles.arrow} aria-hidden="true" />

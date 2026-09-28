@@ -148,7 +148,7 @@ export const getTeammates = cache(async (): Promise<Pick<User, "id" | "name" | "
 
 /** Anything you can still log against — the target isn't met yet. */
 export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
-  settle(db().challenges.filter((c) => c.current < c.target)),
+  settle(db().challenges.filter((c) => c.current < c.goal)),
 );
 
 /**
@@ -169,10 +169,10 @@ export const getActivityFeed = cache(
         userInitials: database.user.initials,
         isCurrentUser: true,
         challengeId: a.challengeId,
-        challengeName: challenge?.name ?? "a challenge",
+        challengeName: challenge?.title ?? "a challenge",
         value: a.value,
         unit: challenge?.unit ?? "reps",
-        loggedAt: a.loggedAt,
+        loggedAt: a.recordedAt,
       };
     });
 
@@ -263,10 +263,10 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
 
   return settle({
     kind: "challenge" as const,
-    name: challenge.name,
+    name: challenge.title,
     code: challenge.code!,
     href: `/challenges/${challenge.id}`,
-    detail: `Day ${challenge.dayIndex} of ${challenge.totalDays} · ${challenge.current.toLocaleString("en-US")} of ${challenge.target.toLocaleString("en-US")} ${challenge.unit}`,
+    detail: `Day ${challenge.dayIndex} of ${challenge.totalDays} · ${challenge.current.toLocaleString("en-US")} of ${challenge.goal.toLocaleString("en-US")} ${challenge.unit}`,
   });
 });
 
@@ -310,10 +310,10 @@ function slugify(name: string, taken: string[]) {
 
 // TODO(backend): POST /challenges
 export async function createChallenge(input: {
-  name: string;
+  title: string;
   description: string;
   unit: string;
-  target: number;
+  goal: number;
   totalDays: number;
   startsTomorrow: boolean;
   isTeam: boolean;
@@ -326,11 +326,11 @@ export async function createChallenge(input: {
   end.setDate(end.getDate() + input.totalDays);
 
   const challenge: Challenge = {
-    id: slugify(input.name, database.challenges.map((c) => c.id)),
-    name: input.name,
+    id: slugify(input.title, database.challenges.map((c) => c.id)),
+    title: input.title,
     description: input.description,
     unit: input.unit,
-    target: input.target,
+    goal: input.goal,
     current: 0,
     startDate: start.toISOString().slice(0, 10),
     endDate: end.toISOString().slice(0, 10),
@@ -366,7 +366,7 @@ export async function addActivity(input: {
     id: `activity-${database.activities.length + 1}`,
     userId: database.user.id,
     challengeId: challenge.id,
-    loggedAt: loggedAt.toISOString(),
+    recordedAt: loggedAt.toISOString(),
     value: input.value,
   });
 
@@ -381,13 +381,13 @@ export async function addActivity(input: {
 
   return {
     challengeId: challenge.id,
-    challengeName: challenge.name,
+    challengeName: challenge.title,
     code: challenge.code ?? null,
     unit: challenge.unit,
     previous,
     current: challenge.current,
-    target: challenge.target,
-    completed: previous < challenge.target && challenge.current >= challenge.target,
+    target: challenge.goal,
+    completed: previous < challenge.goal && challenge.current >= challenge.goal,
     daysLeft: Math.max(0, challenge.totalDays - challenge.dayIndex),
   };
 }

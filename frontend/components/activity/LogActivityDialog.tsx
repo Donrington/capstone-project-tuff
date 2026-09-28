@@ -82,7 +82,7 @@ export function LogActivityDialog({
   const parsed = Number(amount);
   const validAmount = amount !== "" && Number.isInteger(parsed) && parsed > 0;
   const projected = selected && validAmount ? selected.current + parsed : null;
-  const clears = selected && projected !== null && projected >= selected.target;
+  const clears = selected && projected !== null && projected >= selected.goal;
 
   function addQuick(step: number) {
     const base = Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
@@ -111,7 +111,7 @@ export function LogActivityDialog({
             onChange={(event) => setChallengeId(event.target.value)}
             error={Boolean(state.errors?.challengeId)}
             helperText={state.errors?.challengeId}
-            options={challenges.map((c) => ({ value: c.id, label: c.name }))}
+            options={challenges.map((c) => ({ value: c.id, label: c.title }))}
           />
 
           <div>
@@ -166,7 +166,7 @@ export function LogActivityDialog({
               <span className={styles.previewFrom}>{formatCount(selected.current)}</span>
               <span aria-hidden="true"> → </span>
               <span className={styles.previewTo}>{formatCount(projected)}</span>
-              {` of ${formatCount(selected.target)} ${unit}`}
+              {` of ${formatCount(selected.goal)} ${unit}`}
               {clears && <span className={styles.clears}>This clears the challenge.</span>}
             </p>
           )}

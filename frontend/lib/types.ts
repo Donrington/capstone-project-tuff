@@ -47,16 +47,19 @@ export interface Activity {
   id: string;
   userId: string;
   challengeId: string;
-  loggedAt: string; // ISO date
+  /** Named to match backend/models/Activity.js's `recordedAt`. */
+  recordedAt: string; // ISO date
   value: number; // steps, reps, seconds — unit is defined by the challenge
 }
 
 export interface Challenge {
   id: string;
-  name: string;
+  /** Named to match backend/models/Challenge.js's `title`. */
+  title: string;
   description: string;
   unit: string; // "steps", "reps", "seconds"
-  target: number;
+  /** Named to match backend/models/Challenge.js's `goal`. */
+  goal: number;
   current: number;
   startDate: string; // ISO date
   endDate: string; // ISO date
@@ -83,16 +86,23 @@ export interface LeaderboardEntry {
 
 export type LeaderboardPeriod = "week" | "all-time";
 
-export type NotificationKind = "rank" | "streak" | "team" | "challenge";
+/** Matches backend/models/Notification.js's `type` enum. Not wired to any
+ *  UI yet — the activity bell uses ActivityFeedEntry instead (see #12's
+ *  note in the roadmap: descoped to an activity feed for now). */
+export type NotificationKind = "achievement" | "reminder" | "system" | "general";
 
-/** Named `AppNotification` because plain `Notification` is a DOM type. */
+/** Named `AppNotification` because plain `Notification` is a DOM type.
+ *  Matches backend/models/Notification.js exactly — no `href` field (the
+ *  model doesn't have one) and no "rank"/"streak" kinds (the model's `type`
+ *  enum doesn't cover those). Unused today; here so the shape is ready
+ *  whenever this gets built. */
 export interface AppNotification {
   id: string;
   kind: NotificationKind;
-  text: string;
+  title: string;
+  message: string;
   /** ISO timestamp — rendered as a relative time. */
   at: string;
-  href: string;
   read: boolean;
 }
 
@@ -126,8 +136,14 @@ export interface ActivityFeedEntry {
 export interface Achievement {
   id: string;
   name: string;
-  /** One-line rule, e.g. "Keep a streak alive for 30 days." */
-  rule: string;
+  /** One-line copy, e.g. "Keep a streak alive for 30 days." — shown on the
+   *  card. Matches backend/models/Achievement.js's `description`. */
+  description: string;
+  /** Matches backend/models/Achievement.js's `requirement`. Not shown
+   *  anywhere yet — currently the same text as `description` (see the
+   *  seed data); split it out once the model's intended difference between
+   *  the two is settled. */
+  requirement: string;
   /** ISO date, or null while it's still locked. */
   earnedAt: string | null;
   /** Locked achievements only — how close the user is. */
