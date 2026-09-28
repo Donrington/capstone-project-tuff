@@ -86,16 +86,16 @@ export interface LeaderboardEntry {
 
 export type LeaderboardPeriod = "week" | "all-time";
 
-/** Matches backend/models/Notification.js's `type` enum. Not wired to any
- *  UI yet — the activity bell uses ActivityFeedEntry instead (see #12's
- *  note in the roadmap: descoped to an activity feed for now). */
+/** Matches backend/models/Notification.js's `type` enum. Powers the nav
+ *  bell — see components/shell/NotificationBell.tsx. */
 export type NotificationKind = "achievement" | "reminder" | "system" | "general";
 
 /** Named `AppNotification` because plain `Notification` is a DOM type.
  *  Matches backend/models/Notification.js exactly — no `href` field (the
- *  model doesn't have one) and no "rank"/"streak" kinds (the model's `type`
- *  enum doesn't cover those). Unused today; here so the shape is ready
- *  whenever this gets built. */
+ *  model doesn't have one; NotificationBell derives a link from `kind`
+ *  instead) and no "rank"/"streak" kinds (the model's `type` enum doesn't
+ *  cover those — the nav bell used to show those as an activity feed;
+ *  see ActivityFeedEntry, now profile-only). */
 export interface AppNotification {
   id: string;
   kind: NotificationKind;
@@ -120,12 +120,11 @@ export interface TeamSummary {
 }
 
 /** One row in the activity bell and the profile's recent-activity list. */
+/** One row in the profile's recent-activity list — always your own logged
+ *  entries, so there's no user/team info to carry (see the nav bell, which
+ *  now shows AppNotification instead of a cross-user activity feed). */
 export interface ActivityFeedEntry {
   id: string;
-  userId: string;
-  userName: string;
-  userInitials: string;
-  isCurrentUser: boolean;
   challengeId: string;
   challengeName: string;
   value: number;

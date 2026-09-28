@@ -8,7 +8,7 @@ import {
   addActivity,
   createChallenge,
   findByCode,
-  setActivityFeedSeen,
+  setNotificationsSeen,
   updateProfile,
   updateProfilePhoto,
   type LoggedActivity,
@@ -88,10 +88,10 @@ export async function signOut() {
   redirect("/");
 }
 
-/** Clears the activity bell's unread dot. Called from the client when the
- *  panel opens — see components/shell/ActivityBell.tsx. */
-export async function markActivityFeedSeen() {
-  await setActivityFeedSeen();
+/** Clears the notification bell's unread dot. Called from the client when
+ *  the panel opens — see components/shell/NotificationBell.tsx. */
+export async function markNotificationsSeen() {
+  await setNotificationsSeen();
   revalidatePath("/", "layout");
 }
 

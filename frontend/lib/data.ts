@@ -32,7 +32,7 @@ import type {
 
 /** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
  *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 
 interface MockDb {
   version: number;
@@ -44,10 +44,10 @@ interface MockDb {
   challenges: Challenge[];
   activities: Activity[];
   leaderboard: Record<LeaderboardPeriod, LeaderboardEntry[]>;
+  /** Powers the nav bell — see getNotifications/setNotificationsSeen. */
   notifications: AppNotification[];
+  /** Powers the profile's recent-activity list only now — see getActivityFeed. */
   activityFeed: ActivityFeedEntry[];
-  /** Everything at or before this moment counts as seen — see getActivityFeed. */
-  activityFeedSeenAt: string;
   achievements: Achievement[];
   personalBests: PersonalBest[];
   profileStats: ProfileStats;
@@ -69,9 +69,8 @@ function seedDb(): MockDb {
     challenges: seed.challenges,
     activities: [],
     leaderboard: { week: seed.leaderboard, "all-time": seed.allTimeLeaderboard },
-    notifications: [],
+    notifications: seed.notifications,
     activityFeed: seed.activityFeed,
-    activityFeedSeenAt: seed.activityFeedSeenAt,
     achievements: seed.achievements,
     personalBests: seed.personalBests,
     profileStats: seed.profileStats,
@@ -151,49 +150,50 @@ export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
   settle(db().challenges.filter((c) => c.current < c.goal)),
 );
 
-/**
- * The activity bell and the profile's recent-activity list, newest first:
- * whatever's been freshly logged this session, merged with the seeded feed.
- * `seenAt` lets the caller work out how many of these are new.
- */
+/** Your own logged history, newest first — powers the profile's
+ *  recent-activity list. (The nav bell shows notifications instead; see
+ *  getNotifications below.) */
 // TODO(backend): GET /activity?limit=
-export const getActivityFeed = cache(
-  async (limit = 8): Promise<{ entries: ActivityFeedEntry[]; seenAt: string }> => {
-    const database = db();
-    const live: ActivityFeedEntry[] = database.activities.map((a) => {
-      const challenge = database.challenges.find((c) => c.id === a.challengeId);
-      return {
-        id: a.id,
-        userId: a.userId,
-        userName: database.user.name,
-        userInitials: database.user.initials,
-        isCurrentUser: true,
-        challengeId: a.challengeId,
-        challengeName: challenge?.title ?? "a challenge",
-        value: a.value,
-        unit: challenge?.unit ?? "reps",
-        loggedAt: a.recordedAt,
-      };
-    });
+export const getActivityFeed = cache(async (limit = 8): Promise<ActivityFeedEntry[]> => {
+  const database = db();
+  const live: ActivityFeedEntry[] = database.activities.map((a) => {
+    const challenge = database.challenges.find((c) => c.id === a.challengeId);
+    return {
+      id: a.id,
+      challengeId: a.challengeId,
+      challengeName: challenge?.title ?? "a challenge",
+      value: a.value,
+      unit: challenge?.unit ?? "reps",
+      loggedAt: a.recordedAt,
+    };
+  });
 
-    const merged = [...live, ...database.activityFeed].sort(
-      (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime(),
-    );
+  const merged = [...live, ...database.activityFeed].sort(
+    (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime(),
+  );
 
-    return settle({ entries: merged.slice(0, limit), seenAt: database.activityFeedSeenAt });
-  },
-);
+  return settle(merged.slice(0, limit));
+});
 
-/** Called when the activity bell opens, so its unread dot clears. */
-// TODO(backend): POST /activity/seen
-export async function setActivityFeedSeen(): Promise<void> {
-  db().activityFeedSeenAt = new Date().toISOString();
+/** Newest first — powers the nav bell. */
+// TODO(backend): GET /notifications
+export const getNotifications = cache(async (): Promise<AppNotification[]> => {
+  const database = db();
+  return settle(
+    [...database.notifications].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()),
+  );
+});
+
+/** Called when the notification bell opens, so its unread dot clears. */
+// TODO(backend): POST /notifications/seen
+export async function setNotificationsSeen(): Promise<void> {
+  for (const n of db().notifications) n.read = true;
 }
 
 // TODO(backend): GET /me/profile
 export const getProfile = cache(async (): Promise<Profile> => {
   const database = db();
-  const [{ entries }, activeChallenges] = await Promise.all([
+  const [entries, activeChallenges] = await Promise.all([
     getActivityFeed(20),
     getActiveChallenges(),
   ]);
@@ -203,7 +203,7 @@ export const getProfile = cache(async (): Promise<Profile> => {
     stats: { ...database.profileStats, currentStreak: database.todayStats.streakDays },
     achievements: database.achievements,
     personalBests: database.personalBests,
-    recentActivity: entries.filter((entry) => entry.isCurrentUser).slice(0, 6),
+    recentActivity: entries.slice(0, 6),
     activeChallenges,
   });
 });
