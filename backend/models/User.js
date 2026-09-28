@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema(
             trim: true,
         },
 
+        bio: {
+            type: String,
+            required: false,
+            trim: true
+        },
+
         email: {
             type: String,
             required: true,
@@ -31,19 +37,19 @@ const userSchema = new mongoose.Schema(
 
         dateOfBirth: {
             type: Date,
-            required: true,
+            required: false,
         },
 
         gender: {
             type: String,
             enum: ["male", "female", "other"],
-            required: true,
+            required: false,
         },
 
         //height is in cm
         height: {
             type: Number,
-            required: true,
+            required: false,
             min: 50,
             max: 300,
         },
@@ -51,14 +57,14 @@ const userSchema = new mongoose.Schema(
         //weight is in kg
         weight: {
             type: Number,
-            required: true,
+            required: false,
             min: 20,
         },
 
         fitnessLevel: {
             type: String,
             enum: ["beginner", "intermediate", "advanced"],
-            default: "beginner",
+            required: false
         },
 
         profilePicture: {
@@ -68,7 +74,7 @@ const userSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["user", "admin"],
+            enum: ["member", "admin"],
             default: "user",
         },
 
@@ -77,6 +83,11 @@ const userSchema = new mongoose.Schema(
             enum: ["active", "inactive", "suspended"],
             default: "active",
         },
+
+        onboardingCompletedAt: {
+            type: Date,
+            required: false
+        }
     },
     {
         timestamps: true,

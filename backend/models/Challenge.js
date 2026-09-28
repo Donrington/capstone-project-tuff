@@ -31,6 +31,18 @@ const challengeSchema = new mongoose.Schema(
             required: true,
         },
 
+        inviteCode: {
+            type: String,
+            unique: true,
+            sparse: true,
+            trim: true
+        },
+
+        featured: {
+            type: Boolean,
+            default: false
+        },
+
         goal: {
             type: Number,
             required: true,
@@ -44,6 +56,7 @@ const challengeSchema = new mongoose.Schema(
                 "miles",
                 "steps",
                 "minutes",
+                "seconds",
                 "calories",
                 "reps",
                 "kg",

@@ -42,6 +42,7 @@ const activitySchema = new mongoose.Schema(
                 "miles",
                 "steps",
                 "minutes",
+                "seconds",
                 "reps",
             ],
             required: true,
