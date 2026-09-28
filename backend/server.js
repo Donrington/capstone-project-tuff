@@ -8,9 +8,7 @@ const connectDB = require("./config/dbConfig");
 // model referenced via `ref: "User"` etc. (see models/*.js) needs its
 // schema loaded first, even if this file never uses the export directly.
 require("./models/User");
-// TODO(team): require("./models/Team") once it exists — see the "Team model
-// is missing" issue. Several other models (Challenge.teamId, User.teamId)
-// will want to `ref: "Team"` once it's built.
+require("./models/Team");
 require("./models/Challenge");
 require("./models/ChallengeParticipant");
 require("./models/Activity");
