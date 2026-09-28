@@ -4,8 +4,10 @@ export type Plan = "free" | "pro";
 
 export interface User {
   id: string;
-  name: string;
+  /** Matches backend/models/User.js — firstName/lastName are the stored
+   *  fields; nothing computes or stores a combined "name" server-side. */
   firstName: string;
+  lastName: string;
   /** Shown around the app instead of the full name — e.g. in the nav and on cards. */
   displayName: string;
   email: string;
@@ -19,8 +21,9 @@ export interface User {
   /** Up to 160 characters, shown on the profile. */
   bio: string;
   /** A data URL today (resized client-side before upload) — swaps for a real
-   *  object-storage URL once there's a backend. Undefined = show initials. */
-  photoUrl?: string;
+   *  object-storage URL once there's a backend. Undefined = show initials.
+   *  Named to match backend/models/User.js's `profilePicture`. */
+  profilePicture?: string;
 }
 
 export interface Team {
@@ -74,7 +77,10 @@ export interface Challenge {
 export interface LeaderboardEntry {
   rank: number;
   previousRank?: number;
-  user: Pick<User, "id" | "name" | "initials">;
+  /** A read-only display projection, not a Pick<User, ...> — "other people"
+   *  shown here never get edited, so there's no need to carry firstName/
+   *  lastName separately; `name` is whatever the API already joined. */
+  user: { id: string; name: string; initials: string };
   teamName: string;
   score: number;
   scoreUnit: string;

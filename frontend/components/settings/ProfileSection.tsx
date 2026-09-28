@@ -34,13 +34,24 @@ export function ProfileSection({ user }: { user: User }) {
       <PhotoUploader user={user} />
 
       <form action={formAction} className={styles.form}>
-        <FormField
-          label="Full name"
-          name="name"
-          defaultValue={state.values?.name ?? user.name}
-          error={Boolean(state.errors?.name)}
-          helperText={state.errors?.name}
-        />
+        <div className={styles.nameRow}>
+          <FormField
+            label="First name"
+            name="firstName"
+            autoComplete="given-name"
+            defaultValue={state.values?.firstName ?? user.firstName}
+            error={Boolean(state.errors?.firstName)}
+            helperText={state.errors?.firstName}
+          />
+          <FormField
+            label="Last name"
+            name="lastName"
+            autoComplete="family-name"
+            defaultValue={state.values?.lastName ?? user.lastName}
+            error={Boolean(state.errors?.lastName)}
+            helperText={state.errors?.lastName}
+          />
+        </div>
         <FormField
           label="Display name"
           name="displayName"

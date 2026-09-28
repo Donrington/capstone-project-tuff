@@ -111,7 +111,7 @@ export async function joinWithCode(_prev: JoinState, formData: FormData): Promis
   redirect(`${match.href}?flash=joined`);
 }
 
-export type UpdateProfileState = ActionState<"name" | "displayName" | "bio">;
+export type UpdateProfileState = ActionState<"firstName" | "lastName" | "displayName" | "bio">;
 
 const BIO_LIMIT = 160;
 
@@ -119,20 +119,22 @@ export async function updateProfileAction(
   _prev: UpdateProfileState,
   formData: FormData,
 ): Promise<UpdateProfileState> {
-  const name = String(formData.get("name") ?? "").trim();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
   const displayName = String(formData.get("displayName") ?? "").trim();
   const bio = String(formData.get("bio") ?? "").trim();
 
   const errors: UpdateProfileState["errors"] = {};
-  if (name.length < 2) errors.name = "Tell us what to call you.";
+  if (firstName.length < 1) errors.firstName = "Tell us what to call you.";
+  if (lastName.length < 1) errors.lastName = "Enter your last name.";
   if (displayName.length < 1) errors.displayName = "Pick a display name.";
   if (bio.length > BIO_LIMIT) errors.bio = `Keep it under ${BIO_LIMIT} characters.`;
 
   if (Object.keys(errors).length > 0) {
-    return { errors, values: { name, displayName, bio } };
+    return { errors, values: { firstName, lastName, displayName, bio } };
   }
 
-  await updateProfile({ name, displayName, bio });
+  await updateProfile({ firstName, lastName, displayName, bio });
   revalidatePath("/", "layout");
   return { ok: true, message: "Saved." };
 }
