@@ -1,0 +1,21 @@
+{
+  "name": "capstone-project-tuff",
+  "version": "1.0.0",
+  "description": "Team fitness challenges, streaks, and leaderboards.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Donrington/capstone-project-tuff.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Donrington/capstone-project-tuff/issues"
+  },
+  "homepage": "https://github.com/Donrington/capstone-project-tuff#readme"
+}
