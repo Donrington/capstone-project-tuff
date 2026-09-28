@@ -18,8 +18,8 @@ import type {
 
 export const currentUser: User = {
   id: "u4",
-  name: "Kelechi Obi",
   firstName: "Kelechi",
+  lastName: "Obi",
   displayName: "Kelechi",
   // example.com is reserved for documentation, so this can never reach a real inbox.
   email: "kelechi.obi@example.com",

@@ -47,7 +47,7 @@ export function NewChallengeWizard({
   initialActivity,
 }: {
   user: User;
-  teammates: Pick<User, "id" | "name" | "initials">[];
+  teammates: { id: string; name: string; initials: string }[];
   initialActivity: string | null;
 }) {
   const [state, formAction] = useActionState(createChallengeAction, INITIAL);

@@ -42,9 +42,12 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const user = await getProfileRecord();
   return {
     id: user.id,
-    name: user.name,
+    // SessionUser stays a single display string on purpose — it's a UI
+    // projection, not the stored shape. The real firstName/lastName split
+    // lives on User (lib/types.ts), matching backend/models/User.js.
+    name: `${user.firstName} ${user.lastName}`.trim(),
     email: user.email,
-    avatarUrl: user.photoUrl ?? null,
+    avatarUrl: user.profilePicture ?? null,
     role: "member",
   };
 });

@@ -15,9 +15,11 @@ function memberSinceLabel(iso: string) {
 export function ProfileHero({ user }: { user: User }) {
   return (
     <section className={styles.hero}>
-      <Avatar initials={user.initials} size="xl" activeToday photoUrl={user.photoUrl} />
+      <Avatar initials={user.initials} size="xl" activeToday photoUrl={user.profilePicture} />
       <div className={styles.info}>
-        <h1 className={styles.name}>{user.name}</h1>
+        <h1 className={styles.name}>
+          {user.firstName} {user.lastName}
+        </h1>
         <p className={styles.meta}>
           {user.teamName} · Member since {memberSinceLabel(user.memberSince)}
         </p>

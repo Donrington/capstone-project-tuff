@@ -403,6 +403,14 @@
   flex-direction: column;
   gap: var(--space-4);
 }
+.nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.nameRow > * {
+  flex: 1 1 140px;
+}
 .form > button {
   margin-top: var(--space-2);
 }
