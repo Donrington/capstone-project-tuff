@@ -70,7 +70,14 @@
 .row:hover {
   background: var(--surface-2);
 }
-.avatar {
+/* No href for this kind (system/general) — not a link, so no hover/click affordance. */
+.row.static {
+  cursor: default;
+}
+.row.static:hover {
+  background: none;
+}
+.iconWrap {
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -79,17 +86,22 @@
   margin-top: 1px;
   border-radius: 50%;
   background: var(--surface-3);
-  color: var(--ink);
-  font: 700 12px/1 var(--font-sans);
+  color: var(--accent-volt);
 }
 .text {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   font: 400 13px/19px var(--font-sans);
   color: var(--ink-secondary);
 }
 .text strong {
+  font-weight: 700;
   color: var(--ink);
+}
+.message {
+  margin-top: 1px;
 }
 .time {
   flex-shrink: 0;

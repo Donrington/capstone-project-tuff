@@ -8,7 +8,7 @@ import {
   addActivity,
   createChallenge,
   findByCode,
-  setActivityFeedSeen,
+  setNotificationsSeen,
   updateProfile,
   updateProfilePhoto,
   type LoggedActivity,
@@ -88,10 +88,10 @@ export async function signOut() {
   redirect("/");
 }
 
-/** Clears the activity bell's unread dot. Called from the client when the
- *  panel opens — see components/shell/ActivityBell.tsx. */
-export async function markActivityFeedSeen() {
-  await setActivityFeedSeen();
+/** Clears the notification bell's unread dot. Called from the client when
+ *  the panel opens — see components/shell/NotificationBell.tsx. */
+export async function markNotificationsSeen() {
+  await setNotificationsSeen();
   revalidatePath("/", "layout");
 }
 
@@ -164,24 +164,24 @@ export async function updateProfilePhotoAction(
   return { ok: true };
 }
 
-export type CreateChallengeState = ActionState<"name" | "target" | "days">;
+export type CreateChallengeState = ActionState<"title" | "goal" | "days">;
 
 export async function createChallengeAction(
   _prev: CreateChallengeState,
   formData: FormData,
 ): Promise<CreateChallengeState> {
-  const name = String(formData.get("name") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const unit = String(formData.get("unit") ?? "reps");
   const activity = String(formData.get("activity") ?? "");
   const isTeam = formData.get("type") === "team";
   const startsTomorrow = formData.get("start") === "tomorrow";
-  const target = Number(String(formData.get("target") ?? ""));
+  const goal = Number(String(formData.get("goal") ?? ""));
   const totalDays = Number(String(formData.get("days") ?? ""));
 
   const errors: CreateChallengeState["errors"] = {};
-  if (name.length < 3) errors.name = "Give the challenge a name people will recognise.";
-  if (!Number.isInteger(target) || target <= 0) errors.target = "Use a whole number above zero.";
+  if (title.length < 3) errors.title = "Give the challenge a name people will recognise.";
+  if (!Number.isInteger(goal) || goal <= 0) errors.goal = "Use a whole number above zero.";
   if (!Number.isInteger(totalDays) || totalDays < 3 || totalDays > 90) {
     errors.days = "Pick a length between 3 and 90 days.";
   }
@@ -189,10 +189,10 @@ export async function createChallengeAction(
   if (Object.keys(errors).length > 0) return { errors };
 
   const challenge = await createChallenge({
-    name,
-    description: description || `${target.toLocaleString("en-US")} ${unit} in ${totalDays} days.`,
+    title,
+    description: description || `${goal.toLocaleString("en-US")} ${unit} in ${totalDays} days.`,
     unit,
-    target,
+    goal,
     totalDays,
     startsTomorrow,
     isTeam,

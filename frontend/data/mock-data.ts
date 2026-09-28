@@ -1,6 +1,7 @@
 import type {
   Achievement,
   ActivityFeedEntry,
+  AppNotification,
   Challenge,
   DayActivity,
   LeaderboardEntry,
@@ -65,11 +66,11 @@ export const team: TeamSummary = {
 export const challenges: Challenge[] = [
   {
     id: "10k-steps",
-    name: "10K Steps Challenge",
+    title: "10K Steps Challenge",
     description:
       "Every step counts toward the team total — sync your tracker to log today's walk.",
     unit: "steps",
-    target: 10000,
+    goal: 10000,
     current: 3840,
     startDate: "2026-09-19",
     endDate: "2026-09-26",
@@ -81,11 +82,11 @@ export const challenges: Challenge[] = [
   },
   {
     id: "pushup-power-week",
-    name: "Push-Up Power Week",
+    title: "Push-Up Power Week",
     description:
       "You're 60 reps ahead of pace. One more clean set closes today out.",
     unit: "reps",
-    target: 400,
+    goal: 400,
     current: 296,
     startDate: "2026-09-16",
     endDate: "2026-09-23",
@@ -98,10 +99,10 @@ export const challenges: Challenge[] = [
   },
   {
     id: "plank-ladder",
-    name: "Plank Ladder",
+    title: "Plank Ladder",
     description: "Add ten seconds a day. Today's hold: 1 minute 40.",
     unit: "seconds",
-    target: 140,
+    goal: 140,
     current: 100,
     startDate: "2026-09-14",
     endDate: "2026-09-28",
@@ -270,28 +271,13 @@ export const allTimeLeaderboard: LeaderboardEntry[] = [
   },
 ];
 
-/** Seeds the activity bell and the profile's recent-activity list. Newly
- *  logged activity (via addActivity) is merged in ahead of this at read
- *  time — see getActivityFeed in lib/data.ts. */
+/** Seeds the profile's recent-activity list — your own logged history.
+ *  Newly logged activity (via addActivity) is merged in ahead of this at
+ *  read time — see getActivityFeed in lib/data.ts. The nav bell shows
+ *  `notifications` below instead; this is profile-only now. */
 export const activityFeed: ActivityFeedEntry[] = [
   {
     id: "feed-1",
-    userId: "u3",
-    userName: "Aisha Bello",
-    userInitials: "AB",
-    isCurrentUser: false,
-    challengeId: "pushup-power-week",
-    challengeName: "Push-Up Power Week",
-    value: 30,
-    unit: "reps",
-    loggedAt: "2026-09-22T19:15:00.000Z",
-  },
-  {
-    id: "feed-2",
-    userId: "u4",
-    userName: "Kelechi Obi",
-    userInitials: "KO",
-    isCurrentUser: true,
     challengeId: "10k-steps",
     challengeName: "10K Steps Challenge",
     value: 1200,
@@ -299,35 +285,7 @@ export const activityFeed: ActivityFeedEntry[] = [
     loggedAt: "2026-09-22T09:40:00.000Z",
   },
   {
-    id: "feed-3",
-    userId: "u1",
-    userName: "Chiamaka Okafor",
-    userInitials: "CO",
-    isCurrentUser: false,
-    challengeId: "10k-steps",
-    challengeName: "10K Steps Challenge",
-    value: 4200,
-    unit: "steps",
-    loggedAt: "2026-09-21T12:05:00.000Z",
-  },
-  {
-    id: "feed-4",
-    userId: "u5",
-    userName: "Emeka Nwachukwu",
-    userInitials: "EN",
-    isCurrentUser: false,
-    challengeId: "pushup-power-week",
-    challengeName: "Push-Up Power Week",
-    value: 40,
-    unit: "reps",
-    loggedAt: "2026-09-20T18:22:00.000Z",
-  },
-  {
-    id: "feed-5",
-    userId: "u4",
-    userName: "Kelechi Obi",
-    userInitials: "KO",
-    isCurrentUser: true,
+    id: "feed-2",
     challengeId: "plank-ladder",
     challengeName: "Plank Ladder",
     value: 90,
@@ -335,35 +293,7 @@ export const activityFeed: ActivityFeedEntry[] = [
     loggedAt: "2026-09-20T06:50:00.000Z",
   },
   {
-    id: "feed-6",
-    userId: "u3",
-    userName: "Aisha Bello",
-    userInitials: "AB",
-    isCurrentUser: false,
-    challengeId: "pushup-power-week",
-    challengeName: "Push-Up Power Week",
-    value: 25,
-    unit: "reps",
-    loggedAt: "2026-09-19T20:10:00.000Z",
-  },
-  {
-    id: "feed-7",
-    userId: "u1",
-    userName: "Chiamaka Okafor",
-    userInitials: "CO",
-    isCurrentUser: false,
-    challengeId: "10k-steps",
-    challengeName: "10K Steps Challenge",
-    value: 5100,
-    unit: "steps",
-    loggedAt: "2026-09-18T08:30:00.000Z",
-  },
-  {
-    id: "feed-8",
-    userId: "u4",
-    userName: "Kelechi Obi",
-    userInitials: "KO",
-    isCurrentUser: true,
+    id: "feed-3",
     challengeId: "pushup-power-week",
     challengeName: "Push-Up Power Week",
     value: 50,
@@ -372,9 +302,51 @@ export const activityFeed: ActivityFeedEntry[] = [
   },
 ];
 
-/** Before feed-1 — seeds one "new" teammate entry so the bell's unread dot
- *  has something to demonstrate on a fresh load. */
-export const activityFeedSeenAt = "2026-09-22T10:00:00.000Z";
+/** Seeds the nav bell. Matches backend/models/Notification.js's shape —
+ *  `type`, `title` + `message`, `read`. Mixed read/unread so the bell's
+ *  unread dot has something to demonstrate on a fresh load. */
+export const notifications: AppNotification[] = [
+  {
+    id: "notif-1",
+    kind: "achievement",
+    title: "Century Club unlocked",
+    message: "You logged 100 push-ups in one day. That's a personal best.",
+    at: "2026-06-14T18:30:00.000Z",
+    read: false,
+  },
+  {
+    id: "notif-2",
+    kind: "reminder",
+    title: "9-day streak — keep it alive",
+    message: "Log something today so Team Ironclad's streak doesn't reset.",
+    at: "2026-09-22T07:00:00.000Z",
+    read: false,
+  },
+  {
+    id: "notif-3",
+    kind: "general",
+    title: "Aisha Bello logged 30 reps",
+    message: "Push-Up Power Week is 74% of the way to goal.",
+    at: "2026-09-22T19:15:00.000Z",
+    read: false,
+  },
+  {
+    id: "notif-4",
+    kind: "achievement",
+    title: "7-Day Streak unlocked",
+    message: "You kept a streak alive for 7 days straight.",
+    at: "2026-03-10T12:00:00.000Z",
+    read: true,
+  },
+  {
+    id: "notif-5",
+    kind: "system",
+    title: "Welcome to Team Ironclad",
+    message: "You joined 14 teams competing on this week's leaderboard.",
+    at: "2026-03-02T09:00:00.000Z",
+    read: true,
+  },
+];
 
 export const profileStats: ProfileStats = {
   currentStreak: 0, // overwritten at read time from todayStats.streakDays — see getProfile
@@ -385,38 +357,69 @@ export const profileStats: ProfileStats = {
 };
 
 export const achievements: Achievement[] = [
-  { id: "first-log", name: "First Log", rule: "Log your first activity.", earnedAt: "2026-03-02" },
+  {
+    id: "first-log",
+    name: "First Log",
+    description: "Log your first activity.",
+    requirement: "Log your first activity.",
+    earnedAt: "2026-03-02",
+  },
   {
     id: "streak-7",
     name: "7-Day Streak",
-    rule: "Keep a streak alive for 7 days.",
+    description: "Keep a streak alive for 7 days.",
+    requirement: "Keep a streak alive for 7 days.",
     earnedAt: "2026-03-10",
   },
-  { id: "team-player", name: "Team Player", rule: "Join a team.", earnedAt: "2026-03-02" },
+  {
+    id: "team-player",
+    name: "Team Player",
+    description: "Join a team.",
+    requirement: "Join a team.",
+    earnedAt: "2026-03-02",
+  },
   {
     id: "century-club",
     name: "Century Club",
-    rule: "Log 100 push-ups in one day.",
+    description: "Log 100 push-ups in one day.",
+    requirement: "Log 100 push-ups in one day.",
     earnedAt: "2026-06-14",
   },
   {
     id: "streak-30",
     name: "30-Day Streak",
-    rule: "Keep a streak alive for 30 days.",
+    description: "Keep a streak alive for 30 days.",
+    requirement: "Keep a streak alive for 30 days.",
     earnedAt: null,
     progress: { current: 9, target: 30 },
   },
   {
     id: "challenge-clearer",
     name: "Challenge Clearer",
-    rule: "Clear 5 challenges.",
+    description: "Clear 5 challenges.",
+    requirement: "Clear 5 challenges.",
     earnedAt: null,
     progress: { current: 4, target: 5 },
   },
 ];
 
 export const personalBests: PersonalBest[] = [
-  { id: "pb-pushups", label: "Most push-ups in a day", value: "112 reps", achievedAt: "2026-06-14" },
-  { id: "pb-plank", label: "Longest plank", value: "3:45", achievedAt: "2026-08-02" },
-  { id: "pb-steps", label: "Most steps in a day", value: "14,820 steps", achievedAt: "2026-07-19" },
+  {
+    id: "pb-pushups",
+    label: "Most push-ups in a day",
+    value: "112 reps",
+    achievedAt: "2026-06-14",
+  },
+  {
+    id: "pb-plank",
+    label: "Longest plank",
+    value: "3:45",
+    achievedAt: "2026-08-02",
+  },
+  {
+    id: "pb-steps",
+    label: "Most steps in a day",
+    value: "14,820 steps",
+    achievedAt: "2026-07-19",
+  },
 ];

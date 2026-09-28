@@ -8,12 +8,12 @@ import type { Challenge } from "./types";
 export function challengeCardCopy(c: Challenge) {
   const dayLine = `Day ${c.dayIndex} of ${c.totalDays}`;
   return c.featured
-    ? { eyebrow: c.name, title: dayLine }
-    : { eyebrow: "Challenge", title: c.name };
+    ? { eyebrow: c.title, title: dayLine }
+    : { eyebrow: "Challenge", title: c.title };
 }
 
 export function challengePercent(c: Challenge) {
-  return Math.min(100, Math.max(0, (c.current / c.target) * 100));
+  return Math.min(100, Math.max(0, (c.current / c.goal) * 100));
 }
 
 export function formatCount(n: number) {

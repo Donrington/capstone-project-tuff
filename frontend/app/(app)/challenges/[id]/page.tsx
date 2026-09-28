@@ -15,7 +15,7 @@ type Params = Promise<{ id: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const challenge = await getChallenge(id);
-  return { title: challenge?.name ?? "Challenge" };
+  return { title: challenge?.title ?? "Challenge" };
 }
 
 export default async function ChallengeDetailPage({ params }: { params: Params }) {
@@ -41,14 +41,14 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
         <div className={styles.heroRing}>
           <ProgressRing
             percent={challengePercent(challenge)}
-            sublabel={`${formatCount(challenge.current)} / ${formatCount(challenge.target)} ${challenge.unit}`}
+            sublabel={`${formatCount(challenge.current)} / ${formatCount(challenge.goal)} ${challenge.unit}`}
           />
         </div>
         <div className={styles.heroInfo}>
           <Badge variant={challenge.teamId ? "surge" : "neutral"}>
             {challenge.teamId ? "Team challenge" : "Solo challenge"}
           </Badge>
-          <h1 className={styles.title}>{challenge.name}</h1>
+          <h1 className={styles.title}>{challenge.title}</h1>
           <p className={styles.desc}>{challenge.description}</p>
           <ul className={styles.facts}>
             <li>
@@ -57,7 +57,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
             </li>
             <li>
               <Target size={16} aria-hidden="true" />
-              {formatCount(challenge.target)} {challenge.unit}
+              {formatCount(challenge.goal)} {challenge.unit}
             </li>
             <li>
               <UsersRound size={16} aria-hidden="true" />
@@ -74,7 +74,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
                 size="lg"
                 subject={{
                   kind: "challenge",
-                  name: challenge.name,
+                  name: challenge.title,
                   code: challenge.code ?? null,
                 }}
               >

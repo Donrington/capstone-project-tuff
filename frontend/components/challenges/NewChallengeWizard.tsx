@@ -141,10 +141,10 @@ export function NewChallengeWizard({
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="activity" value={activitySlug} />
         <input type="hidden" name="unit" value={activity.unit} />
-        <input type="hidden" name="target" value={target} />
+        <input type="hidden" name="goal" value={target} />
         <input type="hidden" name="days" value={String(totalDays || "")} />
         <input type="hidden" name="start" value={start} />
-        <input type="hidden" name="name" value={finalName} />
+        <input type="hidden" name="title" value={finalName} />
         <input type="hidden" name="description" value={description} />
 
         {step === 0 && (
@@ -205,8 +205,8 @@ export function NewChallengeWizard({
               min={1}
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              error={Boolean(state.errors?.target)}
-              helperText={state.errors?.target}
+              error={Boolean(state.errors?.goal)}
+              helperText={state.errors?.goal}
             />
             <RadioChips
               legend="How long?"
@@ -259,7 +259,7 @@ export function NewChallengeWizard({
               onChange={(e) => setName(e.target.value)}
               placeholder={suggested}
               helperText={name.trim() ? undefined : `Leave it blank to use ${suggested}.`}
-              error={Boolean(state.errors?.name)}
+              error={Boolean(state.errors?.title)}
             />
             <TextArea
               label="Description"
@@ -332,9 +332,9 @@ export function NewChallengeWizard({
           </Step>
         )}
 
-        {(stepError || state.errors?.days || state.errors?.name || state.errors?.target) && (
+        {(stepError || state.errors?.days || state.errors?.title || state.errors?.goal) && (
           <p className={styles.error} role="alert">
-            {stepError ?? state.errors?.days ?? state.errors?.name ?? state.errors?.target}
+            {stepError ?? state.errors?.days ?? state.errors?.title ?? state.errors?.goal}
           </p>
         )}
 

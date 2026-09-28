@@ -32,7 +32,7 @@ import type {
 
 /** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
  *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 
 interface MockDb {
   version: number;
@@ -44,10 +44,10 @@ interface MockDb {
   challenges: Challenge[];
   activities: Activity[];
   leaderboard: Record<LeaderboardPeriod, LeaderboardEntry[]>;
+  /** Powers the nav bell — see getNotifications/setNotificationsSeen. */
   notifications: AppNotification[];
+  /** Powers the profile's recent-activity list only now — see getActivityFeed. */
   activityFeed: ActivityFeedEntry[];
-  /** Everything at or before this moment counts as seen — see getActivityFeed. */
-  activityFeedSeenAt: string;
   achievements: Achievement[];
   personalBests: PersonalBest[];
   profileStats: ProfileStats;
@@ -69,9 +69,8 @@ function seedDb(): MockDb {
     challenges: seed.challenges,
     activities: [],
     leaderboard: { week: seed.leaderboard, "all-time": seed.allTimeLeaderboard },
-    notifications: [],
+    notifications: seed.notifications,
     activityFeed: seed.activityFeed,
-    activityFeedSeenAt: seed.activityFeedSeenAt,
     achievements: seed.achievements,
     personalBests: seed.personalBests,
     profileStats: seed.profileStats,
@@ -148,52 +147,53 @@ export const getTeammates = cache(async (): Promise<Pick<User, "id" | "name" | "
 
 /** Anything you can still log against — the target isn't met yet. */
 export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
-  settle(db().challenges.filter((c) => c.current < c.target)),
+  settle(db().challenges.filter((c) => c.current < c.goal)),
 );
 
-/**
- * The activity bell and the profile's recent-activity list, newest first:
- * whatever's been freshly logged this session, merged with the seeded feed.
- * `seenAt` lets the caller work out how many of these are new.
- */
+/** Your own logged history, newest first — powers the profile's
+ *  recent-activity list. (The nav bell shows notifications instead; see
+ *  getNotifications below.) */
 // TODO(backend): GET /activity?limit=
-export const getActivityFeed = cache(
-  async (limit = 8): Promise<{ entries: ActivityFeedEntry[]; seenAt: string }> => {
-    const database = db();
-    const live: ActivityFeedEntry[] = database.activities.map((a) => {
-      const challenge = database.challenges.find((c) => c.id === a.challengeId);
-      return {
-        id: a.id,
-        userId: a.userId,
-        userName: database.user.name,
-        userInitials: database.user.initials,
-        isCurrentUser: true,
-        challengeId: a.challengeId,
-        challengeName: challenge?.name ?? "a challenge",
-        value: a.value,
-        unit: challenge?.unit ?? "reps",
-        loggedAt: a.loggedAt,
-      };
-    });
+export const getActivityFeed = cache(async (limit = 8): Promise<ActivityFeedEntry[]> => {
+  const database = db();
+  const live: ActivityFeedEntry[] = database.activities.map((a) => {
+    const challenge = database.challenges.find((c) => c.id === a.challengeId);
+    return {
+      id: a.id,
+      challengeId: a.challengeId,
+      challengeName: challenge?.title ?? "a challenge",
+      value: a.value,
+      unit: challenge?.unit ?? "reps",
+      loggedAt: a.recordedAt,
+    };
+  });
 
-    const merged = [...live, ...database.activityFeed].sort(
-      (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime(),
-    );
+  const merged = [...live, ...database.activityFeed].sort(
+    (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime(),
+  );
 
-    return settle({ entries: merged.slice(0, limit), seenAt: database.activityFeedSeenAt });
-  },
-);
+  return settle(merged.slice(0, limit));
+});
 
-/** Called when the activity bell opens, so its unread dot clears. */
-// TODO(backend): POST /activity/seen
-export async function setActivityFeedSeen(): Promise<void> {
-  db().activityFeedSeenAt = new Date().toISOString();
+/** Newest first — powers the nav bell. */
+// TODO(backend): GET /notifications
+export const getNotifications = cache(async (): Promise<AppNotification[]> => {
+  const database = db();
+  return settle(
+    [...database.notifications].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()),
+  );
+});
+
+/** Called when the notification bell opens, so its unread dot clears. */
+// TODO(backend): POST /notifications/seen
+export async function setNotificationsSeen(): Promise<void> {
+  for (const n of db().notifications) n.read = true;
 }
 
 // TODO(backend): GET /me/profile
 export const getProfile = cache(async (): Promise<Profile> => {
   const database = db();
-  const [{ entries }, activeChallenges] = await Promise.all([
+  const [entries, activeChallenges] = await Promise.all([
     getActivityFeed(20),
     getActiveChallenges(),
   ]);
@@ -203,7 +203,7 @@ export const getProfile = cache(async (): Promise<Profile> => {
     stats: { ...database.profileStats, currentStreak: database.todayStats.streakDays },
     achievements: database.achievements,
     personalBests: database.personalBests,
-    recentActivity: entries.filter((entry) => entry.isCurrentUser).slice(0, 6),
+    recentActivity: entries.slice(0, 6),
     activeChallenges,
   });
 });
@@ -263,10 +263,10 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
 
   return settle({
     kind: "challenge" as const,
-    name: challenge.name,
+    name: challenge.title,
     code: challenge.code!,
     href: `/challenges/${challenge.id}`,
-    detail: `Day ${challenge.dayIndex} of ${challenge.totalDays} · ${challenge.current.toLocaleString("en-US")} of ${challenge.target.toLocaleString("en-US")} ${challenge.unit}`,
+    detail: `Day ${challenge.dayIndex} of ${challenge.totalDays} · ${challenge.current.toLocaleString("en-US")} of ${challenge.goal.toLocaleString("en-US")} ${challenge.unit}`,
   });
 });
 
@@ -310,10 +310,10 @@ function slugify(name: string, taken: string[]) {
 
 // TODO(backend): POST /challenges
 export async function createChallenge(input: {
-  name: string;
+  title: string;
   description: string;
   unit: string;
-  target: number;
+  goal: number;
   totalDays: number;
   startsTomorrow: boolean;
   isTeam: boolean;
@@ -326,11 +326,11 @@ export async function createChallenge(input: {
   end.setDate(end.getDate() + input.totalDays);
 
   const challenge: Challenge = {
-    id: slugify(input.name, database.challenges.map((c) => c.id)),
-    name: input.name,
+    id: slugify(input.title, database.challenges.map((c) => c.id)),
+    title: input.title,
     description: input.description,
     unit: input.unit,
-    target: input.target,
+    goal: input.goal,
     current: 0,
     startDate: start.toISOString().slice(0, 10),
     endDate: end.toISOString().slice(0, 10),
@@ -366,7 +366,7 @@ export async function addActivity(input: {
     id: `activity-${database.activities.length + 1}`,
     userId: database.user.id,
     challengeId: challenge.id,
-    loggedAt: loggedAt.toISOString(),
+    recordedAt: loggedAt.toISOString(),
     value: input.value,
   });
 
@@ -381,13 +381,13 @@ export async function addActivity(input: {
 
   return {
     challengeId: challenge.id,
-    challengeName: challenge.name,
+    challengeName: challenge.title,
     code: challenge.code ?? null,
     unit: challenge.unit,
     previous,
     current: challenge.current,
-    target: challenge.target,
-    completed: previous < challenge.target && challenge.current >= challenge.target,
+    target: challenge.goal,
+    completed: previous < challenge.goal && challenge.current >= challenge.goal,
     daysLeft: Math.max(0, challenge.totalDays - challenge.dayIndex),
   };
 }

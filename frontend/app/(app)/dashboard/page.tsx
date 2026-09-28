@@ -157,7 +157,7 @@ export default async function DashboardPage() {
             <div className={styles.chalBody}>
               <ProgressRing size="compact" percent={challengePercent(steps)} />
               <div className={styles.chalText}>
-                <h3 className={styles.chalTitle}>{steps.name}</h3>
+                <h3 className={styles.chalTitle}>{steps.title}</h3>
                 <p className={styles.chalMeta}>
                   Day {steps.dayIndex} of {steps.totalDays} · {formatCount(steps.current)} {steps.unit}
                 </p>
