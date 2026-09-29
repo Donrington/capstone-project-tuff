@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");
+const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 // Registers every schema with Mongoose before any route can use it — a
 // model referenced via `ref: "User"` etc. (see models/*.js) needs its
@@ -25,21 +26,15 @@ app.use(cookieParser());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+app.use("/api/auth", require("./routes/authRoutes"));
+
 // TODO(team): mount each resource's routes here as they're built, e.g.
-//   app.use("/api/auth", require("./routes/authRoutes"));
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));
-// See backend/README.md for the suggested folder layout (routes/,
-// controllers/, middleware/) and the full API contract.
+// See backend/README.md for the suggested folder layout and the full API
+// contract.
 
-app.use((req, res) => {
-  res.status(404).json({ error: { message: `No route: ${req.method} ${req.originalUrl}` } });
-});
-
-// eslint-disable-next-line no-unused-vars -- Express needs 4 params to recognize an error handler.
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: { message: err.message || "Something went wrong." } });
-});
+app.use(notFound);
+app.use(errorHandler); // must be last — Express finds it by its 4-arg signature
 
 const PORT = process.env.PORT || 4000;
 
