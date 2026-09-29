@@ -16,6 +16,12 @@ const challengeSchema = new mongoose.Schema(
             maxlength: 1000,
         },
 
+        teamId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Team",
+            default: null,
+        },
+
         type: {
             type: String,
             enum: [

@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema(
             trim: true
         },
 
+        teamId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Team",
+            default: null,
+        },
+
         email: {
             type: String,
             required: true,
