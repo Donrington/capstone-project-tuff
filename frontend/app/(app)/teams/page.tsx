@@ -1,42 +1,89 @@
 import type { Metadata } from "next";
-import { KeyRound, UserPlus, UsersRound } from "lucide-react";
+import { KeyRound, Plus, UserPlus, UsersRound } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { InviteButton } from "@/components/invite/InviteButton";
 import { JoinWithCodeButton } from "@/components/invite/JoinWithCodeButton";
-import { getTeamSummary } from "@/lib/data";
+import { CreateTeamButton } from "@/components/teams/CreateTeamButton";
+import { HeadToHead } from "@/components/teams/HeadToHead";
+import { TeamOverview } from "@/components/teams/TeamOverview";
+import { TeamStandings } from "@/components/teams/TeamStandings";
+import { getMyTeam, getTeamMembers, getTeams } from "@/lib/data";
+import styles from "./teams.module.css";
 
 export const metadata: Metadata = { title: "Teams" };
 
+/** Days left in the weekly matchup, which ends Sunday (UTC). */
+function daysLeftThisWeek() {
+  return (7 - new Date().getUTCDay()) % 7;
+}
+
 export default async function TeamsPage() {
-  const team = await getTeamSummary();
+  const [teams, myTeam] = await Promise.all([getTeams(), getMyTeam()]);
+  const members = myTeam ? await getTeamMembers(myTeam.id) : [];
+  const rival = myTeam ? teams.find((t) => t.id === myTeam.rivalId) : undefined;
+
+  // One team per person, so Join and Create only make sense without one.
+  const actions = myTeam ? (
+    <InviteButton variant="secondary" subject={{ kind: "team", name: myTeam.name, code: myTeam.inviteCode }}>
+      <UserPlus size={18} strokeWidth={2.25} aria-hidden="true" />
+      Invite
+    </InviteButton>
+  ) : (
+    <>
+      <JoinWithCodeButton variant="ghost">
+        <KeyRound size={18} strokeWidth={2.25} aria-hidden="true" />
+        Join with a code
+      </JoinWithCodeButton>
+      <CreateTeamButton variant="secondary">
+        <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
+        Create a team
+      </CreateTeamButton>
+    </>
+  );
 
   return (
     <div>
       <PageHeader
         kicker="Teams"
-        title="Your teams"
-        actions={
-          <JoinWithCodeButton variant="ghost">
-            <KeyRound size={18} strokeWidth={2.25} aria-hidden="true" />
-            Join with a code
-          </JoinWithCodeButton>
+        title={myTeam ? myTeam.name : "Teams"}
+        subtitle={
+          myTeam
+            ? `#${myTeam.rank} of ${teams.length} this week.`
+            : "Train with people who'll notice when you skip a day."
         }
+        actions={actions}
       />
-      <EmptyState
-        icon={UsersRound}
-        title="Team pages are next"
-        text="Rosters, team streaks, and head-to-head stats will live here. Invite your crew in the meantime."
-        action={
-          <InviteButton
-            variant="secondary"
-            subject={{ kind: "team", name: team.name, code: team.code }}
-          >
-            <UserPlus size={18} strokeWidth={2.25} aria-hidden="true" />
-            Invite your team
-          </InviteButton>
-        }
-      />
+
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          {myTeam ? (
+            <>
+              <TeamOverview team={myTeam} members={members} totalTeams={teams.length} />
+              {rival && <HeadToHead team={myTeam} rival={rival} daysLeft={daysLeftThisWeek()} />}
+            </>
+          ) : (
+            <EmptyState
+              icon={UsersRound}
+              title="You're not on a team yet"
+              text="Join one with a code from a friend, or start your own and invite people in."
+              action={
+                <div className={styles.emptyActions}>
+                  <JoinWithCodeButton>
+                    <KeyRound size={18} strokeWidth={2.25} aria-hidden="true" />
+                    Join with a code
+                  </JoinWithCodeButton>
+                  <CreateTeamButton variant="secondary">
+                    <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
+                    Create a team
+                  </CreateTeamButton>
+                </div>
+              }
+            />
+          )}
+        </div>
+        <TeamStandings teams={teams} myTeamId={myTeam?.id ?? null} />
+      </div>
     </div>
   );
 }

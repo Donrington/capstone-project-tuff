@@ -1,0 +1,172 @@
+.trigger {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.trigger:hover {
+  background: var(--surface-2);
+}
+.count {
+  position: absolute;
+  top: 5px;
+  right: 3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--accent-surge);
+  color: var(--ink-on-vivid);
+  font: 700 11px/18px var(--font-sans);
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.panel {
+  width: min(380px, calc(100vw - var(--space-8)));
+  max-height: min(520px, 72vh);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+}
+.title {
+  font: 700 12px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.title:focus {
+  outline: none;
+}
+.markAll {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--accent-volt);
+  font: 700 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+.markAll:hover {
+  background: var(--surface-2);
+}
+.caughtUp {
+  padding: var(--space-3);
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.row:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.row:disabled {
+  cursor: default;
+}
+.unread {
+  background: color-mix(in srgb, var(--accent-volt) 5%, transparent);
+}
+.iconWrap {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--ink-secondary);
+}
+.unread .iconWrap {
+  background: var(--surface-2);
+  color: var(--accent-volt);
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  font: 400 13px/19px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.rowTitle strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+}
+.newTag {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+  font: 700 10px/1.2 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.message {
+  margin-top: 1px;
+}
+.time {
+  flex-shrink: 0;
+  padding-top: 2px;
+  font: 400 12px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+}
+
+/* Phones: a full-width sheet under the header instead of a corner panel.
+   !important beats Popover's inline placement. */
+@media (max-width: 719px) {
+  .panel {
+    left: var(--space-2) !important;
+    width: calc(100vw - var(--space-4)) !important;
+    max-height: 80vh;
+  }
+}

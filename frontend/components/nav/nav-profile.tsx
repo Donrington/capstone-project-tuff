@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/lib/auth/get-current-user";
+import type { Persona } from "@/lib/types";
 import { NavSignIn } from "./nav-sign-in";
-import { ProfileMenu } from "./profile-menu";
+import { ProfileMenu, TopBarProfileMenu, type NavProfileUser } from "./profile-menu";
 
 function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -8,19 +9,18 @@ function initialsOf(name: string) {
   return letters.toUpperCase();
 }
 
-/** The profile slot: the signed-in block, or Sign in. Only the minimal,
- *  serializable parts of the user cross into the client. */
-export function NavProfile({ user }: { user: SessionUser | null }) {
-  if (!user) return <NavSignIn />;
+/** Only the minimal, serializable parts of the user cross into the client. */
+function toNavUser(user: SessionUser): NavProfileUser {
+  return { name: user.name, email: user.email, avatarUrl: user.avatarUrl, initials: initialsOf(user.name) };
+}
 
-  return (
-    <ProfileMenu
-      user={{
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        initials: initialsOf(user.name),
-      }}
-    />
-  );
+/** The profile slot: the signed-in block, or Sign in. */
+export function NavProfile({ user, persona }: { user: SessionUser | null; persona: Persona }) {
+  if (!user) return <NavSignIn />;
+  return <ProfileMenu user={toNavUser(user)} persona={persona} />;
+}
+
+/** The top bar's avatar, which opens the account menu on small screens. */
+export function NavTopBarProfile({ user, persona }: { user: SessionUser; persona: Persona }) {
+  return <TopBarProfileMenu user={toNavUser(user)} persona={persona} />;
 }

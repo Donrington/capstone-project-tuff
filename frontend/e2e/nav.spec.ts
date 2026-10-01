@@ -95,7 +95,7 @@ test.describe("app navigation, desktop", () => {
 
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
-    await expect(page.getByRole("menuitem", { name: "Profile" })).toBeFocused();
+    await expect(page.getByRole("menuitem", { name: "View profile" })).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("menuitem", { name: "Settings" })).toBeFocused();
     await page.keyboard.press("End");

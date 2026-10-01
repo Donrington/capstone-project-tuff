@@ -1,0 +1,164 @@
+/* Fixed height (set inline) so bar percentages resolve: a top band for the
+   cap label, a bottom band for column labels, bars in between. Bars cap at
+   24px and grow from one baseline. */
+.plot {
+  --band: 24px;
+  position: relative;
+  margin-top: auto;
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--band);
+}
+.plot[data-dense] {
+  gap: var(--space-1);
+}
+.reference {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* --g = reference / scale max, measured against the bar area only */
+  bottom: calc(var(--band) + (100% - var(--band) * 2) * var(--g));
+  height: 0;
+  border-top: 1px solid var(--border-strong);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Left end, clear of today's cap label. */
+.referenceLabel {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  padding-right: 6px;
+  background: var(--surface);
+  font: 600 11px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  outline: none;
+  cursor: default;
+  z-index: 1;
+}
+.slot {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.bar {
+  width: min(24px, 70%);
+  height: var(--h);
+  border-radius: 4px 4px 0 0;
+  background: var(--ink-tertiary);
+  transform-origin: bottom;
+  animation: grow 900ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+  transition: filter 0.2s ease;
+}
+@keyframes grow {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+.today .bar {
+  background: var(--accent-volt);
+  box-shadow: 0 0 22px -4px color-mix(in srgb, var(--accent-volt) 70%, transparent);
+}
+/* Days still to come: an empty outlined slot, not a bar. */
+.future .bar {
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-bottom: none;
+  animation: none;
+}
+.capLabel {
+  position: absolute;
+  bottom: calc(var(--h) + 6px);
+  left: 50%;
+  translate: -50% 0;
+  font: 700 12px/1 var(--font-sans);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.day {
+  height: var(--band);
+  display: flex;
+  align-items: flex-end;
+  font: 600 12px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.today .day {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* Hover/focus: the whole column is the hit target; the bar lifts and a
+   tooltip leads with the value. */
+.col:not(.future):hover .bar,
+.col:focus-visible .bar {
+  filter: brightness(1.35);
+}
+.col:focus-visible .day {
+  color: var(--accent-volt);
+}
+.tooltip {
+  position: absolute;
+  bottom: calc(var(--h) + 10px);
+  left: 50%;
+  translate: -50% 4px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    translate 0.2s var(--ease-out-expo);
+}
+.tooltip strong {
+  font: 800 14px/1 var(--font-sans);
+  color: var(--ink);
+}
+.tooltip span {
+  font: 500 11px/1 var(--font-sans);
+  color: var(--ink-secondary);
+}
+.col:hover .tooltip,
+.col:focus-visible .tooltip {
+  opacity: 1;
+  translate: -50% 0;
+}
+.today:hover .capLabel,
+.today:focus-visible .capLabel {
+  opacity: 0;
+}
+
+/* Narrow + many columns: label every other day so they don't collide. */
+@media (max-width: 719px) {
+  .plot[data-dense] .col:nth-child(even of .col):not(.today) .day {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

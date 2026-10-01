@@ -3,11 +3,22 @@
   flex-direction: column;
   gap: var(--space-6);
 }
+.topRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.utilities {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 .back {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  align-self: flex-start;
   height: 40px;
   padding: 0 16px 0 12px;
   border-radius: var(--radius-full);
@@ -85,6 +96,43 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-2);
+}
+/* Under the hero: one column, then two from 1200px — chart and breakdown
+   on the left, leaderboard and history on the right. */
+.extras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.boardPanel {
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.boardTitle {
+  margin-bottom: var(--space-3);
+  font: 700 12px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+@media (min-width: 1200px) {
+  .extras {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 719px) {
+  .boardPanel {
+    padding: var(--space-5) var(--space-4);
+  }
 }
 @media (min-width: 900px) {
   .hero {

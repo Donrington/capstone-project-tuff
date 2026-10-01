@@ -22,6 +22,17 @@
   letter-spacing: 0.3em;
   color: var(--ink-tertiary);
 }
+.unranked {
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.unranked strong {
+  color: var(--ink);
+}
 @keyframes boardIn {
   from {
     opacity: 0;
