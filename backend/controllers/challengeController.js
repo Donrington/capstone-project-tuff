@@ -100,6 +100,15 @@ const updateChallenge = async (req, res) => {
             });
         }
 
+        // Only the challenge creator can update it — same rule deleteChallenge
+        // already enforces below; this was missing here, which let anyone
+        // signed in edit anyone else's challenge.
+        if (challenge.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({
+                message: "Unauthorized. You cannot update a challenge you didn't create",
+            });
+        }
+
         // Update only fields that were provided
         const {
             title,
@@ -165,7 +174,6 @@ const getChallengeByInviteCode = async (req, res) => {
         const { code } = req.params;
 
         // Find challenge by invite code
-        console.log(code.toUpperCase());
         const challenge = await Challenge.findOne({
             inviteCode: code.toUpperCase(),
         });
@@ -257,8 +265,6 @@ const deleteChallenge = async (req, res) => {
             });
         }
 
-        console.log(challenge.createdBy.toString());
-        console.log(req.user.id);
         if(challenge.createdBy.toString() !== req.user.id){
             return res.status(403).json({ message: "Unauthorized. You cannot delete a challenge you didn't create"});
         }
