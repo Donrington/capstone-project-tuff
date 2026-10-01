@@ -32,6 +32,9 @@ class ApiError extends Error {
   static conflict(message) {
     return new ApiError(409, message);
   }
+  static unavailable(message = "That isn't available right now.") {
+    return new ApiError(503, message);
+  }
 }
 
 module.exports = ApiError;
