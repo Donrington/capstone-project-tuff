@@ -1,18 +1,16 @@
 const express = require("express");
+const team = require("../controllers/teamController");
+const asyncHandler = require("../middleware/asyncHandler");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const team = require("../controllers/teamController");
-const { requireAuth } = require("../middleware/authMiddleware");
-
-
-router.post("/", requireAuth, team.createTeam);
-router.get("/", requireAuth, team.getAllTeams);
-router.get("/:id", requireAuth, team.getTeamById);
-router.patch("/:id", requireAuth, team.updateTeam);
-router.post("/join", requireAuth, team.joinTeam);
-router.delete("/leave", requireAuth, team.leaveTeam);
-router.get("/:id/members", requireAuth, team.getTeamMembers);
-
+router.post("/", requireAuth, asyncHandler(team.createTeam));
+router.get("/", requireAuth, asyncHandler(team.getAllTeams));
+router.get("/:id", requireAuth, asyncHandler(team.getTeamById));
+router.patch("/:id", requireAuth, asyncHandler(team.updateTeam));
+router.post("/join", requireAuth, asyncHandler(team.joinTeam));
+router.delete("/leave", requireAuth, asyncHandler(team.leaveTeam));
+router.get("/:id/members", requireAuth, asyncHandler(team.getTeamMembers));
 
 module.exports = router;
