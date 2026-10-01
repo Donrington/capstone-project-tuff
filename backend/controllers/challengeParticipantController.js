@@ -1,284 +1,173 @@
 const ChallengeParticipant = require("../models/ChallengeParticipant");
 const Challenge = require("../models/Challenge");
+const Activity = require("../models/Activity");
+const ApiError = require("../utils/ApiError");
 
+// POST /api/challenge-participants/:challengeId/join
+async function joinChallenge(req, res) {
+  const { challengeId } = req.params;
+  const userId = req.user.id;
 
-// Join a challenge
-const joinChallenge = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
+  const challenge = await Challenge.findById(challengeId);
+  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (challenge.status === "completed" || challenge.status === "cancelled") {
+    throw ApiError.badRequest("You cannot join this challenge.");
+  }
 
-        // The authenticated user's ID
-        const userId = req.user.id;
+  const existing = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });
+  if (existing) throw ApiError.badRequest("You have already joined this challenge.");
 
-        // Check if the challenge exists
-        const challenge = await Challenge.findById(challengeId);
+  if (challenge.maxParticipants) {
+    const count = await ChallengeParticipant.countDocuments({ challenge: challengeId });
+    if (count >= challenge.maxParticipants) throw ApiError.badRequest("This challenge is already at full capacity.");
+  }
 
-        if (!challenge) {
-            return res.status(404).json({
-                message: "Challenge not found",
-            });
-        }
+  const participant = await ChallengeParticipant.create({ user: userId, challenge: challengeId });
+  res.status(201).json(participant);
+}
 
-        // Check if the challenge can still accept participants
-        if (
-            challenge.status === "completed" ||
-            challenge.status === "cancelled"
-        ) {
-            return res.status(400).json({
-                message: "You cannot join this challenge",
-            });
-        }
+// GET /api/challenge-participants/:challengeId/me
+async function getMyParticipation(req, res) {
+  const { challengeId } = req.params;
+  const participant = await ChallengeParticipant.findOne({ user: req.user.id, challenge: challengeId })
+    .populate("user", "firstName lastName email")
+    .populate("challenge", "title type goal unit startDate endDate");
+  if (!participant) throw ApiError.notFound("You are not a participant in this challenge.");
+  res.json(participant);
+}
 
-        // Check if the user already joined
-        const existingParticipant = await ChallengeParticipant.findOne({
-            user: userId,
-            challenge: challengeId,
-        });
+// GET /api/challenge-participants/:challengeId
+async function getChallengeParticipants(req, res) {
+  const { challengeId } = req.params;
+  const challenge = await Challenge.findById(challengeId);
+  if (!challenge) throw ApiError.notFound("Challenge not found.");
 
-        if (existingParticipant) {
-            return res.status(400).json({
-                message: "You have already joined this challenge",
-            });
-        }
+  const participants = await ChallengeParticipant.find({ challenge: challengeId })
+    .populate("user", "firstName lastName profilePicture")
+    .sort({ points: -1, progress: -1 });
+  res.json(participants);
+}
 
-        // Check maximum participants
-        if (challenge.maxParticipants) {
-            const participantCount =
-                await ChallengeParticipant.countDocuments({
-                    challenge: challengeId,
-                });
+/** Activity.type/.unit aren't quite the same enums as Challenge.type/.unit
+ *  (Activity has no "calories"/"weight-loss"/"custom"; Challenge has no
+ *  "swimming"/"hiking"/"other"). Falls back to "other" for type — a safe
+ *  catch-all Activity already supports — but refuses to guess at a unit
+ *  mismatch, since silently relabeling km as something else would corrupt
+ *  the number. Worth reconciling the two enums directly at some point. */
+const ACTIVITY_TYPES = new Set(["running", "walking", "cycling", "swimming", "workout", "steps", "hiking", "other"]);
+const ACTIVITY_UNITS = new Set(["km", "miles", "steps", "minutes", "seconds", "reps"]);
 
-            if (participantCount >= challenge.maxParticipants) {
-                return res.status(400).json({
-                    message: "This challenge is already at full capacity",
-                });
-            }
-        }
+// POST /api/challenge-participants/:challengeId/activities — the real,
+// server-computed way progress increases. Replaces trusting a client-sent
+// progress number: this creates an Activity record and increments from it.
+async function logActivity(req, res) {
+  const { challengeId } = req.params;
+  const userId = req.user.id;
+  const { value, recordedAt } = req.body;
 
-        // Create participant
-        const participant = await ChallengeParticipant.create({
-            user: userId,
-            challenge: challengeId,
-        });
+  if (typeof value !== "number" || !(value > 0)) {
+    throw ApiError.badRequest("value must be a number greater than 0.");
+  }
 
-        return res.status(201).json({
-            message: "Successfully joined challenge",
-            participant,
-        });
-    } catch (error) {
-        console.error("Error joining challenge:", error);
+  const challenge = await Challenge.findById(challengeId);
+  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (!ACTIVITY_UNITS.has(challenge.unit)) {
+    throw ApiError.badRequest(`Logging isn't supported yet for challenges measured in "${challenge.unit}".`);
+  }
 
-        return res.status(500).json({
-            message: "Failed to join challenge",
-            error: error.message,
-        });
-    }
-};
+  const participant = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });
+  if (!participant) throw ApiError.badRequest("Join this challenge before logging activity against it.");
+  if (participant.completed) throw ApiError.badRequest("You've already completed this challenge.");
 
+  const activity = await Activity.create({
+    user: userId,
+    challenge: challengeId,
+    type: ACTIVITY_TYPES.has(challenge.type) ? challenge.type : "other",
+    value,
+    unit: challenge.unit,
+    recordedAt: recordedAt ? new Date(recordedAt) : new Date(),
+  });
 
-// Get a user's participation in a challenge
-const getMyParticipation = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
-        const userId = req.user.id;
+  const previousProgress = participant.progress;
+  const pointsEarned = value * challenge.pointsPerUnit;
+  let updated = await ChallengeParticipant.findByIdAndUpdate(
+    participant._id,
+    { $inc: { progress: value, points: pointsEarned } },
+    { new: true },
+  );
 
-        const participant = await ChallengeParticipant.findOne({
-            user: userId,
-            challenge: challengeId,
-        })
-            .populate("user", "firstName lastName email")
-            .populate("challenge", "title type goal unit startDate endDate");
+  const justCompleted = previousProgress < challenge.goal && updated.progress >= challenge.goal;
+  if (justCompleted) {
+    updated = await ChallengeParticipant.findByIdAndUpdate(
+      participant._id,
+      { completed: true, completedAt: new Date() },
+      { new: true },
+    );
+  }
 
-        if (!participant) {
-            return res.status(404).json({
-                message: "You are not a participant in this challenge",
-            });
-        }
+  res.status(201).json({ activity, participant: updated, justCompleted });
+}
 
-        return res.status(200).json({
-            participant,
-        });
-    } catch (error) {
-        console.error("Error getting participation:", error);
+// PATCH /api/challenge-participants/:challengeId/progress — admin-only
+// correction tool. Regular play goes through logActivity above; this isn't
+// gated by progress earned because it's for fixing mistakes, not earning
+// points — see requireRole("admin") on this route.
+async function updateProgress(req, res) {
+  const { challengeId } = req.params;
+  const { userId, progress } = req.body;
+  if (!userId) throw ApiError.badRequest("userId is required.");
+  if (typeof progress !== "number" || progress < 0) {
+    throw ApiError.badRequest("progress must be a number greater than or equal to 0.");
+  }
 
-        return res.status(500).json({
-            message: "Failed to get participation",
-            error: error.message,
-        });
-    }
-};
+  const participant = await ChallengeParticipant.findOneAndUpdate(
+    { user: userId, challenge: challengeId },
+    { progress },
+    { new: true },
+  );
+  if (!participant) throw ApiError.notFound("That user isn't a participant in this challenge.");
+  res.json(participant);
+}
 
+// PATCH /api/challenge-participants/:challengeId/complete — only valid once
+// the goal is actually met; logActivity sets this automatically, this is
+// for a participant to confirm it if for some reason it didn't.
+async function completeChallenge(req, res) {
+  const { challengeId } = req.params;
+  const userId = req.user.id;
 
-// Get all participants in a challenge
-const getChallengeParticipants = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
+  const [participant, challenge] = await Promise.all([
+    ChallengeParticipant.findOne({ user: userId, challenge: challengeId }),
+    Challenge.findById(challengeId),
+  ]);
+  if (!participant) throw ApiError.notFound("You are not a participant in this challenge.");
+  if (participant.completed) throw ApiError.badRequest("You have already completed this challenge.");
+  if (!challenge || participant.progress < challenge.goal) {
+    throw ApiError.badRequest("You haven't reached the goal yet.");
+  }
 
-        // Check if challenge exists
-        const challenge = await Challenge.findById(challengeId);
+  participant.completed = true;
+  participant.completedAt = new Date();
+  await participant.save();
+  res.json(participant);
+}
 
-        if (!challenge) {
-            return res.status(404).json({
-                message: "Challenge not found",
-            });
-        }
+// DELETE /api/challenge-participants/:challengeId/leave
+async function leaveChallenge(req, res) {
+  const { challengeId } = req.params;
+  const participant = await ChallengeParticipant.findOne({ user: req.user.id, challenge: challengeId });
+  if (!participant) throw ApiError.notFound("You are not a participant in this challenge.");
 
-        const participants = await ChallengeParticipant.find({
-            challenge: challengeId,
-        })
-            .populate("user", "firstName lastName profilePicture")
-            .sort({ points: -1, progress: -1 });
-
-        return res.status(200).json({
-            count: participants.length,
-            participants,
-        });
-    } catch (error) {
-        console.error("Error getting challenge participants:", error);
-
-        return res.status(500).json({
-            message: "Failed to get challenge participants",
-            error: error.message,
-        });
-    }
-};
-
-
-// Update participant progress
-const updateProgress = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
-        const userId = req.user.id;
-
-        const { progress } = req.body;
-
-        // Validate progress
-        if (progress === undefined) {
-            return res.status(400).json({
-                message: "Progress is required",
-            });
-        }
-
-        if (typeof progress !== "number" || progress < 0) {
-            return res.status(400).json({
-                message: "Progress must be a number greater than or equal to 0",
-            });
-        }
-
-        // Find the participant
-        const participant = await ChallengeParticipant.findOne({
-            user: userId,
-            challenge: challengeId,
-        });
-
-        if (!participant) {
-            return res.status(404).json({
-                message: "You are not a participant in this challenge",
-            });
-        }
-
-        // Update progress
-        participant.progress = progress;
-
-        await participant.save();
-
-        return res.status(200).json({
-            message: "Progress updated successfully",
-            participant,
-        });
-    } catch (error) {
-        console.error("Error updating progress:", error);
-
-        return res.status(500).json({
-            message: "Failed to update progress",
-            error: error.message,
-        });
-    }
-};
-
-
-// Mark participant as completed
-const completeChallenge = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
-        const userId = req.user.id;
-
-        const participant = await ChallengeParticipant.findOne({
-            user: userId,
-            challenge: challengeId,
-        });
-
-        if (!participant) {
-            return res.status(404).json({
-                message: "You are not a participant in this challenge",
-            });
-        }
-
-        // Check if already completed
-        if (participant.completed) {
-            return res.status(400).json({
-                message: "You have already completed this challenge",
-            });
-        }
-
-        participant.completed = true;
-        participant.completedAt = new Date();
-
-        await participant.save();
-
-        return res.status(200).json({
-            message: "Challenge completed successfully",
-            participant,
-        });
-    } catch (error) {
-        console.error("Error completing challenge:", error);
-
-        return res.status(500).json({
-            message: "Failed to complete challenge",
-            error: error.message,
-        });
-    }
-};
-
-
-// Leave a challenge
-const leaveChallenge = async (req, res) => {
-    try {
-        const { challengeId } = req.params;
-        const userId = req.user.id;
-
-        const participant = await ChallengeParticipant.findOne({
-            user: userId,
-            challenge: challengeId,
-        });
-
-        if (!participant) {
-            return res.status(404).json({
-                message: "You are not a participant in this challenge",
-            });
-        }
-
-        await ChallengeParticipant.findByIdAndDelete(participant._id);
-
-        return res.status(200).json({
-            message: "You have left the challenge",
-        });
-    } catch (error) {
-        console.error("Error leaving challenge:", error);
-
-        return res.status(500).json({
-            message: "Failed to leave challenge",
-            error: error.message,
-        });
-    }
-};
-
+  await ChallengeParticipant.findByIdAndDelete(participant._id);
+  res.status(204).end();
+}
 
 module.exports = {
-    joinChallenge,
-    getMyParticipation,
-    getChallengeParticipants,
-    updateProgress,
-    completeChallenge,
-    leaveChallenge,
+  joinChallenge,
+  getMyParticipation,
+  getChallengeParticipants,
+  logActivity,
+  updateProgress,
+  completeChallenge,
+  leaveChallenge,
 };
