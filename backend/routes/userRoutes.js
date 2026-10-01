@@ -9,6 +9,8 @@ const router = express.Router();
 // there's no way to point one of these at someone else's account.
 router.use(requireAuth);
 
+router.get("/me/stats", asyncHandler(user.getMyStats));
+router.get("/me/activities", asyncHandler(user.getMyActivities));
 router.patch("/me", asyncHandler(user.updateProfile));
 router.put("/me/photo", asyncHandler(user.updatePhoto));
 router.patch("/me/password", asyncHandler(user.updatePassword));

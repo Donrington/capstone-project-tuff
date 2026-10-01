@@ -9,6 +9,24 @@ const ApiError = require("../utils/ApiError");
 const { toSafeUser } = require("../utils/serializeUser");
 const { issueSession, clearSession } = require("../utils/session");
 const { cloudinary, isCloudinaryConfigured, avatarPublicId } = require("../utils/cloudinary");
+const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
+const { computeStats } = require("../services/statsService");
+
+// GET /api/users/me/stats — today, the last 7 days, streaks, lifetime totals
+// and personal bests, all computed from your logged activity.
+async function getMyStats(req, res) {
+  res.json(await computeStats(req.user.id));
+}
+
+// GET /api/users/me/activities?limit= — your own history, newest first.
+async function getMyActivities(req, res) {
+  const activities = await Activity.find({ user: req.user.id })
+    .sort({ recordedAt: -1 })
+    .limit(limitFrom(req.query, 20, 200))
+    .populate("user", USER_FIELDS)
+    .populate("challenge", CHALLENGE_FIELDS);
+  res.json(activities.map(toActivityEntry));
+}
 
 // The frontend resizes photos to a 320px JPEG before sending, so real
 // uploads are ~30kb. This cap (~2MB decoded) is just a backstop.
@@ -211,6 +229,8 @@ async function deleteAccount(req, res) {
 }
 
 module.exports = {
+  getMyStats,
+  getMyActivities,
   updateProfile,
   updatePhoto,
   updatePassword,

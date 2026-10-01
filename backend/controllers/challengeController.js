@@ -108,6 +108,17 @@ async function getChallenge(req, res) {
   res.json(await withComputedProgress(challenge));
 }
 
+// GET /api/challenges — the challenges you've joined, with live progress.
+// Featured first, then newest start date.
+async function listMyChallenges(req, res) {
+  const mine = await ChallengeParticipant.find({ user: req.user.id }).select("challenge");
+  const challenges = await Challenge.find({
+    _id: { $in: mine.map((p) => p.challenge) },
+    status: { $ne: "cancelled" },
+  }).sort({ featured: -1, startDate: -1 });
+  res.json(await Promise.all(challenges.map(withComputedProgress)));
+}
+
 // DELETE /api/challenges/delete/:id
 async function deleteChallenge(req, res) {
   const { id } = req.params;
@@ -122,4 +133,11 @@ async function deleteChallenge(req, res) {
   res.status(204).end();
 }
 
-module.exports = { createChallenge, updateChallenge, getChallengeByInviteCode, getChallenge, deleteChallenge };
+module.exports = {
+  createChallenge,
+  updateChallenge,
+  getChallengeByInviteCode,
+  getChallenge,
+  deleteChallenge,
+  listMyChallenges,
+};

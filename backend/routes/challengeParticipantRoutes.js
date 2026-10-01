@@ -9,6 +9,7 @@ router.post("/:challengeId/join", requireAuth, asyncHandler(challengeParticipant
 router.get("/:challengeId/me", requireAuth, asyncHandler(challengeParticipant.getMyParticipation));
 router.get("/:challengeId", requireAuth, asyncHandler(challengeParticipant.getChallengeParticipants));
 router.post("/:challengeId/activities", requireAuth, asyncHandler(challengeParticipant.logActivity));
+router.get("/:challengeId/activities", requireAuth, asyncHandler(challengeParticipant.getChallengeActivities));
 router.patch(
   "/:challengeId/progress",
   requireAuth,
