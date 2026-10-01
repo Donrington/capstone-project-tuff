@@ -4,8 +4,11 @@ import styles from "./teams.module.css";
 
 /** You against the team you're chasing, this week. Your team in surge, theirs in gray. */
 export function HeadToHead({ team, rival, daysLeft }: { team: Team; rival: Team; daysLeft: number }) {
-  const total = team.weeklyPoints + rival.weeklyPoints || 1;
-  const gap = rival.weeklyPoints - team.weeklyPoints;
+  // Only rendered once the leaderboard has points for both (see the teams page).
+  const mine = team.weeklyPoints ?? 0;
+  const theirs = rival.weeklyPoints ?? 0;
+  const total = mine + theirs || 1;
+  const gap = theirs - mine;
   const ahead = gap < 0;
   const left = daysLeft === 0 ? "Ends today." : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left this week.`;
 
@@ -17,22 +20,22 @@ export function HeadToHead({ team, rival, daysLeft }: { team: Team; rival: Team;
       <div className={styles.h2hTeams}>
         <div>
           <p className={styles.h2hName}>{team.name}</p>
-          <p className={styles.h2hPoints}>{team.weeklyPoints.toLocaleString("en-US")}</p>
+          <p className={styles.h2hPoints}>{mine.toLocaleString("en-US")}</p>
         </div>
         <span className={styles.vs} aria-hidden="true">
           vs
         </span>
         <div className={styles.h2hRight}>
           <p className={styles.h2hName}>{rival.name}</p>
-          <p className={styles.h2hPoints}>{rival.weeklyPoints.toLocaleString("en-US")}</p>
+          <p className={styles.h2hPoints}>{theirs.toLocaleString("en-US")}</p>
         </div>
       </div>
       <div
         className={styles.split}
         role="img"
-        aria-label={`${team.name} ${team.weeklyPoints.toLocaleString("en-US")} points, ${rival.name} ${rival.weeklyPoints.toLocaleString("en-US")} points`}
+        aria-label={`${team.name} ${mine.toLocaleString("en-US")} points, ${rival.name} ${theirs.toLocaleString("en-US")} points`}
       >
-        <span className={styles.splitMine} style={{ "--w": `${(team.weeklyPoints / total) * 100}%` } as CSSProperties} />
+        <span className={styles.splitMine} style={{ "--w": `${(mine / total) * 100}%` } as CSSProperties} />
         <span className={styles.splitTheirs} />
       </div>
       <p className={styles.h2hLine}>

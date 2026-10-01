@@ -4,6 +4,12 @@ import { expect, test } from "@playwright/test";
 // these change it — so they run one after another, in order.
 test.describe.configure({ mode: "serial" });
 
+// Start from fresh seed data, even on a dev server that's been running a while.
+test.beforeAll(async ({ request }) => {
+  const res = await request.post("/dev/reset");
+  expect(res.status()).toBe(204);
+});
+
 const toNumber = (text: string | null) => Number((text ?? "").replace(/[^\d]/g, ""));
 
 test.describe("returning user", () => {

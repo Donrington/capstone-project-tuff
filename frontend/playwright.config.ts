@@ -8,6 +8,8 @@ export default defineConfig({
   testDir: "./e2e",
   // Generous, because the dev server compiles each route on its first visit.
   timeout: 60_000,
+  // Server actions on a dev server under parallel load can take a few seconds.
+  expect: { timeout: 15_000 },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -22,5 +24,9 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // The specs assert on the demo data, so they run against the mock.
+    // If you reuse a dev server you started yourself, start it with
+    // TUFF_DATA_SOURCE=mock too.
+    env: { TUFF_DATA_SOURCE: "mock" },
   },
 });

@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import * as seed from "@/data/mock-data";
+import { suggestedChallenges } from "@/data/suggested-challenges";
 import type {
   Achievement,
   Activity,
@@ -30,7 +31,10 @@ import type {
 } from "@/lib/types";
 
 /**
- * The app's only data source. It stands in for the backend with an in-memory
+ * The mock data source (TUFF_DATA_SOURCE=mock). lib/data/index.ts picks this
+ * or the real API (lib/data/api.ts); both export the same functions.
+ *
+ * Originally the app's only data source. It stands in for the backend with an in-memory
  * mock DB, so wiring up real endpoints later means changing this file and
  * nothing else — every read below carries the call it will become.
  *
@@ -283,6 +287,7 @@ function teamViews(d: MockDb): Team[] {
     inviteCode: t.inviteCode,
     createdBy: t.createdBy,
     maxMembers: t.maxMembers,
+    memberCount: memberIds.length,
     memberIds,
     rank: i + 1,
     weeklyPoints,
@@ -390,7 +395,8 @@ export interface TeamMember {
   name: string;
   initials: string;
   profilePicture?: string;
-  weeklyPoints: number;
+  /** Null until the leaderboard exists (real data only). */
+  weeklyPoints: number | null;
   activeToday: boolean;
   isCurrentUser: boolean;
   /** Started the team. Shown as a quiet note, not a role. */
@@ -444,7 +450,7 @@ export const getTeamSummary = cache(async (): Promise<TeamSummary | null> => {
     totalTeams: teams.length,
     weeklyPoints: team.weeklyPoints,
     rivalName: rival?.name ?? null,
-    gapToRival: rival ? rival.weeklyPoints - team.weeklyPoints : 0,
+    gapToRival: rival ? (rival.weeklyPoints ?? 0) - (team.weeklyPoints ?? 0) : 0,
     members: members.slice(0, 4).map((m) => ({ id: m.id, initials: m.initials, profilePicture: m.profilePicture })),
     extraMembers: Math.max(0, members.length - 4),
   });
@@ -578,12 +584,12 @@ function leaderboardFrom(d: MockDb, period: LeaderboardPeriod): LeaderboardEntry
 
 // TODO(backend): GET /leaderboard?period= (the leaderboard work, in progress)
 export const getLeaderboard = cache(
-  async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[]> =>
+  async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[] | null> =>
     settle(leaderboardFrom(await db(), period)),
 );
 
 /** Dashboard preview: the top five, plus wherever the current user sits. */
-export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[]> =>
+export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[] | null> =>
   settle(leaderboardFrom(await db(), "week").filter((entry) => entry.rank <= 5 || entry.isCurrentUser)),
 );
 
@@ -687,7 +693,8 @@ export const getSearchIndex = cache(async (): Promise<SearchItem[]> => {
     keywords: [t.inviteCode],
   }));
 
-  const personItems: SearchItem[] = d.people.map((p) => ({
+  // Teammates only, same as the real search: nobody else's name is searchable.
+  const personItems: SearchItem[] = d.people.filter((p) => p.teamId && p.teamId === d.user.teamId).map((p) => ({
     id: `person-${p.id}`,
     kind: "person",
     label: fullName(p),
@@ -700,7 +707,7 @@ export const getSearchIndex = cache(async (): Promise<SearchItem[]> => {
 });
 
 export const getSuggestedChallenges = cache(async (): Promise<SuggestedChallenge[]> =>
-  settle(seed.suggestedChallenges),
+  settle(suggestedChallenges),
 );
 
 export interface CodeMatch {
@@ -882,7 +889,7 @@ export async function createChallenge(input: {
 // challenge the backend would create it first (or it'd already exist).
 export async function joinSuggestedChallenge(suggestedId: string): Promise<Challenge | null> {
   const d = await db();
-  const s = seed.suggestedChallenges.find((x) => x.id === suggestedId);
+  const s = suggestedChallenges.find((x) => x.id === suggestedId);
   if (!s) return null;
   const existing = d.challenges.find((c) => c.id === s.id);
   if (existing) return challengeView(d, existing);
@@ -1019,6 +1026,19 @@ export async function markNotificationRead(id: string) {
   const d = await db();
   const n = d.notifications.find((x) => x.id === id);
   if (n) n.read = true;
+}
+
+/** Mock: nothing to join — the returning user is already in every seeded
+ *  challenge. */
+export async function joinChallengeByCode(code: string): Promise<{ ok: true; challengeId: string } | { ok: false; error: string }> {
+  const d = await db();
+  const c = d.challenges.find((x) => x.code && normalizeCode(x.code) === normalizeCode(code));
+  return c ? { ok: true, challengeId: c.id } : { ok: false, error: "That code doesn't match a challenge." };
+}
+
+/** Mock: the stub answer the settings page has always shown. */
+export async function deleteAccount(): Promise<{ ok: boolean; message?: string }> {
+  return { ok: false, message: "Account deletion goes live with the backend." };
 }
 
 // TODO(backend): PATCH /api/notifications/read-all

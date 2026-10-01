@@ -42,7 +42,13 @@ async function getTeamById(req, res) {
 // GET /api/teams
 async function getAllTeams(req, res) {
   const teams = await Team.find({ status: "active" }).populate("createdBy", "firstName lastName").sort({ createdAt: -1 });
-  res.json(teams);
+  // Member counts in one query, not one per team.
+  const counts = await User.aggregate([
+    { $match: { teamId: { $in: teams.map((t) => t._id) } } },
+    { $group: { _id: "$teamId", count: { $sum: 1 } } },
+  ]);
+  const countOf = new Map(counts.map((c) => [c._id.toString(), c.count]));
+  res.json(teams.map((t) => ({ ...t.toObject(), memberCount: countOf.get(t._id.toString()) ?? 0 })));
 }
 
 // PATCH /api/teams/:id

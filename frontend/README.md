@@ -5,15 +5,21 @@ layouts that reflow down to phone widths — not a mobile-app shell.
 
 ## Getting started
 
+Run the backend first (`backend/README.md`), then:
+
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+cp .env.example .env.local   # optional: API_URL, TUFF_DATA_SOURCE
+npm run dev          # http://localhost:3000, talking to the API on :4000
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint (also runs in CI)
 npm run media:fetch  # re-download the auth clips into public/media (already done)
 npm run fonts:fetch  # fetch Satoshi into public/fonts (runs before dev and build)
 npm run test:e2e     # Playwright; reuses a dev server on :3000 or starts one
 ```
+
+No backend handy? `TUFF_DATA_SOURCE=mock npm run dev` runs on the built-in demo
+data instead. The e2e tests always use the mock (Playwright sets it).
 
 The first e2e run needs a browser: `npx playwright install chromium`.
 
@@ -68,28 +74,50 @@ components/
   theme/                  ThemeProvider (dark/light, saved in localStorage).
   motion/SmoothScroll.tsx Lenis, wheel/trackpad only.
 data/
-  mock-data.ts            Seed data for the mock DB. Only lib/data.ts imports it.
+  mock-data.ts            Seed data for the mock DB. Only lib/data/mock.ts imports it.
+  suggested-challenges.ts Starter challenges for onboarding and first runs.
   exercises.ts            The exercise library — static content, imported directly.
   auth-media.json         Where the auth clips load from (see below).
 lib/
-  data.ts                 The app's only data source — see "Data" below.
+  data/                   The app's only data source — see "Data" below.
+    index.ts              Picks the implementation; everything imports from here.
+    api.ts                The real one: the Express backend.
+    mock.ts               The demo one: an in-memory mock DB.
+  api/                    Server-side backend client: cookies, refresh, errors.
   types.ts                The shape contract, named to match the backend models.
   search.ts               The search matcher, shared by the search box and /search.
   challenge-card.ts       Small display helpers.
   nav/                    Nav items (one list feeds the rail, drawer and footer) and the
                           nav-state cookie.
-  auth/get-current-user.ts  The session seam — mocked until real auth lands.
+  auth/get-current-user.ts  The session seam (GET /api/auth/me, or the mock).
   site-config.ts          Brand name, contact and socials (placeholders, see TODO(brand)).
-e2e/                      Playwright tests: app nav, About nav, footer (with axe).
+proxy.ts                  Guards app routes and refreshes the session (Next 16's middleware).
+e2e/                      Playwright tests: app nav, About nav, footer (with axe), features.
 scripts/fetch-media.mjs   Self-hosts the auth clips.
 ```
 
 ## Data
 
-Every screen reads through `lib/data.ts`, which stands in for the backend with
-an in-memory mock DB seeded from `data/mock-data.ts`. Nothing else imports the
-seed, so wiring up real endpoints means changing one file — each read already
-carries the call it will become as a `// TODO(backend)` comment.
+Every screen reads through `@/lib/data`, which has two implementations with
+the same exports, picked by `TUFF_DATA_SOURCE`:
+
+- **`api` (default)** — `lib/data/api.ts` calls the Express backend at
+  `API_URL` (default `http://localhost:4000`) from the server. The browser
+  never talks to the backend directly.
+- **`mock`** — `lib/data/mock.ts`, an in-memory demo DB seeded from
+  `data/mock-data.ts`. Handy without a backend; the e2e tests use it.
+
+`lib/data/index.ts` is typed as the mock's module, so the two can't drift
+apart without the build failing.
+
+**Waiting on the leaderboard.** Weekly points, ranks, rivals and team streaks
+come from `GET /api/leaderboard*` (proposed contract in `backend/README.md`),
+which isn't built yet. Until it answers, those values are `null` and the UI
+leaves them out — "The leaderboard is on its way" on the leaderboard and
+dashboard, member counts instead of points on the teams pages. Building the
+endpoints lights them up with no frontend change.
+
+How the real data source handles the rest:
 
 - **Server-only.** Import it from Server Components and server actions. Client
   components get what they need as props (the shell takes a `user` prop).
@@ -105,9 +133,29 @@ carries the call it will become as a `// TODO(backend)` comment.
 - **Two personas (dev only).** A `tuff-persona=new` cookie serves a
   brand-new account (no stats, challenges or team) to show the first-run
   states. Sign-up switches to it; the account menu flips between them.
-- **It's per-process.** The DB lives on `globalThis`, so it survives hot
-  reloads but resets when the dev server restarts, and a serverless deploy
-  gives each instance its own copy. Fine for a frontend demo, not for real use.
+- **The mock is per-process.** Its DB lives on `globalThis`, so it survives
+  hot reloads but resets when the dev server restarts. `POST /dev/reset`
+  (development, mock only) re-seeds it; the e2e specs call it first.
+
+## Auth and sessions
+
+The backend issues two httpOnly cookies: a 15-minute access JWT
+(`tuff_access`) and a 30-day refresh token (`tuff_refresh`). Because the
+browser only talks to Next:
+
+- **Sign-in, sign-up, password changes and sign-out** are server actions that
+  call the backend and copy its session cookies onto Next's own domain
+  (`lib/api/cookies.ts`). This keeps working when the frontend and backend
+  are deployed on different domains.
+- **Every backend call** forwards those cookies (`lib/api/client.ts`). A 401
+  triggers one silent refresh and a retry; still 401 sends you to sign in.
+- **`proxy.ts`** runs before each page. It swaps an expired access cookie for
+  a fresh one (pages themselves can't set cookies), sends signed-out visitors
+  from app pages to `/?mode=signin`, and sends signed-in visitors from `/` to
+  the dashboard. It's an optimistic guard; the backend still checks every
+  request.
+- **Not built yet:** forgot/reset password (needs backend endpoints and an
+  email provider) and Google/Apple sign-in. Both are marked `TODO(backend)`.
 
 ## The auth landing page
 
@@ -121,8 +169,8 @@ carries the call it will become as a `// TODO(backend)` comment.
   headline, the active form sits beneath it.
 - **Forms** post to server actions (`app/(auth)/actions.ts`) through
   `useActionState`: field errors come back in plain language, entered values
-  are preserved, and success redirects to `/dashboard`. There is no real auth
-  yet — see "What's not here yet".
+  are preserved. Sign-up goes on to `/onboarding`, sign-in to `/dashboard`
+  (see "Auth and sessions").
 - **Accessibility:** focus moves to the revealed form's heading after a switch;
   the hidden form is `inert`; `prefers-reduced-motion` turns every transition
   into an instant swap and stops the clips from autoplaying (posters stay up).
@@ -159,9 +207,9 @@ panel falls back to a drifting brand-gradient mesh rather than a black box.
   in a `nav-state` cookie that the server reads, so the rail renders at the
   right width with no flash. Collapsed links show their label in a tooltip.
   The nav reflects the session but never enforces access.
-- **Mock session.** `lib/auth/get-current-user.ts` returns the seeded user.
-  Sign out sets a `tuff-mock-session=signed-out` cookie, and signing in clears
-  it. `MOCK_SESSION=signed-in|signed-out` in `.env.local` forces either state.
+- **Mock session** (mock data only). `lib/auth/get-current-user.ts` returns
+  the seeded user. Sign out sets a `tuff-mock-session=signed-out` cookie, and
+  signing in clears it. `MOCK_SESSION=signed-in|signed-out` in `.env.local` forces either state.
   In development, a `tuff-mock-latency=<ms>` cookie delays it so you can see
   the loading skeleton.
 - **The footer is About-only.** A server component with no client JS. The
@@ -204,13 +252,10 @@ panel falls back to a drifting brand-gradient mesh rather than a black box.
 
 ## What's not here yet
 
-- **Real auth.** Server actions validate and redirect but don't create
-  sessions (the nav runs on the mock in `lib/auth/get-current-user.ts`). Recommended shape: Auth.js (NextAuth v5) with a credentials
-  provider calling the backend's `/auth` endpoints, JWT sessions read
-  server-side, plus Google and Apple OAuth behind the existing buttons.
-  Route protection for `(app)/` comes with it.
-- **Real data.** `lib/data.ts` stands in for the backend; `lib/types.ts` is the
-  contract. Every seam is marked — `grep -rn "TODO(backend)\|TODO(auth)" app components lib`.
+- **The leaderboard** (being built separately) — see "Data" above.
+- **Password reset emails, Google/Apple sign-in, tracker connections, push
+  and email notifications.** Every remaining seam is marked:
+  `grep -rn "TODO(backend)\|TODO(leaderboard)" app components lib`.
 - **Legal text.** `/terms` and `/privacy` are drafts that need legal review,
   including against Nigeria's Data Protection Act 2023.
 - **Token sync.** `globals.css` mirrors the design system's `tokens.json` by

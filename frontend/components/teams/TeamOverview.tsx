@@ -13,9 +13,11 @@ export function TeamOverview({ team, members, totalTeams }: { team: Team; member
     <section className={styles.overview} aria-labelledby="your-team-heading">
       <div className={styles.overviewHead}>
         <p className={styles.kicker}>Your team</p>
-        <Badge variant="neutral">
-          #{team.rank} of {totalTeams}
-        </Badge>
+        {team.rank !== null && (
+          <Badge variant="neutral">
+            #{team.rank} of {totalTeams}
+          </Badge>
+        )}
       </div>
       <h2 id="your-team-heading" className={styles.overviewName}>
         {team.name}
@@ -23,18 +25,24 @@ export function TeamOverview({ team, members, totalTeams }: { team: Team; member
       <dl className={styles.statRow}>
         <div>
           <dt>Weekly points</dt>
-          <dd>{team.weeklyPoints.toLocaleString("en-US")}</dd>
+          <dd>{team.weeklyPoints?.toLocaleString("en-US") ?? "—"}</dd>
         </div>
         <div>
           <dt>Team streak</dt>
           <dd>
-            <Flame size={16} aria-hidden="true" className={styles.flame} />
-            {team.streakDays} {team.streakDays === 1 ? "day" : "days"}
+            {team.streakDays === null ? (
+              "—"
+            ) : (
+              <>
+                <Flame size={16} aria-hidden="true" className={styles.flame} />
+                {team.streakDays} {team.streakDays === 1 ? "day" : "days"}
+              </>
+            )}
           </dd>
         </div>
         <div>
           <dt>Members</dt>
-          <dd>{team.memberIds.length}</dd>
+          <dd>{team.memberCount}</dd>
         </div>
       </dl>
       <div className={styles.avatarRow} aria-label={`${members.length} members`}>

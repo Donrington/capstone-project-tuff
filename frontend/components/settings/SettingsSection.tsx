@@ -38,11 +38,13 @@ export function SettingsSection({
   );
 }
 
-/** "Saved." (or the action's own message) as a success toast, once per save. */
+/** "Saved." (or the action's own message) as a success toast, once per
+ *  save — and a danger toast when the server refused without naming a field. */
 export function useSavedToast(state: ActionState) {
   const toast = useToast();
   useEffect(() => {
     if (state.ok) toast({ title: state.message ?? "Saved.", tone: "success" });
+    else if (state.message && !state.errors) toast({ title: state.message, tone: "danger" });
   }, [state, toast]);
 }
 

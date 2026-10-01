@@ -22,6 +22,8 @@ export default async function TeamsPage() {
   const [teams, myTeam] = await Promise.all([getTeams(), getMyTeam()]);
   const members = myTeam ? await getTeamMembers(myTeam.id) : [];
   const rival = myTeam ? teams.find((t) => t.id === myTeam.rivalId) : undefined;
+  // Head to head needs points for both sides — from the leaderboard.
+  const showHeadToHead = rival && myTeam?.weeklyPoints != null && rival.weeklyPoints != null;
 
   // One team per person, so Join and Create only make sense without one.
   const actions = myTeam ? (
@@ -49,7 +51,9 @@ export default async function TeamsPage() {
         title={myTeam ? myTeam.name : "Teams"}
         subtitle={
           myTeam
-            ? `#${myTeam.rank} of ${teams.length} this week.`
+            ? myTeam.rank !== null
+              ? `#${myTeam.rank} of ${teams.length} this week.`
+              : `${myTeam.memberCount} ${myTeam.memberCount === 1 ? "member" : "members"}.`
             : "Train with people who'll notice when you skip a day."
         }
         actions={actions}
@@ -60,7 +64,7 @@ export default async function TeamsPage() {
           {myTeam ? (
             <>
               <TeamOverview team={myTeam} members={members} totalTeams={teams.length} />
-              {rival && <HeadToHead team={myTeam} rival={rival} daysLeft={daysLeftThisWeek()} />}
+              {showHeadToHead && <HeadToHead team={myTeam} rival={rival} daysLeft={daysLeftThisWeek()} />}
             </>
           ) : (
             <EmptyState

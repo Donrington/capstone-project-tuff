@@ -91,8 +91,9 @@ export interface HeadToHeadResult {
 }
 
 /** Named to match backend/models/Team.js (`inviteCode`, `createdBy`,
- *  `maxMembers`). `rank`, `weeklyPoints`, `streakDays` and `rivalId` are
- *  computed on read, never stored. There's no captain: the creator is just
+ *  `maxMembers`). `rank`, `weeklyPoints`, `streakDays` and `rivalId` come
+ *  from the leaderboard and are `null` until it exists (see the proposed
+ *  contract in backend/README.md). There's no captain: the creator is just
  *  a member who happened to start it. */
 export interface Team {
   id: string;
@@ -101,11 +102,13 @@ export interface Team {
   inviteCode: string;
   createdBy: string;
   maxMembers: number;
+  memberCount: number;
+  /** Only filled in for your own team — rosters are members-only. */
   memberIds: string[];
-  rank: number;
-  weeklyPoints: number;
+  rank: number | null;
+  weeklyPoints: number | null;
   /** Days in a row that every member logged something. */
-  streakDays: number;
+  streakDays: number | null;
   /** The team directly above (or, at #1, directly below) in the standings. */
   rivalId: string | null;
   headToHead: HeadToHeadResult[];
@@ -117,9 +120,9 @@ export interface TeamSummary {
   name: string;
   /** Invite code — e.g. "IRON-7Q4K". */
   code: string;
-  rank: number;
+  rank: number | null;
   totalTeams: number;
-  weeklyPoints: number;
+  weeklyPoints: number | null;
   rivalName: string | null;
   /** Points between you and the rival. Positive = behind, negative = ahead. */
   gapToRival: number;

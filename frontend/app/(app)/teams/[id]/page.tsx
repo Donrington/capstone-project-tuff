@@ -57,14 +57,21 @@ export default async function TeamPage({ params }: { params: Params }) {
           <h1 className={styles.title}>{team.name}</h1>
           {team.description && <p className={styles.desc}>{team.description}</p>}
           <ul className={styles.facts}>
+            {team.rank !== null && (
+              <li>
+                <Trophy size={16} aria-hidden="true" />#{team.rank} of {teams.length}
+              </li>
+            )}
+            {team.streakDays !== null && (
+              <li>
+                <Flame size={16} aria-hidden="true" />
+                {team.streakDays}-day team streak
+              </li>
+            )}
+            {team.weeklyPoints !== null && <li>{team.weeklyPoints.toLocaleString("en-US")} points this week</li>}
             <li>
-              <Trophy size={16} aria-hidden="true" />#{team.rank} of {teams.length}
+              {team.memberCount} {team.memberCount === 1 ? "member" : "members"}
             </li>
-            <li>
-              <Flame size={16} aria-hidden="true" />
-              {team.streakDays}-day team streak
-            </li>
-            <li>{team.weeklyPoints.toLocaleString("en-US")} points this week</li>
           </ul>
         </div>
         <div className={styles.heroActions}>
@@ -89,8 +96,13 @@ export default async function TeamPage({ params }: { params: Params }) {
 
       <div className={styles.grid}>
         <div className={styles.column}>
-          <Roster members={members} />
-          <HeadToHeadResults results={team.headToHead} />
+          {isMine ? (
+            <Roster members={members} />
+          ) : (
+            <p className={styles.membersOnly}>The roster and activity are visible to members of {team.name}.</p>
+          )}
+          {/* Results come from the leaderboard; nothing to show until it ranks teams. */}
+          {team.rank !== null && <HeadToHeadResults results={team.headToHead} />}
         </div>
         <div className={styles.column}>
           {isMine && teamChallenges.length > 0 && (
@@ -111,6 +123,7 @@ export default async function TeamPage({ params }: { params: Params }) {
               ))}
             </section>
           )}
+          {isMine && (
           <ActivityHistory
             entries={activity}
             now={now}
@@ -119,6 +132,7 @@ export default async function TeamPage({ params }: { params: Params }) {
             headingId="team-activity-heading"
             emptyText="No activity yet. Be first."
           />
+          )}
         </div>
       </div>
     </div>

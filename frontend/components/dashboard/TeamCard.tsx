@@ -9,6 +9,8 @@ import type { TeamSummary } from "@/lib/types";
 import styles from "./TeamCard.module.css";
 
 function gapLine(team: TeamSummary) {
+  // TODO(leaderboard): the race needs points; until then, a nudge.
+  if (team.weeklyPoints === null) return "Log together and invite your people in.";
   if (!team.rivalName) return "The only team so far. Invite some rivals.";
   const n = Math.abs(team.gapToRival).toLocaleString("en-US");
   return team.gapToRival > 0 ? `${n} points behind ${team.rivalName}.` : `${n} points ahead of ${team.rivalName}.`;
@@ -39,9 +41,11 @@ export function TeamCard({ team }: { team: TeamSummary | null }) {
     <div className={styles.team}>
       <div className={styles.head}>
         <p className={styles.label}>Your team</p>
-        <Badge variant="neutral">
-          #{team.rank} of {team.totalTeams}
-        </Badge>
+        {team.rank !== null && (
+          <Badge variant="neutral">
+            #{team.rank} of {team.totalTeams}
+          </Badge>
+        )}
       </div>
       <h3 className={styles.name}>
         <Link href={`/teams/${team.id}`} className={styles.nameLink}>
