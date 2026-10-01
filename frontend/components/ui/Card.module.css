@@ -177,8 +177,8 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--radius-full);
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
   font: 700 11px/14px var(--font-sans);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -190,4 +190,10 @@
   .featuredWrap::after {
     animation: none;
   }
+}
+
+/* Light mode (#19): progress fills invert to the dark plate color. */
+:global([data-theme="light"]) .fill {
+  background: var(--surface-inverse);
+  box-shadow: none;
 }

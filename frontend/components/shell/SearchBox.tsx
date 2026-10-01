@@ -81,6 +81,7 @@ function Combobox({ index, inline, autoFocus, inputRef, onNavigate }: ComboboxPr
   const baseId = useId();
   const listboxId = `${baseId}-listbox`;
   const fieldRef = useRef<HTMLLabelElement>(null);
+  const ownInputRef = useRef<HTMLInputElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -133,6 +134,15 @@ function Combobox({ index, inline, autoFocus, inputRef, onNavigate }: ComboboxPr
         break;
     }
   }
+
+  // In the phone sheet, focus the field once the dialog has opened. React's
+  // autoFocus runs first and showModal() then moves focus to the Close
+  // button, so wait a frame.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const frame = requestAnimationFrame(() => ownInputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [autoFocus]);
 
   // Keep the active option in view as arrows move through a long list.
   useEffect(() => {
@@ -212,7 +222,10 @@ function Combobox({ index, inline, autoFocus, inputRef, onNavigate }: ComboboxPr
         <Search size={18} aria-hidden="true" />
         <span className="sr-only">Search challenges, teams and people</span>
         <input
-          ref={inputRef}
+          ref={(el) => {
+            ownInputRef.current = el;
+            if (inputRef) inputRef.current = el;
+          }}
           type="text"
           role="combobox"
           aria-expanded={showResults}
@@ -221,7 +234,6 @@ function Combobox({ index, inline, autoFocus, inputRef, onNavigate }: ComboboxPr
           aria-activedescendant={showResults && active >= 0 ? optionId(active) : undefined}
           autoComplete="off"
           spellCheck={false}
-          autoFocus={autoFocus}
           placeholder="Search challenges, teams…"
           value={query}
           onChange={(event) => {

@@ -31,9 +31,9 @@
   width: 42%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
-  box-shadow: 0 0 28px -6px var(--accent-volt);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
+  box-shadow: 0 0 28px -6px var(--volt-ink);
 }
 /* Scale the check with the badge, whatever size a page gives it. */
 .core svg {

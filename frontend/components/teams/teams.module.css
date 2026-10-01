@@ -72,7 +72,7 @@
   color: var(--ink);
 }
 .flame {
-  color: var(--status-warning);
+  color: var(--warning-ink);
 }
 .avatarRow {
   display: flex;
@@ -185,7 +185,7 @@
   text-align: center;
 }
 .gold {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .silver {
   color: var(--ink-secondary);
@@ -237,7 +237,7 @@
 }
 .member:target {
   background: var(--surface-2);
-  box-shadow: inset 0 0 0 1px var(--accent-volt);
+  box-shadow: inset 0 0 0 1px var(--volt-ink);
 }
 .mineMember {
   background: var(--surface-2);
@@ -285,7 +285,7 @@
   background: var(--ink-tertiary);
 }
 .mineMember .contribFill {
-  background: var(--accent-volt);
+  background: var(--volt-fill);
 }
 
 /* --------------------------------------------------------------- results */
@@ -311,7 +311,7 @@
 }
 .won {
   background: color-mix(in srgb, var(--status-success) 16%, transparent);
-  color: var(--status-success);
+  color: var(--success-ink);
 }
 .lost {
   background: var(--surface-2);

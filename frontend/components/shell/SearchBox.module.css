@@ -33,7 +33,7 @@
     box-shadow 0.2s ease;
 }
 .field:focus-within {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 18%, transparent);
 }
 .field input {
@@ -104,7 +104,7 @@
 }
 .option[aria-selected="true"] {
   background: var(--surface-2);
-  box-shadow: inset 2px 0 0 var(--accent-volt);
+  box-shadow: inset 2px 0 0 var(--volt-ink);
 }
 .optionIcon {
   display: grid;
@@ -147,7 +147,7 @@
   border: none;
   border-top: 1px solid var(--border-subtle);
   background: none;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   font: 700 13px/1 var(--font-sans);
   text-align: left;
   cursor: pointer;

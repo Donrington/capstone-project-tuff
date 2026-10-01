@@ -57,5 +57,5 @@
   color: var(--ink-tertiary);
 }
 .tile:hover .arrow {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }

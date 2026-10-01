@@ -40,7 +40,7 @@ export function TeamOverview({ team, members, totalTeams }: { team: Team; member
       <div className={styles.avatarRow} aria-label={`${members.length} members`}>
         {shown.map((m) => (
           <span key={m.id} className={styles.avatarWrap}>
-            <Avatar initials={m.initials} size="sm" photoUrl={m.profilePicture} activeToday={m.activeToday} />
+            <Avatar initials={m.initials} size="sm" photoUrl={m.profilePicture} />
           </span>
         ))}
         {members.length > shown.length && <span className={styles.more}>+{members.length - shown.length}</span>}

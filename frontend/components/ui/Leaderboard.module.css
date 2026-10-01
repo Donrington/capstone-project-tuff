@@ -39,7 +39,7 @@
   flex-shrink: 0;
 }
 .gold {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .silver {
   color: var(--ink-secondary);
@@ -60,7 +60,7 @@
   flex-shrink: 0;
 }
 .avatar.ring {
-  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent-volt);
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--volt-ink);
 }
 .info {
   flex: 1;
@@ -95,7 +95,7 @@
   margin-top: 4px;
 }
 .up {
-  color: var(--status-success);
+  color: var(--success-ink);
 }
 .down {
   color: var(--status-danger);

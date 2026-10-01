@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/Skeleton";
+import { NAV_ITEMS } from "@/lib/nav/items";
 import styles from "./nav.module.css";
 
 /**
  * Stand-in for NavBody while the session loads: the signed-in layout, drawn
- * in the same boxes (log button, five links, the About link, Pro, the
+ * in the same boxes (log button, the main links, the About link, Pro, the
  * profile block), so nothing moves when the real thing streams in. The rail's
  * data-state shapes it, exactly as it shapes the real rows.
  */
@@ -16,8 +17,8 @@ export function NavSkeleton() {
       </div>
       <div className={styles.navList}>
         <div className={styles.list}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <SkeletonLink key={i} />
+          {NAV_ITEMS.map((item) => (
+            <SkeletonLink key={item.href} />
           ))}
         </div>
         <div className={`${styles.list} ${styles.secondary}`}>

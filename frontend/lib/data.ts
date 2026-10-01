@@ -49,7 +49,7 @@ import type {
 
 /** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
  *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 10;
+const SEED_VERSION = 12;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";

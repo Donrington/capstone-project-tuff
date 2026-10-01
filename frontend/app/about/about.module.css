@@ -67,7 +67,7 @@
   width: 18px;
   height: 2px;
   border-radius: 2px;
-  background: var(--accent-volt);
+  background: var(--volt-fill);
 }
 .sectionHead {
   display: flex;
@@ -88,7 +88,7 @@
   text-wrap: pretty;
 }
 .volt {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .ink {
   color: var(--ink);
@@ -128,7 +128,7 @@
   animation-delay: calc(180ms + var(--line, 0) * 110ms);
 }
 .line:last-child .lineInner {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .heroSub {
   max-width: 520px;
@@ -172,7 +172,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-volt);
+  background: var(--volt-fill);
   animation: pulse 2.2s ease-out infinite;
 }
 
@@ -274,7 +274,7 @@
   font: 700 13px/1 var(--font-sans);
   box-shadow:
     0 0 0 2px #0a0a0c,
-    0 0 0 4px var(--accent-volt);
+    0 0 0 4px var(--volt-ink);
 }
 .floatBody {
   display: flex;
@@ -305,7 +305,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--accent-volt);
+  background: var(--volt-fill);
 }
 .floatBar > span {
   width: 74%;
@@ -470,7 +470,7 @@
   font: 700 13px/1 var(--font-sans);
 }
 .pvChipOn {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   background: color-mix(in srgb, var(--accent-volt) 14%, var(--surface-2));
   color: var(--ink);
 }
@@ -482,13 +482,13 @@
   color: var(--ink-secondary);
 }
 .pvMeta b {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   font-weight: 800;
 }
 .pvCode {
   font: 800 clamp(26px, 2.6vw, 32px) / 1 var(--font-heading);
   letter-spacing: 0.02em;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .pvAvatars {
   display: flex;
@@ -509,8 +509,8 @@
   margin-left: 0;
 }
 .pvAvatars > .pvMore {
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 .pvShare {
   display: inline-flex;
@@ -564,7 +564,7 @@
 }
 .pvScore em {
   font-style: normal;
-  color: var(--status-success);
+  color: var(--success-ink);
 }
 
 /* -------------------------------------------------------------- community */
@@ -675,8 +675,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 
 /* ------------------------------------------------------------------ stats */
@@ -751,7 +751,7 @@
   margin-bottom: var(--space-2);
   border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%;
   background: color-mix(in srgb, var(--accent-volt) 14%, var(--surface-2));
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   animation: blob 9s ease-in-out infinite alternate;
 }
 .value:nth-child(2) .valueIcon {

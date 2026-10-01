@@ -187,7 +187,7 @@
 .spark {
   position: relative;
   z-index: 1;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -200,4 +200,16 @@
   .primary:hover:not(:disabled) {
     transform: none;
   }
+}
+
+/* Light mode (#19): the volt fill inverts — a dark pill, volt label. */
+:global([data-theme="light"]) .primary,
+:global([data-theme="light"]) .primary[aria-busy="true"]:disabled {
+  background: var(--surface-inverse);
+  color: var(--accent-volt);
+  box-shadow: 0 12px 28px -16px rgba(11, 11, 13, 0.55);
+}
+:global([data-theme="light"]) .primary:hover:not(:disabled) {
+  background: #26262a;
+  box-shadow: 0 16px 32px -16px rgba(11, 11, 13, 0.6);
 }

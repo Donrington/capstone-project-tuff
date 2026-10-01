@@ -11,8 +11,8 @@
   height: 48px;
   border: none;
   border-radius: var(--radius-full);
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
   box-shadow: 0 20px 40px -16px color-mix(in srgb, var(--accent-volt) 60%, transparent);
   cursor: pointer;
   opacity: 0;
@@ -29,10 +29,10 @@
   pointer-events: auto;
 }
 .button:hover {
-  background: var(--accent-volt-hover);
+  background: var(--volt-fill-hover);
 }
 .button:focus-visible {
-  outline: 2px solid var(--accent-volt);
+  outline: 2px solid var(--volt-ink);
   outline-offset: 3px;
 }
 

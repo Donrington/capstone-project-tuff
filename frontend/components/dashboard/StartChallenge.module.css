@@ -44,7 +44,7 @@
   height: 40px;
   border-radius: 50%;
   background: var(--surface-3);
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .text {
   display: flex;

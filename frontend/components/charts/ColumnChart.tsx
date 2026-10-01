@@ -54,9 +54,13 @@ export function ColumnChart({
         data-dense={data.length > 10 ? "" : undefined}
       >
         {reference && (
-          <div className={styles.reference} style={{ "--g": refShare } as CSSProperties} aria-hidden="true">
-            <span className={styles.referenceLabel}>{reference.label}</span>
-          </div>
+          <>
+            <div className={styles.reference} style={{ "--g": refShare } as CSSProperties} aria-hidden="true" />
+            {/* Its own layer, above the columns, so a bar never hides it. */}
+            <span className={styles.referenceLabel} style={{ "--g": refShare } as CSSProperties} aria-hidden="true">
+              {reference.label}
+            </span>
+          </>
         )}
         {data.map((d, i) => {
           const future = d.state === "future";

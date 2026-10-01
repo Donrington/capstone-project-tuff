@@ -36,7 +36,7 @@
   padding: 0 12px;
   border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--status-success) 12%, transparent);
-  color: var(--status-success);
+  color: var(--success-ink);
   font: 700 12px/1 var(--font-sans);
   white-space: nowrap;
 }

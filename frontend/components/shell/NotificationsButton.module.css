@@ -59,7 +59,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: none;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   font: 700 13px/1 var(--font-sans);
   cursor: pointer;
 }
@@ -117,7 +117,7 @@
 }
 .unread .iconWrap {
   background: var(--surface-2);
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .text {
   display: flex;
@@ -144,8 +144,8 @@
   flex-shrink: 0;
   padding: 2px 6px;
   border-radius: var(--radius-full);
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
   font: 700 10px/1.2 var(--font-sans);
   letter-spacing: 0.04em;
   text-transform: uppercase;

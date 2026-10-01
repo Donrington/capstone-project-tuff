@@ -32,6 +32,8 @@ export default function RootLayout({
     <html lang="en" data-theme="dark" className={bricolage.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Body text font (#22) — preloaded so text doesn't swap late. */}
+        <link rel="preload" href="/fonts/Satoshi-Variable.woff2" as="font" type="font/woff2" crossOrigin="" />
       </head>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>

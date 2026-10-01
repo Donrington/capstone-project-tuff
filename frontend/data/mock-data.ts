@@ -190,15 +190,15 @@ const NAMED_TEAMS: {
 
 /** The other eleven teams, so "#2 of 14" is true. Members are generated. */
 const OTHER_TEAMS: { id: string; name: string; size: number; weeklyPoints: number; streakDays: number }[] = [
-  { id: "eko-express", name: "Team Eko Express", size: 7, weeklyPoints: 66420, streakDays: 3 },
-  { id: "jollof-runners", name: "Team Jollof Runners", size: 6, weeklyPoints: 61980, streakDays: 8 },
+  { id: "eko-express", name: "Team Eko Express", size: 8, weeklyPoints: 66420, streakDays: 3 },
+  { id: "jollof-runners", name: "Team Jollof Runners", size: 7, weeklyPoints: 61980, streakDays: 8 },
   { id: "zuma-rock", name: "Team Zuma Rock", size: 7, weeklyPoints: 58210, streakDays: 2 },
-  { id: "owambe-movers", name: "Team Owambe Movers", size: 6, weeklyPoints: 54760, streakDays: 5 },
-  { id: "abuja-ascent", name: "Team Abuja Ascent", size: 5, weeklyPoints: 50330, streakDays: 1 },
+  { id: "owambe-movers", name: "Team Owambe Movers", size: 7, weeklyPoints: 54760, streakDays: 5 },
+  { id: "abuja-ascent", name: "Team Abuja Ascent", size: 6, weeklyPoints: 50330, streakDays: 1 },
   { id: "danfo-dash", name: "Team Danfo Dash", size: 6, weeklyPoints: 47110, streakDays: 0 },
   { id: "calabar-cruise", name: "Team Calabar Cruise", size: 5, weeklyPoints: 43870, streakDays: 4 },
   { id: "sahel-stride", name: "Team Sahel Stride", size: 5, weeklyPoints: 40260, streakDays: 2 },
-  { id: "delta-drive", name: "Team Delta Drive", size: 6, weeklyPoints: 37940, streakDays: 0 },
+  { id: "delta-drive", name: "Team Delta Drive", size: 5, weeklyPoints: 37940, streakDays: 0 },
   { id: "kano-kinetic", name: "Team Kano Kinetic", size: 5, weeklyPoints: 34580, streakDays: 1 },
   { id: "enugu-edge", name: "Team Enugu Edge", size: 4, weeklyPoints: 30120, streakDays: 0 },
 ];
@@ -269,7 +269,8 @@ export function buildPeople(now: number): PeopleSeed {
   let nameIndex = 0;
   for (const team of OTHER_TEAMS) {
     const rand = rng(team.id);
-    const weights = Array.from({ length: team.size }, () => 0.7 + rand() * 0.6);
+    // A narrow spread, so no generated player outscores the named top ten.
+    const weights = Array.from({ length: team.size }, () => 0.85 + rand() * 0.25);
     const sum = weights.reduce((a, b) => a + b, 0);
     let assigned = 0;
     weights.forEach((w, i) => {

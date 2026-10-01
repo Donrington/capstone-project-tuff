@@ -31,7 +31,7 @@
   opacity: 0;
 }
 .volt {
-  background: var(--accent-volt);
+  background: var(--volt-fill);
   border-radius: 50%;
 }
 .surge {

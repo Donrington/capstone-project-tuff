@@ -10,3 +10,7 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# Satoshi: self-hosted but not redistributable through a public repo — fetched by
+# scripts/fetch-fonts.mjs before dev and build (see #22 in the README).
+/public/fonts/

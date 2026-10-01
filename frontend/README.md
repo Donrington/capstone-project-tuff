@@ -10,7 +10,8 @@ npm install
 npm run dev          # http://localhost:3000
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint (also runs in CI)
-npm run media:fetch  # optional, recommended before production — see "Auth videos"
+npm run media:fetch  # re-download the auth clips into public/media (already done)
+npm run fonts:fetch  # fetch Satoshi into public/fonts (runs before dev and build)
 npm run test:e2e     # Playwright; reuses a dev server on :3000 or starts one
 ```
 
@@ -23,14 +24,19 @@ The first e2e run needs a browser: `npx playwright install chromium`.
 | `/` | **Landing = auth.** Split screen: sign up (video left, form right) ↔ sign in (form left, video right). `/?mode=signin` deep-links straight to sign in. |
 | `/about` | About TUFF, outside the app shell. Reached from the auth page's "About" pill and the app's sidebar/drawer. `?from=app` swaps the calls to action for "Back to dashboard". The only page with the site footer. |
 | `/terms`, `/privacy` | Draft legal pages (marked as drafts on the page), linked from the footer and the sign-up checkbox. |
+| `/forgot-password`, `/reset-password?token=` | Ask for a reset link (same answer whatever the email), then set a new password. In development a demo link skips the email. |
+| `/onboarding` | After sign-up, outside the shell: why you're here, body stats, step goal, a starter challenge, a team, then a summary. Every step can be skipped. |
 | `/dashboard` | Bento dashboard: today's ring, featured challenge, weekly chart, leaderboard, challenge + team tiles |
 | `/challenges` | Challenge grid, filtered by All/Solo/Team (`?type=solo`) |
 | `/challenges/new` | Five-step wizard for creating a challenge (`?activity=<slug>` prefills the activity) |
-| `/challenges/[id]` | Challenge detail hero, with log and invite |
+| `/challenges/[id]` | Challenge hero, then progress per day against the pace needed, member breakdown and challenge leaderboard (team) or best days and streak (solo), and the activity history |
 | `/leaderboard` | This week / All time (`?period=all-time`) |
 | `/join/[code]` | What an invite link opens: a preview of the team or challenge, and a Join button |
-| `/profile`, `/settings` | Your profile, and the settings where you edit it |
-| `/teams` | Placeholder (empty state) |
+| `/exercises`, `/exercises/[slug]` | Exercise library: category filter, then form cues, mistakes and muscles, and "Start a challenge with this" |
+| `/search?q=` | Full search results, grouped into Challenges, Teams and People |
+| `/profile` | Your profile: stats, achievements, personal bests, active challenges, recent activity |
+| `/settings` | Profile, Account (password), Goals, Notifications, Appearance, Connected trackers, Privacy, Delete account — each `#section` linkable |
+| `/teams`, `/teams/[id]` | Your team, the head-to-head with your rival and the standings (or Join/Create with no team); a team's roster, results, challenges and activity |
 | `/dev/ui` | Dev-only showcase of every shared UI component in every state. 404s in production. |
 
 ## How it's organized
@@ -38,7 +44,7 @@ The first e2e run needs a browser: `npx playwright install chromium`.
 ```
 app/
   layout.tsx              Root: fonts, globals, <Providers>.
-  providers.tsx           Client providers — ToastProvider + FlashToast (theme joins later).
+  providers.tsx           Client providers — ThemeProvider, ToastProvider, FlashToast.
   globals.css             Design tokens as CSS custom properties.
   (auth)/                 The landing page — no app chrome.
     page.tsx              Reads ?mode, renders <AuthSplit>.
@@ -54,15 +60,21 @@ components/
                           drawer (< 1024px), session-aware profile block.
   about/                  About page pieces, including its nav (scroll-spy, drawer).
   footer/                 The About page footer (server-only, no client JS).
-  shell/                  ActivityBell.
-  dashboard/              WeeklyActivity chart, TeamCard.
+  shell/                  HeaderUtilities: SearchBox and NotificationsButton, on every app page.
+  dashboard/              WeeklyActivity, TeamCard, StartChallenge (first run).
+  charts/                 ColumnChart, shared by the week chart and challenge progress.
+  challenge/              Challenge detail sections, including ActivityHistory.
+  teams/ settings/ exercises/ onboarding/ auth/ profile/
+  theme/                  ThemeProvider (dark/light, saved in localStorage).
   motion/SmoothScroll.tsx Lenis, wheel/trackpad only.
 data/
   mock-data.ts            Seed data for the mock DB. Only lib/data.ts imports it.
+  exercises.ts            The exercise library — static content, imported directly.
   auth-media.json         Where the auth clips load from (see below).
 lib/
   data.ts                 The app's only data source — see "Data" below.
-  types.ts                The shape contract the backend will have to meet.
+  types.ts                The shape contract, named to match the backend models.
+  search.ts               The search matcher, shared by the search box and /search.
   challenge-card.ts       Small display helpers.
   nav/                    Nav items (one list feeds the rail, drawer and footer) and the
                           nav-state cookie.
@@ -85,6 +97,14 @@ carries the call it will become as a `// TODO(backend)` comment.
   mutation and then revalidate.
 - **Loading states.** Set `MOCK_LATENCY_MS=1500` in `.env.local` to make every
   read wait, so loading screens are visible.
+- **Numbers are computed, not stored.** Like the backend, challenge totals,
+  today's steps, the weekly chart, streaks and team points are added up from
+  activities on read, so every screen agrees and logging moves them all.
+- **Dates are relative.** Seeds are dated from the moment the DB seeds, so
+  "Day 4 of 7" and "2h ago" stay true.
+- **Two personas (dev only).** A `tuff-persona=new` cookie serves a
+  brand-new account (no stats, challenges or team) to show the first-run
+  states. Sign-up switches to it; the account menu flips between them.
 - **It's per-process.** The DB lives on `globalThis`, so it survives hot
   reloads but resets when the dev server restarts, and a serverless deploy
   gives each instance its own copy. Fine for a frontend demo, not for real use.
@@ -176,9 +196,11 @@ panel falls back to a drifting brand-gradient mesh rather than a black box.
 - **Bricolage Grotesque** loads via `next/font/google` in `app/layout.tsx`.
   `--font-heading` wraps it with a sans fallback, so a failed download
   degrades to a grotesque instead of a serif.
-- **Satoshi** isn't on Google Fonts; self-host it from Fontshare (woff2 into
-  `public/fonts/`, add an `@font-face` in `globals.css`). Until then
-  `--font-sans` falls back to `system-ui`.
+- **Satoshi** is self-hosted from `public/fonts/` via an `@font-face` in
+  `globals.css`. Its ITF Free Font License allows self-hosting but not
+  redistributing the files through a public repository, so the `.woff2` is
+  gitignored and `scripts/fetch-fonts.mjs` downloads it before `dev` and
+  `build`. If that ever fails, body text falls back to `system-ui`.
 
 ## What's not here yet
 
@@ -189,10 +211,23 @@ panel falls back to a drifting brand-gradient mesh rather than a black box.
   Route protection for `(app)/` comes with it.
 - **Real data.** `lib/data.ts` stands in for the backend; `lib/types.ts` is the
   contract. Every seam is marked — `grep -rn "TODO(backend)\|TODO(auth)" app components lib`.
-- **Light mode.** Tokens exist for both themes; no toggle, and the three fills
-  that invert in light mode aren't wired up per component yet.
-- **Teams page** is an empty state.
 - **Legal text.** `/terms` and `/privacy` are drafts that need legal review,
   including against Nigeria's Data Protection Act 2023.
 - **Token sync.** `globals.css` mirrors the design system's `tokens.json` by
   hand.
+
+## Themes
+
+Dark is the default; Light is an explicit choice (account menu or Settings →
+Appearance), saved in `localStorage` as `tuff-theme` and applied by a tiny
+script in `<head>` before first paint, so there's no flash. The OS setting is
+ignored on purpose.
+
+Components never use the raw volt/success/warning colors for text or fills.
+They use semantic tokens from `globals.css` instead: `--volt-ink` (text, icons,
+rings, focus) and `--volt-fill` / `--on-volt-fill` (a filled surface and what
+sits on it), plus the same pairs for success and warning. In light mode the
+inks darken for contrast and the fills invert to `--surface-inverse` with the
+brand color moved onto the content. Surge and danger look the same in both
+themes. Anything that must stay dark (the auth video panel, the ProgressRing
+plate) carries the `theme-dark-island` class.

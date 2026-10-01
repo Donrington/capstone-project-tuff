@@ -169,7 +169,7 @@
 .switchPill svg,
 .aboutPill svg {
   flex-shrink: 0;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   transition: transform 0.25s var(--ease-spring);
 }
 /* Very narrow phones: About drops to an icon so the row never crowds the
@@ -242,7 +242,7 @@
   display: block;
 }
 .line:last-child .lineInner {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .storyActive .lineInner {
   animation: lineUp 900ms var(--ease-out-expo) both;
@@ -289,7 +289,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-volt);
+  background: var(--volt-fill);
   animation: pulse 2.2s ease-out infinite;
 }
 @keyframes pulse {
@@ -423,7 +423,7 @@
   border: none;
   background: none;
   padding: 0;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -441,7 +441,7 @@
   text-decoration: none;
 }
 .forgot:hover {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .spin {
   animation: spin 0.8s linear infinite;

@@ -37,8 +37,8 @@
   border-radius: 50%;
 }
 .earned .iconWrap {
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 .locked .iconWrap {
   background: var(--surface-3);
@@ -63,7 +63,7 @@
   text-transform: uppercase;
 }
 .earned .status {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .locked .status {
   color: var(--ink-tertiary);

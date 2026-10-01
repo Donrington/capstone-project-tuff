@@ -23,12 +23,14 @@
   pointer-events: none;
   z-index: 0;
 }
-/* Left end, clear of today's cap label. */
+/* Left end, just above the line, clear of today's cap label. */
 .referenceLabel {
   position: absolute;
   left: 0;
-  bottom: 4px;
-  padding-right: 6px;
+  bottom: calc(var(--band) + (100% - var(--band) * 2) * var(--g) + 4px);
+  z-index: 2;
+  padding: 2px 6px 2px 0;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: var(--surface);
   font: 600 11px/1 var(--font-sans);
   color: var(--ink-tertiary);
@@ -70,7 +72,7 @@
   }
 }
 .today .bar {
-  background: var(--accent-volt);
+  background: var(--volt-fill);
   box-shadow: 0 0 22px -4px color-mix(in srgb, var(--accent-volt) 70%, transparent);
 }
 /* Days still to come: an empty outlined slot, not a bar. */
@@ -108,7 +110,7 @@
   filter: brightness(1.35);
 }
 .col:focus-visible .day {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .tooltip {
   position: absolute;

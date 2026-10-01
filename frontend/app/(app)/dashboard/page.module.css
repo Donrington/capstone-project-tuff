@@ -189,7 +189,7 @@
     color 0.2s ease;
 }
 .chal:hover .arrow {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   transform: translate(2px, -2px);
 }
 .chalBody {

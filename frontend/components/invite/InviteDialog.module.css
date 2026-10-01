@@ -22,7 +22,7 @@
 .code {
   font: 800 clamp(28px, 7vw, 40px) / 1 var(--font-heading);
   letter-spacing: 0.02em;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 
 .message {
@@ -48,7 +48,7 @@
   outline: none;
 }
 .link:focus-visible {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 22%, transparent);
 }
 .copy {
@@ -68,8 +68,8 @@
     color 0.18s ease;
 }
 .copy:hover {
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 
 .actions {

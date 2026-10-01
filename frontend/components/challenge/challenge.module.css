@@ -86,7 +86,7 @@
   animation: fill 900ms var(--ease-out-expo) both;
 }
 .mine .barFill {
-  background: var(--accent-volt);
+  background: var(--volt-fill);
 }
 @keyframes fill {
   from {
@@ -159,7 +159,7 @@
   color: var(--ink);
 }
 .streak svg {
-  color: var(--status-warning);
+  color: var(--warning-ink);
 }
 .bestDays {
   display: grid;

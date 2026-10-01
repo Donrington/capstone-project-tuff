@@ -51,7 +51,7 @@
 .star {
   font-size: clamp(20px, 2.8vw, 40px);
   line-height: 1;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 
 @keyframes marquee {

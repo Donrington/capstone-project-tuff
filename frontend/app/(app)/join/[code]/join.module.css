@@ -17,7 +17,7 @@
   height: 64px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent-volt) 16%, var(--surface-2));
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .name {
   font: 800 clamp(22px, 4vw, 28px) / 1.15 var(--font-heading);
