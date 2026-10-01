@@ -1,6 +1,9 @@
 require("dotenv/config");
 const express = require("express");
 const cors = require("cors");
+
+require("./jobs/challengeStatusJob");
+
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -27,6 +30,9 @@ app.use(cookieParser());
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/challenges", require("./routes/challengeRoutes"));
+app.use("/api/challenge-participants", require("./routes/challengeParticipantRoutes"));
+app.use("/api/teams", require("./routes/teamRoutes"));
 
 // TODO(team): mount each resource's routes here as they're built, e.g.
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));
