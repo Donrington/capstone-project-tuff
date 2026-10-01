@@ -1,6 +1,8 @@
 const Team = require("../models/Team");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
+const { notify, notifyMany, bestEffort } = require("../services/notificationService");
+const { evaluateAchievements } = require("../services/achievementService");
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 12).toUpperCase();
@@ -23,6 +25,7 @@ async function createTeam(req, res) {
 
   // The creator is a member of their own team.
   await User.findByIdAndUpdate(userId, { teamId: team._id });
+  await bestEffort("evaluate achievements", () => evaluateAchievements(userId));
 
   res.status(201).json(team);
 }
@@ -81,6 +84,26 @@ async function joinTeam(req, res) {
 
   user.teamId = team._id;
   await user.save();
+
+  await bestEffort("notify team join", async () => {
+    await notify(userId, {
+      type: "system",
+      title: `Welcome to ${team.name}`,
+      message: "You're on the team. Log activity to climb the team leaderboard together.",
+    });
+    const teammates = await User.find({ teamId: team._id, _id: { $ne: user._id } }).select("_id");
+    await notifyMany(
+      teammates.map((t) => t._id),
+      {
+        type: "general",
+        title: `${user.firstName} joined ${team.name}`,
+        message: `Say hi to ${user.firstName} ${user.lastName}, your newest teammate.`,
+        pref: "teamActivity",
+      },
+    );
+  });
+  await bestEffort("evaluate achievements", () => evaluateAchievements(userId));
+
   res.json(team);
 }
 

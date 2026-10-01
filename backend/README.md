@@ -118,6 +118,62 @@ actually revoking the refresh token (confirmed the old one fails afterward,
 not just that the cookie's gone), wrong-password rejection, and refresh —
 all passed.
 
+## Achievements — built
+
+The catalog lives in code, `data/achievements.js`, and is upserted into the
+`Achievement` collection by name every time the server boots. To add or
+change one, edit that file and restart. Nobody has to run a seed script.
+
+`requirement` is a machine rule, `"<metric>:<target>"`, e.g.
+`streak_days:7`. `description` is the copy shown to users. The metrics
+(`activities_logged`, `streak_days`, `team_joined`, `challenges_completed`,
+`reps_in_day`, `steps_in_day`) are computed from real data in
+`services/achievementService.js`. A new metric means adding it to
+`computeMetrics` there.
+
+Awarding happens in `evaluateAchievements(userId)`, which runs after logging
+activity, completing a challenge, creating or joining a team, and on
+`GET /api/achievements`. The unique `(user, achievement)` index makes a
+double award impossible even when requests race. Each award also creates an
+`achievement` notification.
+
+| Method & path | Returns | Notes |
+|---|---|---|
+| `GET /api/achievements` | `200` + `[{ id, name, description, requirement, icon, points, earnedAt, progress? }]` | Whole catalog from the signed-in user's view. `earnedAt` is `null` while locked; locked ones carry `progress: { current, target }` |
+
+`POST /api/challenge-participants/:id/activities` now also returns
+`newAchievements` (same shape) so the frontend can celebrate immediately.
+
+Streaks are counted in UTC days for now (`TODO(timezones)`).
+
+## Notifications — built
+
+Created server-side only (`services/notificationService.js`). There's no
+endpoint to create one. Current triggers:
+
+| Event | Who | `type` | Respects pref |
+|---|---|---|---|
+| Achievement earned | the earner | `achievement` | — |
+| Challenge goal reached | the finisher | `challenge` | — |
+| Joined a team | the joiner ("Welcome to …") | `system` | — |
+| Someone joined your team | the other teammates | `general` | `teamActivity` |
+
+| Method & path | Returns | Notes |
+|---|---|---|
+| `GET /api/notifications?limit=&before=&unread=true` | `200` + `[{ id, type, title, message, read, createdAt }]` | Newest first. `limit` 1–100 (default 30). Page back with `before` = the last item's `createdAt` |
+| `GET /api/notifications/unread-count` | `200` + `{ count }` | For the bell's dot |
+| `PATCH /api/notifications/:id/read` | `200` + the notification | Someone else's ID answers `404` |
+| `PATCH /api/notifications/read-all` | `204` | |
+| `DELETE /api/notifications/:id` | `204` | Someone else's ID answers `404` |
+
+Not built yet: streak reminders at the user's `reminderTime` (needs the
+user's timezone) and the weekly summary email (needs an email provider).
+
+Verified against a disposable MongoDB: 48 checks, covering streak maths,
+catalog sync idempotency, each trigger, the `teamActivity` mute, progress on
+locked achievements, a 6-way concurrent race awarding exactly once, paging,
+and every cross-user access answering `404`. All passed.
+
 ## Before building on a model, check the open issues
 
 Some model fields don't match what the frontend (`frontend/lib/types.ts`,

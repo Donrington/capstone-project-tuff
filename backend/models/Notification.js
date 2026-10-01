@@ -46,6 +46,9 @@ const notificationSchema = new mongoose.Schema(
     }
 );
 
+// The bell's query: one user's notifications, newest first.
+notificationSchema.index({ user: 1, createdAt: -1 });
+
 const Notification = mongoose.model("Notification", notificationSchema);
 
 module.exports = Notification;
