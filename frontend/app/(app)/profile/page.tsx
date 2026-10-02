@@ -5,7 +5,7 @@ import { StatTiles } from "@/components/profile/StatTiles";
 import { AchievementsGrid } from "@/components/profile/AchievementsGrid";
 import { PersonalBestsList } from "@/components/profile/PersonalBestsList";
 import { ActiveChallengeTiles } from "@/components/profile/ActiveChallengeTiles";
-import { RecentActivityList } from "@/components/profile/RecentActivityList";
+import { ActivityHistory } from "@/components/challenge/ActivityHistory";
 import { getProfile } from "@/lib/data";
 import styles from "./profile.module.css";
 
@@ -28,7 +28,14 @@ export default async function ProfilePage() {
         <ActiveChallengeTiles challenges={profile.activeChallenges} />
       </div>
 
-      <RecentActivityList entries={profile.recentActivity} now={now} />
+      <ActivityHistory
+        entries={profile.recentActivity}
+        now={now}
+        title="Recent activity"
+        showChallenge
+        headingId="recent-heading"
+        emptyText="No activity yet. Log something to get it started."
+      />
     </div>
   );
 }

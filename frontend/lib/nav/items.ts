@@ -1,4 +1,5 @@
 import {
+  Dumbbell,
   Info,
   LayoutDashboard,
   Medal,
@@ -23,6 +24,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, match: "exact", requiresAuth: true },
   { href: "/challenges", label: "Challenges", icon: Trophy, match: "prefix", requiresAuth: true },
+  { href: "/exercises", label: "Exercises", icon: Dumbbell, match: "prefix", requiresAuth: true },
   { href: "/leaderboard", label: "Leaderboard", icon: Medal, match: "prefix", requiresAuth: true },
   { href: "/teams", label: "Teams", icon: UsersRound, match: "prefix", requiresAuth: true },
   { href: "/profile", label: "Profile", icon: UserRound, match: "prefix", requiresAuth: true },

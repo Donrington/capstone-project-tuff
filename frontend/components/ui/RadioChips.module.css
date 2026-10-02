@@ -43,7 +43,7 @@
   color: var(--ink);
 }
 .chip[data-selected] {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   background: color-mix(in srgb, var(--accent-volt) 14%, var(--surface-2));
   color: var(--ink);
 }

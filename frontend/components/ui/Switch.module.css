@@ -53,11 +53,11 @@
   border-color: var(--ink-tertiary);
 }
 .track:checked {
-  background: var(--accent-volt);
-  border-color: var(--accent-volt);
+  background: var(--volt-fill);
+  border-color: var(--volt-ink);
 }
 .track:checked::after {
-  background: var(--ink-on-vivid);
+  background: var(--on-volt-fill);
   translate: 22px -50%;
 }
 .track:focus-visible {

@@ -21,7 +21,7 @@ export function ProfileHero({ user }: { user: User }) {
           {user.firstName} {user.lastName}
         </h1>
         <p className={styles.meta}>
-          {user.teamName} · Member since {memberSinceLabel(user.memberSince)}
+          {user.teamName || "No team yet"} · Member since {memberSinceLabel(user.memberSince)}
         </p>
       </div>
       <ButtonLink href="/settings#profile" variant="ghost">

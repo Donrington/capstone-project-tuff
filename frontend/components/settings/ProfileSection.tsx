@@ -1,36 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { useActionState, useState } from "react";
 import { FormField } from "@/components/ui/FormField";
 import { TextArea } from "@/components/ui/TextArea";
-import { useToast } from "@/components/ui/Toast";
 import { updateProfileAction, type UpdateProfileState } from "@/app/(app)/actions";
 import type { User } from "@/lib/types";
 import { PhotoUploader } from "./PhotoUploader";
-import styles from "./ProfileSection.module.css";
+import { SaveButton, SettingsSection, useSavedToast } from "./SettingsSection";
+import styles from "./settings.module.css";
 
 const INITIAL: UpdateProfileState = {};
 const BIO_LIMIT = 160;
 
 export function ProfileSection({ user }: { user: User }) {
-  const toast = useToast();
   const [state, formAction] = useActionState(updateProfileAction, INITIAL);
   const [bio, setBio] = useState(user.bio);
-
-  useEffect(() => {
-    if (state.ok) toast({ title: state.message ?? "Saved.", tone: "success" });
-  }, [state, toast]);
+  useSavedToast(state);
 
   return (
-    <section id="profile" className={styles.section} aria-labelledby="profile-heading">
-      <h2 id="profile-heading" className={styles.heading}>
-        Profile
-      </h2>
-      <p className={styles.sub}>How your name, photo and bio show up around TUFF.</p>
-
+    <SettingsSection id="profile" title="Profile" sub="How your name, photo and bio show up around TUFF.">
       <PhotoUploader user={user} />
 
       <form action={formAction} className={styles.form}>
@@ -55,6 +43,7 @@ export function ProfileSection({ user }: { user: User }) {
         <FormField
           label="Display name"
           name="displayName"
+          maxLength={40}
           defaultValue={state.values?.displayName ?? user.displayName}
           error={Boolean(state.errors?.displayName)}
           helperText={state.errors?.displayName ?? "Shown instead of your full name around the app."}
@@ -73,22 +62,6 @@ export function ProfileSection({ user }: { user: User }) {
           <SaveButton />
         </div>
       </form>
-    </section>
-  );
-}
-
-function SaveButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} aria-busy={pending || undefined}>
-      {pending ? (
-        <>
-          <Loader2 size={18} className={styles.spin} aria-hidden="true" />
-          Saving…
-        </>
-      ) : (
-        "Save"
-      )}
-    </Button>
+    </SettingsSection>
   );
 }

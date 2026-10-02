@@ -1,0 +1,33 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background:
+    radial-gradient(900px 520px at 88% 8%, color-mix(in srgb, var(--accent-volt) 8%, transparent), transparent 65%),
+    radial-gradient(760px 520px at 8% 96%, color-mix(in srgb, var(--accent-surge) 7%, transparent), transparent 65%),
+    var(--canvas);
+}
+.top {
+  padding: var(--space-6) var(--space-8);
+}
+.brand {
+  display: inline-flex;
+}
+.logo {
+  width: auto;
+  height: 28px;
+}
+.main {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+@media (max-width: 719px) {
+  .top {
+    padding: var(--space-5) var(--space-4);
+  }
+  .main {
+    padding: var(--space-4) var(--space-4) var(--space-12);
+  }
+}

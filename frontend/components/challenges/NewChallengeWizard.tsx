@@ -12,6 +12,7 @@ import { RadioChips } from "@/components/ui/RadioChips";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { StandardCard } from "@/components/ui/Card";
 import { formatCount } from "@/lib/challenge-card";
+import { exercises } from "@/data/exercises";
 import type { User } from "@/lib/types";
 import { createChallengeAction, type CreateChallengeState } from "@/app/(app)/actions";
 import styles from "./NewChallengeWizard.module.css";
@@ -26,12 +27,11 @@ interface ActivityOption {
   pro?: boolean;
 }
 
+/** Steps, then every exercise in the library (#21), so "Start a challenge
+ *  with this" on any exercise page lands with it already picked. */
 const ACTIVITIES: ActivityOption[] = [
   { slug: "steps", label: "Steps", unit: "steps" },
-  { slug: "pushups", label: "Push-ups", unit: "reps" },
-  { slug: "squats", label: "Squats", unit: "reps" },
-  { slug: "plank", label: "Plank", unit: "seconds" },
-  { slug: "burpees", label: "Burpees", unit: "reps" },
+  ...exercises.map((e) => ({ slug: e.slug, label: e.unit === "seconds" ? e.name : `${e.name}s`, unit: e.unit })),
   { slug: "custom", label: "Custom", unit: "reps", pro: true },
 ];
 
@@ -157,7 +157,9 @@ export function NewChallengeWizard({
               onChange={(v) => setType(v as string)}
               options={[
                 { value: "solo", label: "Solo", hint: "Just you against the target." },
-                { value: "team", label: "Team", hint: `Everyone in ${user.teamName} adds to one total.` },
+                user.teamId
+                  ? { value: "team", label: "Team", hint: `Everyone in ${user.teamName} adds to one total.` }
+                  : { value: "team", label: "Team", hint: "Join or create a team first.", disabled: true },
               ]}
             />
           </Step>

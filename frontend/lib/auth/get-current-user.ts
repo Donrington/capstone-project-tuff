@@ -2,7 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { getCurrentUser as getProfileRecord } from "@/lib/data";
 
-export type SessionRole = "member" | "captain" | "admin";
+export type SessionRole = "member" | "admin";
 
 /** The minimal, serializable user the UI gets. Nothing sensitive. */
 export interface SessionUser {

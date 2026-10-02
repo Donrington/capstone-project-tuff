@@ -29,8 +29,8 @@
   border-color: var(--ink-tertiary);
 }
 .box:checked {
-  background-color: var(--accent-volt);
-  border-color: var(--accent-volt);
+  background-color: var(--volt-fill);
+  border-color: var(--volt-ink);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b0b0d' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
 .box:focus-visible {
@@ -52,10 +52,15 @@
   text-decoration-color: var(--border-strong);
 }
 .label a:hover {
-  text-decoration-color: var(--accent-volt);
+  text-decoration-color: var(--volt-ink);
 }
 .error {
   font: 400 12px/16px var(--font-sans);
   color: var(--status-danger);
   padding-left: calc(var(--space-1) + 20px + var(--space-3));
+}
+
+/* Light mode (#19): dark box, so the tick turns volt. */
+:global([data-theme="light"]) .box:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7ff3d' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }

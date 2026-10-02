@@ -1,8 +1,9 @@
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getPersona } from "@/lib/data";
 import { NavList } from "./nav-list";
 import { NavLogButton, TopBarLogButton } from "./nav-log-button";
 import { NavPro } from "./nav-pro";
-import { NavProfile } from "./nav-profile";
+import { NavProfile, NavTopBarProfile } from "./nav-profile";
 import styles from "./nav.module.css";
 
 /**
@@ -11,7 +12,7 @@ import styles from "./nav.module.css";
  * which has the same shape, so nothing shifts when it lands.
  */
 export async function NavBody() {
-  const user = await getCurrentUser();
+  const [user, persona] = await Promise.all([getCurrentUser(), getPersona()]);
 
   return (
     <>
@@ -19,14 +20,20 @@ export async function NavBody() {
       <NavList signedIn={user !== null} role={user?.role ?? null} />
       <div className={styles.bottom}>
         {user && <NavPro />}
-        <NavProfile user={user} />
+        <NavProfile user={user} persona={persona} />
       </div>
     </>
   );
 }
 
-/** The small-screen top bar's action — only when there's someone to log for. */
+/** The small-screen top bar's actions — only when someone's signed in. */
 export async function NavTopBarAction() {
-  const user = await getCurrentUser();
-  return user ? <TopBarLogButton /> : null;
+  const [user, persona] = await Promise.all([getCurrentUser(), getPersona()]);
+  if (!user) return null;
+  return (
+    <>
+      <TopBarLogButton />
+      <NavTopBarProfile user={user} persona={persona} />
+    </>
+  );
 }

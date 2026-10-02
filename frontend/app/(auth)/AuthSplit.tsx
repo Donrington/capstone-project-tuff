@@ -116,7 +116,7 @@ export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
         <SignUpForm headingRef={signupHeading} onSwitch={() => switchMode("signin")} />
       </section>
 
-      <aside className={styles.media} aria-label="TUFF">
+      <aside className={`${styles.media} theme-dark-island`} aria-label="TUFF">
         <div className={styles.fallback} aria-hidden="true" />
         {MODES.map((key) => {
           const clip = authMedia.clips[key];
@@ -319,9 +319,9 @@ function SignInForm({ headingRef, onSwitch }: FormProps) {
           autoComplete="current-password"
           placeholder="Your password"
           labelAction={
-            <a href="#" className={styles.forgot}>
+            <Link href="/forgot-password" className={styles.forgot}>
               Forgot password?
-            </a>
+            </Link>
           }
           error={Boolean(errors.password)}
           helperText={errors.password}

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { NotificationBell } from "@/components/shell/NotificationBell";
-import { getNotifications } from "@/lib/data";
+import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
 import styles from "./PageHeader.module.css";
 
 interface PageHeaderProps {
@@ -11,14 +10,11 @@ interface PageHeaderProps {
 }
 
 /**
- * Every (app) page's header. Fetches notifications itself and renders the
- * bell after any page-specific `actions`, so it's the same trigger in the
- * same spot everywhere rather than something each page wires up.
+ * Every (app) page's header. Renders search and the bell (HeaderUtilities)
+ * after any page-specific `actions`, so they're in the same spot everywhere
+ * rather than something each page wires up.
  */
-export async function PageHeader({ kicker, title, subtitle, actions }: PageHeaderProps) {
-  const entries = await getNotifications();
-  const now = new Date().toISOString();
-
+export function PageHeader({ kicker, title, subtitle, actions }: PageHeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.text}>
@@ -28,7 +24,7 @@ export async function PageHeader({ kicker, title, subtitle, actions }: PageHeade
       </div>
       <div className={styles.actions}>
         {actions}
-        <NotificationBell entries={entries} now={now} />
+        <HeaderUtilities />
       </div>
     </header>
   );

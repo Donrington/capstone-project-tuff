@@ -4,10 +4,17 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Target, UserPlus, UsersRound } from "lucide-react";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Badge } from "@/components/ui/Badge";
+import { Leaderboard } from "@/components/ui/Leaderboard";
 import { LogActivityButton } from "@/components/activity/LogActivityButton";
 import { InviteButton } from "@/components/invite/InviteButton";
+import { ActivityHistory } from "@/components/challenge/ActivityHistory";
+import { MemberBreakdown } from "@/components/challenge/MemberBreakdown";
+import { ProgressChart } from "@/components/challenge/ProgressChart";
+import { SoloStats } from "@/components/challenge/SoloStats";
+import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
 import { challengePercent, formatCount } from "@/lib/challenge-card";
-import { getChallenge } from "@/lib/data";
+import { getChallenge, getChallengeDetail, getTeam } from "@/lib/data";
+import type { LeaderboardEntry } from "@/lib/types";
 import styles from "./detail.module.css";
 
 type Params = Promise<{ id: string }>;
@@ -20,8 +27,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ChallengeDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const challenge = await getChallenge(id);
-  if (!challenge) notFound();
+  const detail = await getChallengeDetail(id);
+  if (!detail) notFound();
+
+  const { challenge } = detail;
+  const team = challenge.teamId ? await getTeam(challenge.teamId) : undefined;
+  const now = new Date().toISOString();
 
   const endsOn = new Date(`${challenge.endDate}T00:00:00Z`).toLocaleDateString("en-US", {
     month: "short",
@@ -29,13 +40,28 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
     timeZone: "UTC",
   });
   const daysLeft = challenge.totalDays - challenge.dayIndex;
+  const notStarted = challenge.dayIndex === 0;
+
+  const board: LeaderboardEntry[] = detail.contributions.map((c, i) => ({
+    rank: i + 1,
+    user: { id: c.person.id, name: c.person.name, initials: c.person.initials },
+    teamName: team?.name ?? "",
+    score: c.total,
+    scoreUnit: challenge.unit,
+    isCurrentUser: c.isCurrentUser || undefined,
+  }));
 
   return (
     <div className={styles.page}>
-      <Link href="/challenges" className={styles.back}>
-        <ArrowLeft size={16} strokeWidth={2.5} aria-hidden="true" />
-        All challenges
-      </Link>
+      <div className={styles.topRow}>
+        <Link href="/challenges" className={styles.back}>
+          <ArrowLeft size={16} strokeWidth={2.5} aria-hidden="true" />
+          All challenges
+        </Link>
+        <div className={styles.utilities}>
+          <HeaderUtilities />
+        </div>
+      </div>
 
       <section className={styles.hero}>
         <div className={styles.heroRing}>
@@ -53,7 +79,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
           <ul className={styles.facts}>
             <li>
               <CalendarDays size={16} aria-hidden="true" />
-              Day {challenge.dayIndex} of {challenge.totalDays}
+              {notStarted ? "Starts tomorrow" : `Day ${challenge.dayIndex} of ${challenge.totalDays}`}
             </li>
             <li>
               <Target size={16} aria-hidden="true" />
@@ -85,6 +111,28 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
           </div>
         </div>
       </section>
+
+      <div className={styles.extras}>
+        <div className={styles.column}>
+          <ProgressChart daily={detail.daily} pacePerDay={detail.pacePerDay} unit={challenge.unit} />
+          {challenge.teamId ? (
+            <MemberBreakdown contributions={detail.contributions} unit={challenge.unit} />
+          ) : (
+            <SoloStats streak={detail.streak} bestDays={detail.bestDays} unit={challenge.unit} />
+          )}
+        </div>
+        <div className={styles.column}>
+          {challenge.teamId && board.length > 0 && (
+            <section className={styles.boardPanel} aria-labelledby="board-heading">
+              <h2 id="board-heading" className={styles.boardTitle}>
+                Challenge leaderboard
+              </h2>
+              <Leaderboard entries={board} variant="bare" />
+            </section>
+          )}
+          <ActivityHistory entries={detail.activities} now={now} title="Activity history" />
+        </div>
+      </div>
     </div>
   );
 }

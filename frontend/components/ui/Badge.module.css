@@ -9,16 +9,16 @@
   white-space: nowrap;
 }
 .volt {
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 .surge {
   background: var(--accent-surge);
   color: var(--ink-on-vivid);
 }
 .success {
-  background: var(--status-success);
-  color: var(--ink-on-vivid);
+  background: var(--success-fill);
+  color: var(--on-success-fill);
 }
 .neutral {
   background: var(--surface-2);
@@ -27,6 +27,6 @@
 }
 .streak {
   background: var(--surface-2);
-  color: var(--status-warning);
+  color: var(--warning-ink);
   border: 1px solid var(--border-subtle);
 }

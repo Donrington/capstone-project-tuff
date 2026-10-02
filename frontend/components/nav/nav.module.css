@@ -77,9 +77,9 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
-  box-shadow: 0 0 22px -6px var(--accent-volt);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
+  box-shadow: 0 0 22px -6px var(--volt-ink);
   opacity: 0;
   scale: 0.6;
   transition:
@@ -141,7 +141,7 @@
   border-radius: 50%;
 }
 .toggle:hover {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
   border-color: color-mix(in srgb, var(--accent-volt) 60%, transparent);
 }
 .toggleIcon {
@@ -278,7 +278,7 @@
   box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 .link[aria-current="page"] .icon {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 /* The active notch — inside the pill's curve, so it shows in both states. */
 .link[aria-current="page"]::before {
@@ -290,8 +290,8 @@
   height: 16px;
   margin-top: -8px;
   border-radius: 3px;
-  background: var(--accent-volt);
-  box-shadow: 0 0 10px var(--accent-volt);
+  background: var(--volt-fill);
+  box-shadow: 0 0 10px var(--volt-ink);
 }
 
 /* ----------------------------------------------------------------- bottom */
@@ -323,7 +323,7 @@
   transition: box-shadow 0.2s ease;
 }
 .pro .icon {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .pro:hover {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-volt) 55%, transparent);
@@ -343,6 +343,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  text-decoration: none;
   width: 100%;
   height: 48px;
   padding: 0 8px;
@@ -524,6 +525,22 @@
     inset 5px 5px 3px -4px rgba(255, 255, 255, 0.5),
     inset 0 0 14px 0 color-mix(in srgb, var(--accent-volt) 20%, transparent);
 }
+.topAvatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.topAvatar:hover,
+.topAvatar[aria-expanded="true"] {
+  background: var(--surface-3);
+}
 /* The icon alone on narrow phones; the button keeps its accessible name. */
 .topLogLabel {
   position: absolute;
@@ -653,4 +670,13 @@
   .drawerPanel {
     transition: none;
   }
+}
+
+/* Light mode (#19): the volt pills invert — dark fill, volt label. */
+:global([data-theme="light"]) .logButton,
+:global([data-theme="light"]) .signIn,
+:global([data-theme="light"]) .topLog {
+  background: var(--surface-inverse);
+  color: var(--accent-volt);
+  box-shadow: 0 12px 28px -16px rgba(11, 11, 13, 0.55);
 }

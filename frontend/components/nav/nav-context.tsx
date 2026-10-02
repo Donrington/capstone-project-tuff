@@ -2,9 +2,9 @@
 
 import { createContext, useContext } from "react";
 
-/** Whether the nav around a component is collapsed to its icon rail. The
- *  mobile drawer is always "expanded". Used to switch tooltips on. */
-export const NavContext = createContext({ collapsed: false });
+/** Whether the nav around a component is collapsed to its icon rail, and
+ *  whether it's the small-screen drawer (always "expanded"). */
+export const NavContext = createContext({ collapsed: false, inDrawer: false });
 
 export function useNavContext() {
   return useContext(NavContext);

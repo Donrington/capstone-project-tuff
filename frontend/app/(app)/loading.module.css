@@ -1,0 +1,49 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-5);
+}
+.grid > * {
+  display: block;
+  width: 100%;
+}
+
+/* The dashboard bento — the same areas as dashboard/page.module.css. */
+.bento {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 1fr;
+  grid-template-areas: "ring" "feat" "week" "chal" "team" "lead";
+}
+.bento > * {
+  display: block;
+  width: 100%;
+}
+.ring { grid-area: ring; }
+.feat { grid-area: feat; }
+.week { grid-area: week; }
+.lead { grid-area: lead; }
+.chal { grid-area: chal; }
+.team { grid-area: team; }
+@media (min-width: 720px) {
+  .bento {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "ring feat" "week week" "lead chal" "lead team";
+  }
+}
+@media (min-width: 1200px) {
+  .bento {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas: "ring ring feat feat" "week week lead lead" "chal team lead lead";
+  }
+}

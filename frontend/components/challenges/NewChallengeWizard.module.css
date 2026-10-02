@@ -20,8 +20,8 @@
   background: color-mix(in srgb, var(--accent-volt) 55%, var(--surface-3));
 }
 .segment[data-state="current"] {
-  background: var(--accent-volt);
-  box-shadow: 0 0 16px -4px var(--accent-volt);
+  background: var(--volt-fill);
+  box-shadow: 0 0 16px -4px var(--volt-ink);
 }
 
 .form {

@@ -10,6 +10,8 @@ const MESSAGES: Record<string, ToastOptions> = {
   joined: { title: "You're in.", description: "Log something today to get on the board." },
   "password-reset": { title: "Password updated.", description: "Sign in with the new one." },
   welcome: { title: "Welcome to TUFF.", description: "Log your first activity to start a streak." },
+  "team-created": { title: "Team created.", description: "Share the invite code to bring people in." },
+  "left-team": { title: "You left the team.", description: "Join another with a code whenever you're ready." },
 };
 
 /**

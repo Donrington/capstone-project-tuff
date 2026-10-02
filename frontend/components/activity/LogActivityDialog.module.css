@@ -36,7 +36,7 @@
     background 0.18s ease;
 }
 .quickChip:hover {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   background: color-mix(in srgb, var(--accent-volt) 12%, var(--surface-2));
   color: var(--ink);
 }
@@ -54,13 +54,13 @@
 }
 .previewTo {
   font-weight: 800;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .clears {
   display: block;
   margin-top: 4px;
   font-weight: 700;
-  color: var(--status-success);
+  color: var(--success-ink);
 }
 
 .actions {

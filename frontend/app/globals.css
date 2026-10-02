@@ -1,3 +1,15 @@
+/* Satoshi, self-hosted (#22). The file is fetched into public/fonts by
+   scripts/fetch-fonts.mjs rather than committed — its license doesn't allow
+   redistributing it through a public repo. If it's missing, --font-sans
+   falls back to the system font. */
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* TUFF design tokens — mirrors project/tokens.json in the design system
    artifact exactly (color, spacing, radius). If a token changes there,
    update it here too. */
@@ -24,10 +36,27 @@
   --status-warning: #ffb020;
   --status-danger: #ff4d4d;
 
+  /* Semantic accents (#19). Components use these, not the raw brand colors,
+     for volt/success/warning: in dark mode they're just the brand colors;
+     light mode darkens the *ink* versions (text, icons, rings, focus) for
+     contrast and turns the *fill* versions into surface-inverse with the
+     brand color moved onto whatever sits on top. Surge and danger don't
+     change between themes. */
+  --volt-ink: var(--accent-volt);
+  --success-ink: var(--status-success);
+  --warning-ink: var(--status-warning);
+  --volt-fill: var(--accent-volt);
+  --volt-fill-hover: var(--accent-volt-hover);
+  --on-volt-fill: var(--ink-on-vivid);
+  --success-fill: var(--status-success);
+  --on-success-fill: var(--ink-on-vivid);
+  --warning-fill: var(--status-warning);
+  --on-warning-fill: var(--ink-on-vivid);
+
   /* Type — --font-display comes from next/font/google (Bricolage Grotesque)
      in app/layout.tsx. --font-heading wraps it with a sans fallback so a
      failed font download degrades to a grotesque, never to a serif.
-     Satoshi isn't Google-hosted; self-host it (see README "Fonts"). */
+     Satoshi is self-hosted via the @font-face above. */
   --font-heading: var(--font-display, "Bricolage Grotesque"), system-ui, sans-serif;
   --font-sans: "Satoshi", system-ui, sans-serif;
 
@@ -74,10 +103,9 @@
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Light mode is an explicit alternate theme (data-theme="light" on <html>),
-   not OS-driven. accent-volt, status-success and status-warning fills
-   invert onto surface-inverse in light mode — a per-component swap, not
-   wired up yet. */
+/* Light mode is an explicit alternate theme (data-theme="light" on <html>,
+   set by ThemeProvider), not OS-driven. Volt, success and warning fills
+   invert onto surface-inverse via the semantic tokens above. */
 :root[data-theme="light"] {
   color-scheme: light;
   --canvas: #fafaf9;
@@ -88,7 +116,47 @@
   --border-strong: #d4d4d0;
   --ink: #0b0b0d;
   --ink-secondary: #55555c;
-  --ink-tertiary: #85858c;
+  /* Darker than the design system's #85858c, which is ~3.7:1 on white —
+     under the 4.5:1 small text needs. */
+  --ink-tertiary: #6b6b72;
+
+  /* Inks: ~5:1 or better on white and surface-2. */
+  --volt-ink: #4f5e00;
+  --success-ink: #0a7a6d;
+  --warning-ink: #8a5600;
+  /* Fills: dark plates carrying the brand color. */
+  --volt-fill: var(--surface-inverse);
+  --volt-fill-hover: #26262a;
+  --on-volt-fill: var(--accent-volt);
+  --success-fill: var(--surface-inverse);
+  --on-success-fill: var(--status-success);
+  --warning-fill: var(--surface-inverse);
+  --on-warning-fill: var(--status-warning);
+
+  --nav-shadow: 0 30px 60px -40px rgba(0, 0, 0, 0.25);
+}
+
+/* Anything that must stay dark in both themes (the auth video panel, the
+   ProgressRing plate) re-declares the dark values on itself. */
+.theme-dark-island {
+  color-scheme: dark;
+  --canvas: #0b0b0d;
+  --surface: #151517;
+  --surface-2: #1d1d20;
+  --surface-3: #26262a;
+  --border-subtle: #2e2e33;
+  --border-strong: #3d3d44;
+  --ink: #f4f4f5;
+  --ink-secondary: #9c9ca5;
+  --ink-tertiary: #6a6a73;
+  --volt-ink: var(--accent-volt);
+  --success-ink: var(--status-success);
+  --warning-ink: var(--status-warning);
+  --volt-fill: var(--accent-volt);
+  --volt-fill-hover: var(--accent-volt-hover);
+  --on-volt-fill: var(--ink-on-vivid);
+  --success-fill: var(--status-success);
+  --on-success-fill: var(--ink-on-vivid);
 }
 
 * {
@@ -129,13 +197,13 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-volt);
+  outline: 2px solid var(--volt-ink);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--accent-volt);
-  color: var(--ink-on-vivid);
+  background: var(--volt-fill);
+  color: var(--on-volt-fill);
 }
 
 .sr-only {

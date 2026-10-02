@@ -92,7 +92,7 @@ export function NavShell({ initialState, body, topBarAction }: NavShellProps) {
               className={styles.brandLogo}
             />
           </Link>
-          <NavContext.Provider value={{ collapsed }}>{body}</NavContext.Provider>
+          <NavContext.Provider value={{ collapsed, inDrawer: false }}>{body}</NavContext.Provider>
         </div>
         <NavToggle expanded={!collapsed} controls={RAIL_ID} onToggle={toggle} />
       </aside>
@@ -151,7 +151,7 @@ export function NavShell({ initialState, body, topBarAction }: NavShellProps) {
               <X size={20} aria-hidden="true" />
             </button>
           </div>
-          <NavContext.Provider value={{ collapsed: false }}>{body}</NavContext.Provider>
+          <NavContext.Provider value={{ collapsed: false, inDrawer: true }}>{body}</NavContext.Provider>
         </div>
       </dialog>
     </>

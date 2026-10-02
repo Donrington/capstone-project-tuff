@@ -50,7 +50,7 @@
   color: var(--ink-tertiary);
 }
 .success .icon {
-  color: var(--status-success);
+  color: var(--success-ink);
 }
 .danger .icon {
   color: var(--status-danger);

@@ -38,11 +38,11 @@
 }
 .item:hover .icon,
 .item:focus-visible .icon {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .check {
   flex-shrink: 0;
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .danger {
   color: var(--status-danger);

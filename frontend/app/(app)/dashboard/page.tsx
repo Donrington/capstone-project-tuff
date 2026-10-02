@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Flame, Footprints, Search, Timer, Zap } from "lucide-react";
+import { ArrowUpRight, Flame, Footprints, Timer, Zap } from "lucide-react";
 import { FeaturedCard } from "@/components/ui/Card";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Leaderboard } from "@/components/ui/Leaderboard";
@@ -10,13 +10,16 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { LogActivityButton } from "@/components/activity/LogActivityButton";
 import { WeeklyActivity } from "@/components/dashboard/WeeklyActivity";
 import { TeamCard } from "@/components/dashboard/TeamCard";
+import { StartChallenge } from "@/components/dashboard/StartChallenge";
 import { challengeCardCopy, challengePercent, formatCount } from "@/lib/challenge-card";
 import {
-  getChallenge,
   getCurrentUser,
   getDashboardLeaderboard,
   getFeaturedChallenge,
+  getStepChallenge,
+  getSuggestedChallenges,
   getTeamSummary,
+  getTodayOnChallenge,
   getTodayStats,
   getWeeklyActivity,
 } from "@/lib/data";
@@ -27,38 +30,41 @@ export const metadata: Metadata = { title: "Dashboard" };
 const order = (n: number) => ({ "--i": n }) as CSSProperties;
 
 export default async function DashboardPage() {
-  const [currentUser, todayStats, week, team, featured, steps, dashboardLeaderboard] =
-    await Promise.all([
-      getCurrentUser(),
-      getTodayStats(),
-      getWeeklyActivity(),
-      getTeamSummary(),
-      getFeaturedChallenge(),
-      getChallenge("10k-steps"),
-      getDashboardLeaderboard(),
-    ]);
+  const [currentUser, todayStats, week, team, featured, steps, board, suggestions] = await Promise.all([
+    getCurrentUser(),
+    getTodayStats(),
+    getWeeklyActivity(),
+    getTeamSummary(),
+    getFeaturedChallenge(),
+    getStepChallenge(),
+    getDashboardLeaderboard(),
+    getSuggestedChallenges(),
+  ]);
+  const featuredToday = featured ? await getTodayOnChallenge(featured.id) : 0;
 
   const todayPct = (todayStats.steps / todayStats.stepGoal) * 100;
   const remaining = Math.max(0, todayStats.stepGoal - todayStats.steps);
+  const ranked = board.some((entry) => entry.isCurrentUser);
+  const firstRun = todayStats.streakDays === 0 && todayStats.steps === 0 && !featured;
+
+  const subtitle =
+    todayStats.streakDays > 0 ? (
+      <>
+        You&apos;re on a {todayStats.streakDays}-day streak.{" "}
+        {remaining > 0 ? `${formatCount(remaining)} more steps closes today out.` : "Today's goal is done."}
+      </>
+    ) : firstRun ? (
+      "Start a challenge, then log your first activity to start a streak."
+    ) : (
+      "Log something today to start a streak."
+    );
 
   return (
     <div className={styles.page}>
       <PageHeader
         kicker="Dashboard"
-        title={`Welcome back, ${currentUser.firstName}`}
-        subtitle={
-          <>
-            You&apos;re on a {todayStats.streakDays}-day streak. {formatCount(remaining)} more steps
-            closes today out.
-          </>
-        }
-        actions={
-          <label className={styles.search}>
-            <Search size={18} aria-hidden="true" />
-            <span className="sr-only">Search</span>
-            <input type="search" placeholder="Search challenges, teams…" />
-          </label>
-        }
+        title={firstRun ? `Welcome, ${currentUser.firstName}` : `Welcome back, ${currentUser.firstName}`}
+        subtitle={subtitle}
       />
 
       <div className={styles.bento}>
@@ -67,65 +73,73 @@ export default async function DashboardPage() {
             <h2 id="today-heading" className={styles.tileLabel}>
               Today
             </h2>
-            <Badge variant="streak">
-              <Flame size={14} strokeWidth={2.5} aria-hidden="true" />
-              {todayStats.streakDays}-day streak
-            </Badge>
+            {todayStats.streakDays > 0 && (
+              <Badge variant="streak">
+                <Flame size={14} strokeWidth={2.5} aria-hidden="true" />
+                {todayStats.streakDays}-day streak
+              </Badge>
+            )}
           </div>
           <div className={styles.ringBody}>
             <ProgressRing
               percent={todayPct}
               sublabel={`${formatCount(todayStats.steps)} / ${formatCount(todayStats.stepGoal)}`}
             />
-            <ul className={styles.stats}>
-              <li>
-                <span className={styles.statIcon}>
-                  <Footprints size={18} aria-hidden="true" />
-                </span>
-                <span className={styles.statText}>
-                  <strong>{formatCount(todayStats.steps)}</strong>
-                  <small>steps</small>
-                </span>
-              </li>
-              <li>
-                <span className={styles.statIcon}>
-                  <Timer size={18} aria-hidden="true" />
-                </span>
-                <span className={styles.statText}>
-                  <strong>{todayStats.activeMinutes}</strong>
-                  <small>active minutes</small>
-                </span>
-              </li>
-              <li>
-                <span className={styles.statIcon}>
-                  <Zap size={18} aria-hidden="true" />
-                </span>
-                <span className={styles.statText}>
-                  <strong>{formatCount(todayStats.calories)}</strong>
-                  <small>kcal burned</small>
-                </span>
-              </li>
-            </ul>
+            {todayStats.steps === 0 && todayStats.activeMinutes === 0 ? (
+              <p className={styles.firstLog}>Log your first activity.</p>
+            ) : (
+              <ul className={styles.stats}>
+                <li>
+                  <span className={styles.statIcon}>
+                    <Footprints size={18} aria-hidden="true" />
+                  </span>
+                  <span className={styles.statText}>
+                    <strong>{formatCount(todayStats.steps)}</strong>
+                    <small>steps</small>
+                  </span>
+                </li>
+                <li>
+                  <span className={styles.statIcon}>
+                    <Timer size={18} aria-hidden="true" />
+                  </span>
+                  <span className={styles.statText}>
+                    <strong>{todayStats.activeMinutes}</strong>
+                    <small>active minutes</small>
+                  </span>
+                </li>
+                <li>
+                  <span className={styles.statIcon}>
+                    <Zap size={18} aria-hidden="true" />
+                  </span>
+                  <span className={styles.statText}>
+                    <strong>{formatCount(todayStats.calories)}</strong>
+                    <small>kcal burned</small>
+                  </span>
+                </li>
+              </ul>
+            )}
           </div>
         </section>
 
-        {featured && (
-          <div className={`${styles.reveal} ${styles.feat}`} style={order(1)}>
+        <div className={`${styles.reveal} ${styles.feat}`} style={order(1)}>
+          {featured ? (
             <FeaturedCard
               stretch
               {...challengeCardCopy(featured)}
               description={featured.description}
               progressPercent={challengePercent(featured)}
-              statLeft={<b>{currentUser.teamName}</b>}
-              statRight="+12 today"
+              statLeft={<b>{featured.teamId ? currentUser.teamName : "Solo"}</b>}
+              statRight={featuredToday > 0 ? `+${formatCount(featuredToday)} today` : "Nothing yet today"}
               action={
                 <LogActivityButton challengeId={featured.id} variant="primary" size="lg" fullWidth>
                   Log today&apos;s set
                 </LogActivityButton>
               }
             />
-          </div>
-        )}
+          ) : (
+            <StartChallenge suggestions={suggestions} />
+          )}
+        </div>
 
         <section className={`${styles.tile} ${styles.week}`} style={order(2)}>
           <WeeklyActivity data={week.days} goal={todayStats.stepGoal} deltaPct={week.deltaPct} />
@@ -141,15 +155,12 @@ export default async function DashboardPage() {
               <ArrowUpRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </Link>
           </div>
-          <Leaderboard entries={dashboardLeaderboard} variant="bare" />
+          <Leaderboard entries={board} variant="bare" />
+          {!ranked && <p className={styles.unranked}>Log once to get ranked.</p>}
         </section>
 
-        {steps && (
-          <Link
-            href={`/challenges/${steps.id}`}
-            className={`${styles.tile} ${styles.chal}`}
-            style={order(4)}
-          >
+        {steps ? (
+          <Link href={`/challenges/${steps.id}`} className={`${styles.tile} ${styles.chal}`} style={order(4)}>
             <div className={styles.tileHead}>
               <span className={styles.tileLabel}>Challenge</span>
               <ArrowUpRight size={18} className={styles.arrow} aria-hidden="true" />
@@ -162,6 +173,17 @@ export default async function DashboardPage() {
                   Day {steps.dayIndex} of {steps.totalDays} · {formatCount(steps.current)} {steps.unit}
                 </p>
               </div>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/challenges/new" className={`${styles.tile} ${styles.chal}`} style={order(4)}>
+            <div className={styles.tileHead}>
+              <span className={styles.tileLabel}>Challenge</span>
+              <ArrowUpRight size={18} className={styles.arrow} aria-hidden="true" />
+            </div>
+            <div className={styles.chalText}>
+              <h3 className={styles.chalTitle}>Make your own</h3>
+              <p className={styles.chalMeta}>Pick an exercise, a goal and a length. Five quick questions.</p>
             </div>
           </Link>
         )}

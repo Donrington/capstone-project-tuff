@@ -26,7 +26,7 @@ export function ProgressRing({ percent, size = "hero", sublabel }: ProgressRingP
 
   return (
     <div
-      className={isHero ? styles.hero : styles.compact}
+      className={`${isHero ? styles.hero : styles.compact} theme-dark-island`}
       style={{ width: dimension, height: dimension }}
     >
       {isHero && <div className={styles.glow} aria-hidden="true" />}

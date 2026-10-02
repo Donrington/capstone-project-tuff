@@ -70,6 +70,11 @@ export function LeaderboardBrowser({
             <Leaderboard entries={[pinned]} variant="bare" />
           </>
         )}
+        {!me && (
+          <p className={styles.unranked}>
+            <strong>You&apos;re not ranked yet.</strong> Log once to get on the board.
+          </p>
+        )}
       </div>
     </>
   );

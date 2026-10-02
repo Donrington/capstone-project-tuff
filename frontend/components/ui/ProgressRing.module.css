@@ -54,3 +54,15 @@
     transition: none;
   }
 }
+
+/* Light mode (#19): the ring keeps its volt arc on a dark --radius-lg plate
+   (the wrapper is also a .theme-dark-island, so its text stays light). */
+:global([data-theme="light"]) .hero,
+:global([data-theme="light"]) .compact {
+  border-radius: var(--radius-lg);
+  background: var(--surface-inverse);
+  box-shadow: 0 0 0 8px var(--surface-inverse);
+}
+:global([data-theme="light"]) .compact {
+  box-shadow: 0 0 0 4px var(--surface-inverse);
+}

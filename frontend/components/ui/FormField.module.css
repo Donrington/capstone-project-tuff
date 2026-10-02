@@ -43,7 +43,7 @@
   border-color: var(--ink-tertiary);
 }
 .input:focus-visible {
-  border-color: var(--accent-volt);
+  border-color: var(--volt-ink);
   background: var(--surface-3);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-volt) 22%, transparent);
 }

@@ -31,7 +31,7 @@
   height: 36px;
   border-radius: 50%;
   background: var(--surface-2);
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .value {
   font: 800 26px/1.1 var(--font-heading);

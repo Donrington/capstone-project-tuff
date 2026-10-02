@@ -39,5 +39,5 @@
   font-size: 30px;
 }
 .activeRing {
-  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent-volt);
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--volt-ink);
 }
