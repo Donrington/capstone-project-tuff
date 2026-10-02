@@ -80,8 +80,36 @@ not just the cookie.
 | `GET /api/auth/me` | — | `200` + the user | Behind `requireAuth` — `401` without a session |
 
 The user object in every response has `passwordHash` stripped and `_id`
-renamed to `id` — see `toSafeUser()` in `authController.js`; follow that
-pattern in new controllers rather than sending a raw Mongoose doc back.
+renamed to `id` — see `toSafeUser()` in `utils/serializeUser.js`; use it in
+new controllers rather than sending a raw Mongoose doc back.
+
+## Users (the signed-in user's own account) — built
+
+All behind `requireAuth`, and all act on `req.user` only: there's no `:id`,
+so none of these can be pointed at someone else's account. Every one that
+returns the user returns the full `toSafeUser` shape, so the frontend can
+replace its copy wholesale.
+
+| Method & path | Body | Returns | Notes |
+|---|---|---|---|
+| `PATCH /api/users/me` | any of `{ firstName, lastName, displayName, bio }` | `200` + the user | `bio` max 160, `displayName` max 40 |
+| `PUT /api/users/me/photo` | `{ dataUrl }` or `{ dataUrl: null }` | `200` + the user | JPEG/PNG/WebP/GIF data URL. Uploaded to Cloudinary at `tuff/avatars/<userId>` (overwrite), `null` deletes it. `503` if Cloudinary isn't configured |
+| `PATCH /api/users/me/password` | `{ currentPassword, newPassword }` | `204` | Revokes **every** refresh token (signs out other devices), then issues this device a fresh session |
+| `PATCH /api/users/me/goals` | any of `{ stepGoal, workoutDaysPerWeek }` | `200` + the user | `stepGoal` 1,000–100,000, default 10,000 |
+| `PATCH /api/users/me/notification-prefs` | any of `{ streakReminders, teamActivity, leaderboardChanges, challengeInvites, weeklySummary, reminderTime }` | `200` + the user | `reminderTime` is `"HH:MM"` 24-hour |
+| `PATCH /api/users/me/privacy` | any of `{ showOnLeaderboards, profileVisibility }` | `200` + the user | `profileVisibility`: `everyone`, `teammates` or `only_me` |
+| `POST /api/users/me/onboarding` | any of `{ motivations, stepGoal, dateOfBirth, gender, height, weight, fitnessLevel }` | `200` + the user | Every answer optional (each step can be skipped); always sets `onboardingCompletedAt`. Joining a team/challenge uses those endpoints |
+| `DELETE /api/users/me` | `{ confirm: "DELETE" }` | `204` | Deletes the user, their participations, activities, achievements, notifications, refresh tokens and avatar. Teams and challenges they created stay |
+
+**Cloudinary** needs `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` in `.env` (see `.env.example`). They're optional: the
+server boots without them and only the photo endpoint answers `503`.
+
+Verified against a disposable MongoDB with the Cloudinary SDK stubbed: 45
+checks, covering validation on every endpoint, the 503 path, the fixed
+public ID + overwrite, password change killing a second device's refresh
+token while keeping this one, and delete cascading to the user's own
+documents only. All passed.
 
 Verified with a real, disposable MongoDB (not just reading the code) before
 this was written up: 15 checks covering sign-up validation, duplicate

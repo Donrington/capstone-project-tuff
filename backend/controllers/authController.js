@@ -2,40 +2,11 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const RefreshToken = require("../models/RefreshToken");
 const ApiError = require("../utils/ApiError");
-const {
-  ACCESS_COOKIE,
-  REFRESH_COOKIE,
-  accessCookieOptions,
-  refreshCookieOptions,
-  signAccessToken,
-  generateRefreshToken,
-  hashRefreshToken,
-} = require("../utils/jwt");
+const { ACCESS_COOKIE, REFRESH_COOKIE, accessCookieOptions, signAccessToken, hashRefreshToken } = require("../utils/jwt");
+const { toSafeUser } = require("../utils/serializeUser");
+const { issueSession, clearSession } = require("../utils/session");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/; // matches frontend/app/(auth)/actions.ts exactly
-
-/** Strips passwordHash (User.create() returns it in memory even though the
- *  schema marks it select: false — that only affects queries) and turns
- *  ObjectIds into strings for a clean JSON response. */
-function toSafeUser(userDoc) {
-  const obj = userDoc.toObject();
-  delete obj.passwordHash;
-  obj.id = obj._id.toString();
-  delete obj._id;
-  delete obj.__v;
-  if (obj.teamId) obj.teamId = obj.teamId.toString();
-  return obj;
-}
-
-/** Signs an access token + issues a refresh token, storing the refresh
- *  token's hash (not the plaintext) in RefreshToken, and sets both cookies. */
-async function issueSession(res, user) {
-  res.cookie(ACCESS_COOKIE, signAccessToken({ sub: user._id.toString(), role: user.role }), accessCookieOptions);
-
-  const { token, hash, expiresAt } = generateRefreshToken();
-  await RefreshToken.create({ user: user._id, token: hash, expiresAt });
-  res.cookie(REFRESH_COOKIE, token, refreshCookieOptions);
-}
 
 // POST /api/auth/sign-up — frontend: app/(auth)/actions.ts signUp
 async function signUp(req, res) {
@@ -95,8 +66,7 @@ async function signOut(req, res) {
     // stolen refresh token would keep working after "signing out".
     await RefreshToken.deleteOne({ token: hashRefreshToken(refreshToken) });
   }
-  res.clearCookie(ACCESS_COOKIE, { path: "/" });
-  res.clearCookie(REFRESH_COOKIE, { path: "/" });
+  clearSession(res);
   res.status(204).end();
 }
 

@@ -24,7 +24,9 @@ require("./models/RefreshToken");
 const app = express();
 
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "http://localhost:3000", credentials: true }));
-app.use(express.json());
+// 3mb, not the 100kb default, so a profile photo (sent as a data URL —
+// see controllers/userController.js uploadPhoto) fits in the body.
+app.use(express.json({ limit: "3mb" }));
 app.use(cookieParser());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
@@ -33,6 +35,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/challenges", require("./routes/challengeRoutes"));
 app.use("/api/challenge-participants", require("./routes/challengeParticipantRoutes"));
 app.use("/api/teams", require("./routes/teamRoutes"));
+app.use("/api/users", require("./routes/userRoutes"));
 
 // TODO(team): mount each resource's routes here as they're built, e.g.
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));
