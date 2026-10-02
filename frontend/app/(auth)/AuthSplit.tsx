@@ -271,6 +271,11 @@ function SignUpForm({ headingRef, onSwitch }: FormProps) {
           }
           error={errors.terms}
         />
+        {state.message && (
+          <p className={styles.formError} role="alert">
+            {state.message}
+          </p>
+        )}
         <SubmitButton pendingLabel="Creating account…">Create account</SubmitButton>
       </form>
       <p className={styles.switchText}>
@@ -327,6 +332,11 @@ function SignInForm({ headingRef, onSwitch }: FormProps) {
           helperText={errors.password}
         />
         <Checkbox id="signin-remember" name="remember" label="Keep me signed in" defaultChecked />
+        {state.message && (
+          <p className={styles.formError} role="alert">
+            {state.message}
+          </p>
+        )}
         <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
       </form>
       <p className={styles.switchText}>

@@ -15,12 +15,12 @@ function toNavUser(user: SessionUser): NavProfileUser {
 }
 
 /** The profile slot: the signed-in block, or Sign in. */
-export function NavProfile({ user, persona }: { user: SessionUser | null; persona: Persona }) {
+export function NavProfile({ user, persona }: { user: SessionUser | null; persona: Persona | null }) {
   if (!user) return <NavSignIn />;
   return <ProfileMenu user={toNavUser(user)} persona={persona} />;
 }
 
 /** The top bar's avatar, which opens the account menu on small screens. */
-export function NavTopBarProfile({ user, persona }: { user: SessionUser; persona: Persona }) {
+export function NavTopBarProfile({ user, persona }: { user: SessionUser; persona: Persona | null }) {
   return <TopBarProfileMenu user={toNavUser(user)} persona={persona} />;
 }

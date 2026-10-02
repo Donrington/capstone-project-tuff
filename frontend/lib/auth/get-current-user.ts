@@ -1,5 +1,8 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { api } from "@/lib/api/client";
+import { DATA_SOURCE } from "@/lib/api/config";
+import { hasSession } from "@/lib/api/cookies";
 import { getCurrentUser as getProfileRecord } from "@/lib/data";
 
 export type SessionRole = "member" | "admin";
@@ -19,20 +22,42 @@ export const MOCK_SESSION_COOKIE = "tuff-mock-session";
  *  skeleton can be seen and tested. */
 export const MOCK_LATENCY_COOKIE = "tuff-mock-latency";
 
+interface MeResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture: string | null;
+  role: SessionRole;
+}
+
 /**
  * The single session seam. Everything that needs to know who's signed in
- * asks here, so swapping the mock for real auth changes this file only.
+ * asks here.
  *
- * Mock rules: MOCK_SESSION=signed-in or signed-out forces a state (demos,
- * tests). Otherwise you're signed in until you sign out.
+ * Real (default): GET /api/auth/me with the session cookies — null when
+ * there's no valid session. Mock (TUFF_DATA_SOURCE=mock): MOCK_SESSION
+ * forces a state, otherwise you're signed in until you sign out.
  */
-// TODO(auth): replace the body with the real session, verified on the server.
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
 
   if (process.env.NODE_ENV !== "production") {
     const delay = Number(jar.get(MOCK_LATENCY_COOKIE)?.value ?? 0);
     if (delay > 0) await new Promise((resolve) => setTimeout(resolve, Math.min(delay, 10_000)));
+  }
+
+  if (DATA_SOURCE === "api") {
+    if (!(await hasSession())) return null;
+    const me = await api<MeResponse | null>("/api/auth/me", { allowUnauthenticated: true });
+    if (!me) return null;
+    return {
+      id: me.id,
+      name: `${me.firstName} ${me.lastName}`.trim(),
+      email: me.email,
+      avatarUrl: me.profilePicture ?? null,
+      role: me.role,
+    };
   }
 
   const forced = process.env.MOCK_SESSION;
@@ -43,8 +68,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   return {
     id: user.id,
     // SessionUser stays a single display string on purpose — it's a UI
-    // projection, not the stored shape. The real firstName/lastName split
-    // lives on User (lib/types.ts), matching backend/models/User.js.
+    // projection, not the stored shape (firstName/lastName live on User).
     name: `${user.firstName} ${user.lastName}`.trim(),
     email: user.email,
     avatarUrl: user.profilePicture ?? null,

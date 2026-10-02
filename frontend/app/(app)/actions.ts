@@ -4,9 +4,14 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MOCK_SESSION_COOKIE } from "@/lib/auth/get-current-user";
+import { api, ApiError } from "@/lib/api/client";
+import { DATA_SOURCE } from "@/lib/api/config";
+import { clearSessionCookies } from "@/lib/api/cookies";
 import {
   PERSONA_COOKIE,
   addActivity,
+  deleteAccount,
+  joinChallengeByCode,
   completeOnboarding,
   createChallenge,
   createTeam,
@@ -44,6 +49,20 @@ const YEAR = 60 * 60 * 24 * 365;
 
 function refresh() {
   revalidatePath("/", "layout");
+}
+
+/**
+ * Turns a backend validation error into form state: field messages where the
+ * backend named the field, otherwise one message. Anything that isn't an
+ * ApiError (a redirect, a real bug) is rethrown.
+ */
+function failed<Field extends string>(err: unknown, values?: ActionState<Field>["values"]): ActionState<Field> {
+  if (!(err instanceof ApiError)) throw err;
+  return {
+    errors: err.details as ActionState<Field>["errors"],
+    message: err.details ? undefined : err.message,
+    values,
+  };
 }
 
 /* ------------------------------------------------------------- logging --- */
@@ -87,7 +106,13 @@ export async function logActivity(
     return { errors, values: { challengeId, value: raw } };
   }
 
-  const logged = await addActivity({ challengeId, value, when, note: note || undefined });
+  let logged;
+  try {
+    logged = await addActivity({ challengeId, value, when, note: note || undefined });
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    return { errors: { value: err.message }, values: { challengeId, value: raw } };
+  }
   if (!logged) {
     return { errors: { challengeId: "That challenge isn't there any more." } };
   }
@@ -99,18 +124,23 @@ export async function logActivity(
 /* ------------------------------------------------------------- session --- */
 
 export async function signOut() {
-  // TODO(auth): end the real session (POST /api/auth/sign-out). The mock
-  // remembers you signed out, so the nav shows its signed-out state until
-  // you sign in again.
   const jar = await cookies();
-  jar.set(MOCK_SESSION_COOKIE, "signed-out", { path: "/", sameSite: "lax", httpOnly: true, maxAge: YEAR });
+  if (DATA_SOURCE === "api") {
+    // Revokes the refresh token server-side, then drops our copies.
+    await api("/api/auth/sign-out", { method: "POST", session: true }).catch(() => undefined);
+    await clearSessionCookies();
+  } else {
+    // The mock remembers you signed out, so the nav shows its signed-out
+    // state until you sign in again.
+    jar.set(MOCK_SESSION_COOKIE, "signed-out", { path: "/", sameSite: "lax", httpOnly: true, maxAge: YEAR });
+  }
   jar.delete(PERSONA_COOKIE);
   redirect("/");
 }
 
 /** Dev only (#20): flips between the returning and brand-new datasets. */
 export async function switchPersonaAction(persona: Persona) {
-  if (process.env.NODE_ENV === "production") return;
+  if (process.env.NODE_ENV === "production" || DATA_SOURCE !== "mock") return;
   (await cookies()).set(PERSONA_COOKIE, persona, { path: "/", sameSite: "lax", httpOnly: true, maxAge: YEAR });
   refresh();
   redirect("/dashboard");
@@ -141,11 +171,8 @@ export async function joinWithCode(_prev: JoinState, formData: FormData): Promis
   const match = await findByCode(code);
   if (!match) return { errors: { code: NO_MATCH }, values: { code } };
 
-  if (match.kind === "team") {
-    const result = await joinTeamByCode(match.code);
-    if (!result.ok) return { errors: { code: result.error }, values: { code } };
-  }
-  // TODO(backend): a challenge code joins via POST /api/challenge-participants/:id/join.
+  const result = match.kind === "team" ? await joinTeamByCode(match.code) : await joinChallengeByCode(match.code);
+  if (!result.ok) return { errors: { code: result.error }, values: { code } };
 
   refresh();
   redirect(`${match.href}?flash=joined`);
@@ -202,16 +229,21 @@ export async function createChallengeAction(
 
   if (Object.keys(errors).length > 0) return { errors };
 
-  const challenge = await createChallenge({
-    title,
-    description: description || `${goal.toLocaleString("en-US")} ${unit} in ${totalDays} days.`,
-    unit,
-    goal,
-    totalDays,
-    startsTomorrow,
-    isTeam,
-    activity,
-  });
+  let challenge;
+  try {
+    challenge = await createChallenge({
+      title,
+      description: description || `${goal.toLocaleString("en-US")} ${unit} in ${totalDays} days.`,
+      unit,
+      goal,
+      totalDays,
+      startsTomorrow,
+      isTeam,
+      activity,
+    });
+  } catch (err) {
+    return failed(err);
+  }
 
   refresh();
   redirect(`/challenges/${challenge.id}?flash=created`);
@@ -250,7 +282,11 @@ export async function updateProfileAction(
     return { errors, values: { firstName, lastName, displayName, bio } };
   }
 
-  await updateProfile({ firstName, lastName, displayName, bio });
+  try {
+    await updateProfile({ firstName, lastName, displayName, bio });
+  } catch (err) {
+    return failed(err, { firstName, lastName, displayName, bio });
+  }
   refresh();
   return { ok: true, message: "Saved." };
 }
@@ -277,7 +313,12 @@ export async function updateProfilePhotoAction(
     }
   }
 
-  await updateProfilePhoto(dataUrl);
+  try {
+    await updateProfilePhoto(dataUrl);
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    return { ok: false, error: err.message };
+  }
   refresh();
   return { ok: true };
 }
@@ -299,7 +340,12 @@ export async function updatePasswordAction(
   if (confirmPassword !== newPassword) errors.confirmPassword = "The two passwords don't match.";
   if (Object.keys(errors).length > 0) return { errors };
 
-  const result = await updatePassword({ currentPassword, newPassword });
+  let result;
+  try {
+    result = await updatePassword({ currentPassword, newPassword });
+  } catch (err) {
+    return failed(err);
+  }
   if (!result.ok) return { errors: { currentPassword: "That's not your current password." } };
   return { ok: true, message: "Password changed. Other devices are signed out." };
 }
@@ -321,7 +367,11 @@ export async function updateGoalsAction(_prev: UpdateGoalsState, formData: FormD
   }
   if (Object.keys(errors).length > 0) return { errors, values: { stepGoal: raw } };
 
-  await updateGoals({ stepGoal, workoutDaysPerWeek });
+  try {
+    await updateGoals({ stepGoal, workoutDaysPerWeek });
+  } catch (err) {
+    return failed(err, { stepGoal: raw });
+  }
   refresh();
   return { ok: true, message: "Saved." };
 }
@@ -336,14 +386,18 @@ export async function updateNotificationPrefsAction(
   if (!TIME_RE.test(reminderTime)) return { errors: { reminderTime: "Pick a time, like 18:00." } };
 
   const on = (key: keyof NotificationPrefs) => formData.get(key) === "on";
-  await updateNotificationPrefs({
-    streakReminders: on("streakReminders"),
-    teamActivity: on("teamActivity"),
-    leaderboardChanges: on("leaderboardChanges"),
-    challengeInvites: on("challengeInvites"),
-    weeklySummary: on("weeklySummary"),
-    reminderTime,
-  });
+  try {
+    await updateNotificationPrefs({
+      streakReminders: on("streakReminders"),
+      teamActivity: on("teamActivity"),
+      leaderboardChanges: on("leaderboardChanges"),
+      challengeInvites: on("challengeInvites"),
+      weeklySummary: on("weeklySummary"),
+      reminderTime,
+    });
+  } catch (err) {
+    return failed(err);
+  }
   refresh();
   return { ok: true, message: "Saved." };
 }
@@ -358,7 +412,11 @@ export async function updatePrivacyAction(
   if (!VISIBILITY.includes(profileVisibility)) {
     return { errors: { profileVisibility: "Pick who can see your profile." } };
   }
-  await updatePrivacy({ showOnLeaderboards: formData.get("showOnLeaderboards") === "on", profileVisibility });
+  try {
+    await updatePrivacy({ showOnLeaderboards: formData.get("showOnLeaderboards") === "on", profileVisibility });
+  } catch (err) {
+    return failed(err);
+  }
   refresh();
   return { ok: true, message: "Saved." };
 }
@@ -369,8 +427,15 @@ export async function deleteAccountAction(_prev: DeleteAccountState, formData: F
   if (String(formData.get("confirm") ?? "") !== "DELETE") {
     return { errors: { confirm: "Type DELETE, in capitals, to confirm." } };
   }
-  // TODO(backend): DELETE /api/users/me { confirm: "DELETE" }, then sign out.
-  return { message: "Account deletion goes live with the backend." };
+  let result;
+  try {
+    result = await deleteAccount();
+  } catch (err) {
+    return failed(err);
+  }
+  if (!result.ok) return { message: result.message };
+  (await cookies()).delete(PERSONA_COOKIE);
+  redirect("/?flash=account-deleted");
 }
 
 /* ----------------------------------------------------------- onboarding --- */
@@ -432,16 +497,20 @@ export async function completeOnboardingAction(
     if (!result.ok) return { errors: { teamName: result.error } };
   }
 
-  await completeOnboarding({
-    motivations,
-    stepGoal,
-    dateOfBirth: dateOfBirth || undefined,
-    gender: GENDERS.includes(gender as Gender) ? (gender as Gender) : undefined,
-    height,
-    weight,
-    fitnessLevel: LEVELS.includes(fitnessLevel as FitnessLevel) ? (fitnessLevel as FitnessLevel) : undefined,
-    challengeIds,
-  });
+  try {
+    await completeOnboarding({
+      motivations,
+      stepGoal,
+      dateOfBirth: dateOfBirth || undefined,
+      gender: GENDERS.includes(gender as Gender) ? (gender as Gender) : undefined,
+      height,
+      weight,
+      fitnessLevel: LEVELS.includes(fitnessLevel as FitnessLevel) ? (fitnessLevel as FitnessLevel) : undefined,
+      challengeIds,
+    });
+  } catch (err) {
+    return failed(err);
+  }
 
   refresh();
   redirect("/dashboard?flash=welcome");

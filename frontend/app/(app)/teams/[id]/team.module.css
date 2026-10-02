@@ -125,3 +125,10 @@
     padding: var(--space-6) var(--space-5);
   }
 }
+.membersOnly {
+  padding: var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  font: 400 15px/22px var(--font-sans);
+  color: var(--ink-secondary);
+}

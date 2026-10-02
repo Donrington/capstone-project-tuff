@@ -2,6 +2,7 @@ const ChallengeParticipant = require("../models/ChallengeParticipant");
 const Challenge = require("../models/Challenge");
 const Activity = require("../models/Activity");
 const ApiError = require("../utils/ApiError");
+const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 const { notify, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
 
@@ -124,6 +125,22 @@ async function logActivity(req, res) {
   res.status(201).json({ activity, participant: updated, justCompleted, newAchievements });
 }
 
+// GET /api/challenge-participants/:challengeId/activities?limit= — every
+// entry logged against the challenge, newest first (default 200, max 1000).
+// Enough for the per-day chart and the history list on the detail page.
+async function getChallengeActivities(req, res) {
+  const { challengeId } = req.params;
+  const challenge = await Challenge.findById(challengeId);
+  if (!challenge) throw ApiError.notFound("Challenge not found.");
+
+  const activities = await Activity.find({ challenge: challengeId })
+    .sort({ recordedAt: -1 })
+    .limit(limitFrom(req.query, 200, 1000))
+    .populate("user", USER_FIELDS)
+    .populate("challenge", CHALLENGE_FIELDS);
+  res.json(activities.map(toActivityEntry));
+}
+
 // PATCH /api/challenge-participants/:challengeId/progress — admin-only
 // correction tool. Regular play goes through logActivity above; this isn't
 // gated by progress earned because it's for fixing mistakes, not earning
@@ -185,6 +202,7 @@ module.exports = {
   getMyParticipation,
   getChallengeParticipants,
   logActivity,
+  getChallengeActivities,
   updateProgress,
   completeChallenge,
   leaveChallenge,

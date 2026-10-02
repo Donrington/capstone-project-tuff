@@ -20,7 +20,7 @@ export interface NavProfileUser {
 }
 
 /** The account menu's items — one list, so the rail and the top bar match. */
-function useAccountItems(persona: Persona): MenuItemSpec[] {
+function useAccountItems(persona: Persona | null): MenuItemSpec[] {
   const { theme, setTheme } = useTheme();
   const items: MenuItemSpec[] = [
     { label: "View profile", icon: UserRound, href: "/profile" },
@@ -29,8 +29,8 @@ function useAccountItems(persona: Persona): MenuItemSpec[] {
     { label: "Light theme", icon: Sun, checked: theme === "light", onSelect: () => setTheme("light") },
   ];
   // Mock data only (#20) — flips every screen between a returning account
-  // and a brand-new one. Never shipped.
-  if (process.env.NODE_ENV !== "production") {
+  // and a brand-new one. `null` when it isn't available.
+  if (persona) {
     items.push({
       label: persona === "new" ? "Switch to returning user" : "Switch to new user",
       icon: FlaskConical,
@@ -59,7 +59,7 @@ function useAccountItems(persona: Persona): MenuItemSpec[] {
  * small-screen drawer it's a plain link to the profile (the top bar's avatar
  * has the menu there).
  */
-export function ProfileMenu({ user, persona }: { user: NavProfileUser; persona: Persona }) {
+export function ProfileMenu({ user, persona }: { user: NavProfileUser; persona: Persona | null }) {
   const { collapsed, inDrawer } = useNavContext();
   const [menuOpen, setMenuOpen] = useState(false);
   const items = useAccountItems(persona);
@@ -112,7 +112,7 @@ export function ProfileMenu({ user, persona }: { user: NavProfileUser; persona: 
 }
 
 /** The same menu from the small-screen top bar's avatar. */
-export function TopBarProfileMenu({ user, persona }: { user: NavProfileUser; persona: Persona }) {
+export function TopBarProfileMenu({ user, persona }: { user: NavProfileUser; persona: Persona | null }) {
   const items = useAccountItems(persona);
   return (
     <Menu

@@ -3,6 +3,8 @@ const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { notify, notifyMany, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
+const Activity = require("../models/Activity");
+const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 12).toUpperCase();
@@ -40,7 +42,13 @@ async function getTeamById(req, res) {
 // GET /api/teams
 async function getAllTeams(req, res) {
   const teams = await Team.find({ status: "active" }).populate("createdBy", "firstName lastName").sort({ createdAt: -1 });
-  res.json(teams);
+  // Member counts in one query, not one per team.
+  const counts = await User.aggregate([
+    { $match: { teamId: { $in: teams.map((t) => t._id) } } },
+    { $group: { _id: "$teamId", count: { $sum: 1 } } },
+  ]);
+  const countOf = new Map(counts.map((c) => [c._id.toString(), c.count]));
+  res.json(teams.map((t) => ({ ...t.toObject(), memberCount: countOf.get(t._id.toString()) ?? 0 })));
 }
 
 // PATCH /api/teams/:id
@@ -133,4 +141,50 @@ async function getTeamMembers(req, res) {
   res.json(members);
 }
 
-module.exports = { createTeam, getTeamById, getAllTeams, updateTeam, joinTeam, leaveTeam, getTeamMembers };
+// GET /api/teams/code/:code — a team by its invite code, for the join
+// preview: enough to decide whether to join, no roster.
+async function getTeamByCode(req, res) {
+  const code = String(req.params.code ?? "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
+  const team = await Team.findOne({ inviteCode: code, status: "active" });
+  if (!team) throw ApiError.notFound("No team has that code.");
+  const memberCount = await User.countDocuments({ teamId: team._id });
+  res.json({
+    id: team._id.toString(),
+    name: team.name,
+    description: team.description,
+    inviteCode: team.inviteCode,
+    memberCount,
+    maxMembers: team.maxMembers,
+  });
+}
+
+// GET /api/teams/:id/activity?limit= — what the team has logged, newest
+// first. Members only, like the roster.
+async function getTeamActivity(req, res) {
+  const { id } = req.params;
+  const requester = await User.findById(req.user.id);
+  if (!requester?.teamId || requester.teamId.toString() !== id) {
+    throw ApiError.forbidden("Only members of this team can see its activity.");
+  }
+  const memberIds = (await User.find({ teamId: id }).select("_id")).map((u) => u._id);
+  const activities = await Activity.find({ user: { $in: memberIds } })
+    .sort({ recordedAt: -1 })
+    .limit(limitFrom(req.query, 30, 200))
+    .populate("user", USER_FIELDS)
+    .populate("challenge", CHALLENGE_FIELDS);
+  res.json(activities.map(toActivityEntry));
+}
+
+module.exports = {
+  createTeam,
+  getTeamById,
+  getAllTeams,
+  updateTeam,
+  joinTeam,
+  leaveTeam,
+  getTeamMembers,
+  getTeamByCode,
+  getTeamActivity,
+};

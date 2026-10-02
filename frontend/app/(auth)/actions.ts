@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MOCK_SESSION_COOKIE } from "@/lib/auth/get-current-user";
+import { api, ApiError } from "@/lib/api/client";
+import { DATA_SOURCE } from "@/lib/api/config";
 import { PERSONA_COOKIE, startNewPersona } from "@/lib/data";
 
 export interface AuthState {
@@ -12,6 +14,7 @@ export interface AuthState {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const UNREACHABLE = "We couldn't reach TUFF just now. Try again in a moment.";
 
 export async function signUp(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const firstName = String(formData.get("firstName") ?? "").trim();
@@ -27,14 +30,23 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (password.length < 8) errors.password = "Use at least 8 characters.";
   if (!acceptedTerms) errors.terms = "Accept the terms to continue.";
 
-  if (Object.keys(errors).length > 0) {
-    return { errors, values: { firstName, lastName, email } };
+  const values = { firstName, lastName, email };
+  if (Object.keys(errors).length > 0) return { errors, values };
+
+  if (DATA_SOURCE === "api") {
+    try {
+      // Sets the session cookies on success (copied onto our domain).
+      await api("/api/auth/sign-up", { method: "POST", body: { firstName, lastName, email, password }, session: true });
+    } catch (err) {
+      if (!(err instanceof ApiError)) return { message: UNREACHABLE, values };
+      if (err.status === 409) return { errors: { email: "That email already has an account. Sign in instead." }, values };
+      return { errors: err.details, message: err.details ? undefined : err.message, values };
+    }
+    redirect("/onboarding");
   }
 
-  // TODO(auth): create the account against the backend and start a real
-  // session — see README "What's not here yet". Until then this ends the
-  // mock's signed-out state and switches to a brand-new account (#20) with
-  // the name just entered.
+  // Mock: end the signed-out state and switch to a brand-new account (#20)
+  // with the name just entered.
   const jar = await cookies();
   jar.delete(MOCK_SESSION_COOKIE);
   startNewPersona({ firstName, lastName, email });
@@ -50,12 +62,21 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   if (!EMAIL_RE.test(email)) errors.email = "Enter the email you signed up with.";
   if (!password) errors.password = "Enter your password.";
 
-  if (Object.keys(errors).length > 0) {
-    return { errors, values: { email } };
+  if (Object.keys(errors).length > 0) return { errors, values: { email } };
+
+  if (DATA_SOURCE === "api") {
+    try {
+      await api("/api/auth/sign-in", { method: "POST", body: { email, password }, session: true });
+    } catch (err) {
+      if (!(err instanceof ApiError)) return { message: UNREACHABLE, values: { email } };
+      // Same message whichever part was wrong — the backend doesn't say either.
+      if (err.status === 401) return { message: "Wrong email or password.", values: { email } };
+      return { errors: err.details, message: err.details ? undefined : err.message, values: { email } };
+    }
+    redirect("/dashboard");
   }
 
-  // TODO(auth): verify credentials against the backend before redirecting.
-  // The mock signs you back in as the returning account (#20).
+  // Mock: back in as the returning account (#20).
   const jar = await cookies();
   jar.delete(MOCK_SESSION_COOKIE);
   jar.delete(PERSONA_COOKIE);

@@ -11,6 +11,7 @@ const MESSAGES: Record<string, ToastOptions> = {
   "password-reset": { title: "Password updated.", description: "Sign in with the new one." },
   welcome: { title: "Welcome to TUFF.", description: "Log your first activity to start a streak." },
   "team-created": { title: "Team created.", description: "Share the invite code to bring people in." },
+  "account-deleted": { title: "Your account is deleted.", description: "Thanks for training with us." },
   "left-team": { title: "You left the team.", description: "Join another with a code whenever you're ready." },
 };
 

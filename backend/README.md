@@ -174,6 +174,38 @@ catalog sync idempotency, each trigger, the `teamActivity` mute, progress on
 locked achievements, a 6-way concurrent race awarding exactly once, paging,
 and every cross-user access answering `404`. All passed.
 
+## Feeds and stats — built (read-only, for the frontend)
+
+| Method & path | Returns | Notes |
+|---|---|---|
+| `GET /api/challenges` | `200` + the challenges you've joined, each with `current`, `dayIndex`, `totalDays` | Featured first, then newest start |
+| `GET /api/challenge-participants/:challengeId/activities?limit=` | `200` + activity entries, newest first | Default 200, max 1000. Feeds the per-day chart and the history |
+| `GET /api/users/me/activities?limit=` | `200` + your entries, newest first | Default 20, max 200 |
+| `GET /api/teams/:id/activity?limit=` | `200` + the team's entries, newest first | Members only (`403` otherwise), like the roster |
+| `GET /api/teams/code/:code` | `200` + `{ id, name, description, inviteCode, memberCount, maxMembers }` | For the join preview. Dashes and case ignored |
+| `GET /api/users/me/stats` | `200` + `{ today: { steps, activeMinutes, calories }, streakDays, bestStreak, week: [{ date, steps }] ×7, weeklyDeltaPct, lifetime: { steps, reps }, challengesCompleted, personalBests: { mostStepsInADay, mostRepsInADay, longestHoldSeconds } }` | All computed from activity. Days are UTC for now. `weeklyDeltaPct` is `null` with no previous week; each personal best is `{ value, date }` or `null` |
+
+An activity entry is `{ id, person: { id, name, initials, profilePicture }, challengeId, challengeName, value, unit, recordedAt }`.
+
+Verified against a disposable MongoDB: 20 checks (live totals, ordering,
+limits, member-only access, every stats field, empty stats). The profile
+(45) and achievements (48) suites were re-run alongside; all passed.
+
+## Leaderboard — proposed contract (not built)
+
+The frontend already calls these and hides the sections that need them
+until they answer, so building them lights things up with no frontend work:
+
+| Method & path | Returns |
+|---|---|
+| `GET /api/leaderboard?period=week\|all-time` | `[{ rank, previousRank?, user: { id, name, initials }, teamName, score, scoreUnit: "pts" }]`, best first. Leave out anyone with `privacy.showOnLeaderboards: false` |
+| `GET /api/leaderboard/teams?period=week` | `[{ id, name, rank, points, memberCount, streakDays?, members?: [{ id, points }] }]`, best first |
+
+Points are `value × challenge.pointsPerUnit`, summed over the period
+(`ChallengeParticipant.points` already accumulates the all-time version).
+The frontend gives new challenges `pointsPerUnit` of 0.01 for steps, 1 for
+reps and 0.5 for seconds.
+
 ## Before building on a model, check the open issues
 
 Some model fields don't match what the frontend (`frontend/lib/types.ts`,

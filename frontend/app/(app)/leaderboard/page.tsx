@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Medal } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LeaderboardBrowser } from "@/components/leaderboard/LeaderboardBrowser";
 import { getLeaderboard } from "@/lib/data";
@@ -21,10 +23,16 @@ export default async function LeaderboardPage({
   return (
     <div>
       <PageHeader kicker="Leaderboard" title="Who's moving" />
-      <LeaderboardBrowser
-        boards={{ week, "all-time": allTime }}
-        initialPeriod={initialPeriod}
-      />
+      {week && allTime ? (
+        <LeaderboardBrowser boards={{ week, "all-time": allTime }} initialPeriod={initialPeriod} />
+      ) : (
+        // TODO(leaderboard): until GET /api/leaderboard exists.
+        <EmptyState
+          icon={Medal}
+          title="The leaderboard is on its way"
+          text="Every activity you log already earns points. They'll show up here as soon as the board goes live."
+        />
+      )}
     </div>
   );
 }

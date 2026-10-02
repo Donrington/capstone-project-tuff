@@ -617,3 +617,10 @@ button:hover > .arrow {
     animation: none !important;
   }
 }
+.formError {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+  color: var(--status-danger);
+  font: 600 14px/20px var(--font-sans);
+}

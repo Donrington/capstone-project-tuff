@@ -74,6 +74,10 @@ const activitySchema = new mongoose.Schema(
     }
 );
 
+// The feeds: one user's history, and one challenge's, newest first.
+activitySchema.index({ user: 1, recordedAt: -1 });
+activitySchema.index({ challenge: 1, recordedAt: -1 });
+
 const Activity = mongoose.model("Activity", activitySchema);
 
 module.exports = Activity;

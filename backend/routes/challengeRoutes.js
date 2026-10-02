@@ -5,6 +5,7 @@ const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+router.get("/", requireAuth, asyncHandler(challenge.listMyChallenges));
 router.post("/create", requireAuth, asyncHandler(challenge.createChallenge));
 router.get("/get/:id", requireAuth, asyncHandler(challenge.getChallenge));
 router.get("/getbyCode/:code", asyncHandler(challenge.getChallengeByInviteCode));
