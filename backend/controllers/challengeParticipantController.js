@@ -2,6 +2,18 @@ const ChallengeParticipant = require("../models/ChallengeParticipant");
 const Challenge = require("../models/Challenge");
 const Activity = require("../models/Activity");
 const ApiError = require("../utils/ApiError");
+const { notify, bestEffort } = require("../services/notificationService");
+const { evaluateAchievements } = require("../services/achievementService");
+
+function notifyChallengeFinished(userId, challenge) {
+  return bestEffort("notify challenge finished", () =>
+    notify(userId, {
+      type: "challenge",
+      title: `You finished ${challenge.title}`,
+      message: `You hit the goal of ${challenge.goal} ${challenge.unit}. Nice work.`,
+    }),
+  );
+}
 
 // POST /api/challenge-participants/:challengeId/join
 async function joinChallenge(req, res) {
@@ -103,9 +115,13 @@ async function logActivity(req, res) {
       { completed: true, completedAt: new Date() },
       { new: true },
     );
+    await notifyChallengeFinished(userId, challenge);
   }
 
-  res.status(201).json({ activity, participant: updated, justCompleted });
+  // Returned so the frontend can celebrate right away, not just via the bell.
+  const newAchievements = (await bestEffort("evaluate achievements", () => evaluateAchievements(userId))) ?? [];
+
+  res.status(201).json({ activity, participant: updated, justCompleted, newAchievements });
 }
 
 // PATCH /api/challenge-participants/:challengeId/progress — admin-only
@@ -149,6 +165,8 @@ async function completeChallenge(req, res) {
   participant.completed = true;
   participant.completedAt = new Date();
   await participant.save();
+  await notifyChallengeFinished(userId, challenge);
+  await bestEffort("evaluate achievements", () => evaluateAchievements(userId));
   res.json(participant);
 }
 

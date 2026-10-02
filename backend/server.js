@@ -7,6 +7,7 @@ require("./jobs/challengeStatusJob");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const { syncAchievementCatalog } = require("./services/achievementService");
 
 // Registers every schema with Mongoose before any route can use it — a
 // model referenced via `ref: "User"` etc. (see models/*.js) needs its
@@ -36,6 +37,8 @@ app.use("/api/challenges", require("./routes/challengeRoutes"));
 app.use("/api/challenge-participants", require("./routes/challengeParticipantRoutes"));
 app.use("/api/teams", require("./routes/teamRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/achievements", require("./routes/achievementRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 // TODO(team): mount each resource's routes here as they're built, e.g.
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));
@@ -47,6 +50,8 @@ app.use(errorHandler); // must be last — Express finds it by its 4-arg signatu
 
 const PORT = process.env.PORT || 4000;
 
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
-});
+connectDB()
+  .then(() => syncAchievementCatalog())
+  .then(() => {
+    app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+  });
