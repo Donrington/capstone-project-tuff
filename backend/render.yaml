@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: tuff-backend
+    runtime: node
+    plan: starter # not free — free tier sleeps after 15m idle, which pauses the challenge-status cron job
+    region: oregon # pick whichever is closest to your MongoDB Atlas region
+    branch: main
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGO_URI
+        sync: false # set manually in the Render dashboard — never commit this
+      - key: FRONTEND_ORIGIN
+        sync: false # e.g. https://your-app.vercel.app — set once the frontend's deployed
+      - key: JWT_ACCESS_SECRET
+        generateValue: true # Render generates a random secret for you
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
