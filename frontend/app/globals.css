@@ -168,6 +168,12 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  /* Nothing in this app is meant to scroll sideways. This is a safety net,
+     not the fix for a specific overflow — it catches any absolutely
+     positioned element (a tooltip, a decorative blur) that pokes past the
+     viewport edge without clipping anything actually visible, since
+     fixed/absolute elements still paint at their coordinates regardless. */
+  overflow-x: hidden;
   background: var(--canvas);
   color: var(--ink);
 }

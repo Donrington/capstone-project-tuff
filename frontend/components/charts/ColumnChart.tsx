@@ -92,28 +92,36 @@ export function ColumnChart({
         })}
       </div>
 
-      <table className="sr-only">
-        <caption>{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{categoryHeader}</th>
-            <th scope="col">{valueHeader}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data
-            .filter((d) => d.state !== "future")
-            .map((d) => (
-              <tr key={d.key}>
-                <th scope="row">
-                  {d.fullLabel}
-                  {d.state === "today" ? " (today)" : ""}
-                </th>
-                <td>{fmt(d.value)}</td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
+      {/* sr-only on a wrapper, not the table itself: a <table> keeps a
+          minimum width for any unbreakable run of text (a long day label, a
+          formatted number) even under width:1px, which inflated the page's
+          scrollWidth and left a dead horizontal-scroll zone on mobile for
+          content nobody could ever see. The wrapper's own box is what
+          actually gets clipped; the table inside can size however it likes. */}
+      <div className="sr-only">
+        <table>
+          <caption>{caption}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{categoryHeader}</th>
+              <th scope="col">{valueHeader}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data
+              .filter((d) => d.state !== "future")
+              .map((d) => (
+                <tr key={d.key}>
+                  <th scope="row">
+                    {d.fullLabel}
+                    {d.state === "today" ? " (today)" : ""}
+                  </th>
+                  <td>{fmt(d.value)}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
