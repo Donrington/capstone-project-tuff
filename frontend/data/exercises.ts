@@ -38,6 +38,7 @@ export const exercises: Exercise[] = [
       "Elbows about 45 degrees from your body, not flared out wide.",
     ],
     mistakes: ["Hips sagging toward the floor.", "Half reps that stop well short of the bottom.", "Head dropping before the chest does."],
+    video: { src: "/media/exercises/pushups.mp4", poster: "/media/exercises/pushups.jpg" },
   },
   {
     slug: "pullups",
@@ -53,6 +54,7 @@ export const exercises: Exercise[] = [
       "Chin clears the bar, then lower all the way under control.",
     ],
     mistakes: ["Kipping or swinging to cheat the top.", "Stopping halfway down.", "Shrugging the shoulders up to the ears."],
+    video: { src: "/media/exercises/pullups.mp4", poster: "/media/exercises/pullups.jpg" },
   },
   {
     slug: "squats",
@@ -68,6 +70,7 @@ export const exercises: Exercise[] = [
       "Push the floor away through your whole foot to stand.",
     ],
     mistakes: ["Heels lifting off the floor.", "Knees caving in on the way up.", "Rounding the lower back at the bottom."],
+    video: { src: "/media/exercises/squats.mp4", poster: "/media/exercises/squats.jpg" },
   },
   {
     slug: "plank",
@@ -83,6 +86,7 @@ export const exercises: Exercise[] = [
       "Breathe steadily. Don't hold your breath.",
     ],
     mistakes: ["Hips piking up high.", "Lower back sagging.", "Looking up and straining the neck."],
+    video: { src: "/media/exercises/plank.mp4", poster: "/media/exercises/plank.jpg" },
   },
   {
     slug: "jumping-jacks",
@@ -97,6 +101,7 @@ export const exercises: Exercise[] = [
       "Keep a steady rhythm you can hold.",
     ],
     mistakes: ["Landing flat-footed and heavy.", "Arms only going halfway up."],
+    video: { src: "/media/exercises/jumping-jacks.mp4", poster: "/media/exercises/jumping-jacks.jpg" },
   },
   {
     slug: "burpees",
@@ -112,6 +117,7 @@ export const exercises: Exercise[] = [
       "Jump your feet in and explode up, arms overhead.",
     ],
     mistakes: ["Sagging hips in the plank.", "Skipping the jump at the top.", "Landing with locked knees."],
+    video: { src: "/media/exercises/burpees.mp4", poster: "/media/exercises/burpees.jpg" },
   },
   {
     slug: "lunges",
@@ -127,6 +133,7 @@ export const exercises: Exercise[] = [
       "Push through the front heel to come back.",
     ],
     mistakes: ["Front knee shooting past the toes.", "Leaning the torso forward.", "Steps too short to bend properly."],
+    video: { src: "/media/exercises/lunges.mp4", poster: "/media/exercises/lunges.jpg" },
   },
   {
     slug: "mountain-climbers",
@@ -141,6 +148,7 @@ export const exercises: Exercise[] = [
       "Keep your hips level with your shoulders.",
     ],
     mistakes: ["Hips bouncing up and down.", "Shoulders drifting behind the hands."],
+    video: { src: "/media/exercises/mountain-climbers.mp4", poster: "/media/exercises/mountain-climbers.jpg" },
   },
   {
     slug: "glute-bridges",
@@ -156,6 +164,7 @@ export const exercises: Exercise[] = [
       "Lower slowly, one vertebra at a time.",
     ],
     mistakes: ["Arching the lower back instead of using the glutes.", "Feet too far from the hips."],
+    video: { src: "/media/exercises/glute-bridges.mp4", poster: "/media/exercises/glute-bridges.jpg" },
   },
 ];
 
