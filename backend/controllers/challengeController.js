@@ -1,5 +1,6 @@
 const Challenge = require("../models/Challenge");
 const ChallengeParticipant = require("../models/ChallengeParticipant");
+const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -108,14 +109,20 @@ async function getChallenge(req, res) {
   res.json(await withComputedProgress(challenge));
 }
 
-// GET /api/challenges — the challenges you've joined, with live progress.
-// Featured first, then newest start date.
+// GET /api/challenges — the challenges you've joined, plus every challenge
+// your team runs (a team challenge is everyone's on the team, joined or not),
+// with live progress. Featured first, then newest start date.
 async function listMyChallenges(req, res) {
-  const mine = await ChallengeParticipant.find({ user: req.user.id }).select("challenge");
-  const challenges = await Challenge.find({
-    _id: { $in: mine.map((p) => p.challenge) },
-    status: { $ne: "cancelled" },
-  }).sort({ featured: -1, startDate: -1 });
+  const [mine, me] = await Promise.all([
+    ChallengeParticipant.find({ user: req.user.id }).select("challenge"),
+    User.findById(req.user.id).select("teamId"),
+  ]);
+  const yours = [{ _id: { $in: mine.map((p) => p.challenge) } }];
+  if (me?.teamId) yours.push({ teamId: me.teamId });
+  const challenges = await Challenge.find({ $or: yours, status: { $ne: "cancelled" } }).sort({
+    featured: -1,
+    startDate: -1,
+  });
   res.json(await Promise.all(challenges.map(withComputedProgress)));
 }
 
