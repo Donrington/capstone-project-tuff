@@ -5,6 +5,7 @@ const ApiError = require("../utils/ApiError");
 const { ACCESS_COOKIE, REFRESH_COOKIE, accessCookieOptions, signAccessToken, hashRefreshToken } = require("../utils/jwt");
 const { toSafeUser } = require("../utils/serializeUser");
 const { issueSession, clearSession } = require("../utils/session");
+const googleAuth = require("../services/googleAuth");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/; // matches frontend/app/(auth)/actions.ts exactly
 
@@ -50,12 +51,66 @@ async function signIn(req, res) {
   const WRONG = "Wrong email or password.";
   const user = await User.findOne({ email }).select("+passwordHash");
   if (!user) throw ApiError.unauthorized(WRONG);
+  // Sign-up already says whether an email has an account, so naming the
+  // way in gives nothing extra away.
+  if (!user.passwordHash) throw ApiError.unauthorized("That account signs in with Google. Use Continue with Google instead.");
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) throw ApiError.unauthorized(WRONG);
 
   await issueSession(res, user);
   res.json(toSafeUser(user));
+}
+
+// POST /api/auth/google — frontend: app/auth/google/callback/route.ts.
+// Body: { code, codeVerifier, redirectUri } from Google's redirect. Signs in
+// the account with this Google id; otherwise links the account with this
+// (Google-verified) email; otherwise creates one.
+async function googleSignIn(req, res) {
+  if (!googleAuth.isConfigured()) throw ApiError.unavailable("Google sign-in isn't set up yet.");
+
+  const code = String(req.body.code ?? "");
+  const codeVerifier = String(req.body.codeVerifier ?? "");
+  const redirectUri = String(req.body.redirectUri ?? "");
+  if (!code || !codeVerifier || !redirectUri) throw ApiError.badRequest("Google sign-in didn't go through. Try again.");
+
+  const profile = await googleAuth.verifyGoogleCode({ code, codeVerifier, redirectUri });
+  if (!profile?.sub || !profile.email || profile.email_verified !== true) {
+    throw ApiError.badRequest("That Google account's email isn't verified, so it can't sign in to TUFF.");
+  }
+  const email = profile.email.toLowerCase();
+
+  let user = await User.findOne({ googleId: profile.sub });
+  let isNew = false;
+
+  if (!user) {
+    user = await User.findOne({ email }).select("+passwordHash");
+    if (user) {
+      // Google just proved this person owns the address; TUFF's own sign-up
+      // never did. A password set by whoever registered the address first
+      // could be a squatter's, so it goes, along with every other session.
+      // The owner keeps full access through Google.
+      user.googleId = profile.sub;
+      if (user.passwordHash) {
+        user.passwordHash = undefined;
+        await RefreshToken.deleteMany({ user: user._id });
+      }
+      await user.save();
+    } else {
+      const [first, ...rest] = String(profile.name ?? "").trim().split(/\s+/);
+      user = await User.create({
+        firstName: profile.given_name || first || email.split("@")[0],
+        lastName: profile.family_name || rest.join(" "),
+        email,
+        googleId: profile.sub,
+        profilePicture: profile.picture || null,
+      });
+      isNew = true;
+    }
+  }
+
+  await issueSession(res, user);
+  res.status(isNew ? 201 : 200).json({ user: toSafeUser(user), isNew });
 }
 
 // POST /api/auth/sign-out — frontend: app/(app)/actions.ts signOut
@@ -96,4 +151,4 @@ async function getMe(req, res) {
   res.json(toSafeUser(user));
 }
 
-module.exports = { signUp, signIn, signOut, refresh, getMe };
+module.exports = { signUp, signIn, googleSignIn, signOut, refresh, getMe };

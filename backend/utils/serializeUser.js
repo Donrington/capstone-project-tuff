@@ -8,6 +8,7 @@
 function toSafeUser(userDoc) {
   const obj = typeof userDoc.toObject === "function" ? userDoc.toObject() : { ...userDoc };
   delete obj.passwordHash;
+  delete obj.googleId;
   obj.id = obj._id.toString();
   delete obj._id;
   delete obj.__v;

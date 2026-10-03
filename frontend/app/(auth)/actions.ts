@@ -69,8 +69,9 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
       await api("/api/auth/sign-in", { method: "POST", body: { email, password }, session: true });
     } catch (err) {
       if (!(err instanceof ApiError)) return { message: UNREACHABLE, values: { email } };
-      // Same message whichever part was wrong — the backend doesn't say either.
-      if (err.status === 401) return { message: "Wrong email or password.", values: { email } };
+      // The backend says "Wrong email or password." whichever part was wrong,
+      // or that the account signs in with Google.
+      if (err.status === 401) return { message: err.message || "Wrong email or password.", values: { email } };
       return { errors: err.details, message: err.details ? undefined : err.message, values: { email } };
     }
     redirect("/dashboard");

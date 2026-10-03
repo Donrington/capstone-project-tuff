@@ -359,16 +359,19 @@
 }
 .social {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
 }
 .socialButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   height: 48px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--ink);
   font: 700 14px/1 var(--font-sans);
+  text-decoration: none;
   cursor: pointer;
   transition:
     background 0.2s ease,

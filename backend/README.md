@@ -74,14 +74,49 @@ not just the cookie.
 | Method & path | Body | Returns | Notes |
 |---|---|---|---|
 | `POST /api/auth/sign-up` | `{ firstName, lastName, email, password }` | `201` + the user | `409` if the email's taken |
-| `POST /api/auth/sign-in` | `{ email, password }` | `200` + the user | Same `401` message either way — doesn't reveal which field was wrong |
+| `POST /api/auth/sign-in` | `{ email, password }` | `200` + the user | Same `401` message either way — doesn't reveal which field was wrong. A Google-only account gets a `401` saying to use Google |
+| `POST /api/auth/google` | `{ code, codeVerifier, redirectUri }` | `201` (new account) or `200` + `{ user, isNew }` | Called by the frontend's Google callback. `503` until Google is configured; `400` if the code is bad or the Google email isn't verified |
 | `POST /api/auth/sign-out` | — | `204` | Revokes the refresh token server-side |
 | `POST /api/auth/refresh` | — | `204` | Reissues the access token from a valid refresh token |
 | `GET /api/auth/me` | — | `200` + the user | Behind `requireAuth` — `401` without a session |
 
-The user object in every response has `passwordHash` stripped and `_id`
-renamed to `id` — see `toSafeUser()` in `utils/serializeUser.js`; use it in
-new controllers rather than sending a raw Mongoose doc back.
+The user object in every response has `passwordHash` (and `googleId`)
+stripped and `_id` renamed to `id` — see `toSafeUser()` in
+`utils/serializeUser.js`; use it in new controllers rather than sending a raw
+Mongoose doc back.
+
+### Google sign-in
+
+The frontend runs the redirect (an OAuth code flow with PKCE and a CSRF
+state); this API only ever sees the one-time code. `POST /api/auth/google`
+trades it with Google using the client secret, verifies the ID token with
+Google's own library (`services/googleAuth.js`), requires a verified email,
+then signs in the account with that Google id; otherwise links the account
+with that email; otherwise creates one (`isNew: true` sends them to
+onboarding). Google accounts have no password: password sign-in tells them
+to use Google, and password change refuses politely.
+
+Linking an existing email account **drops its password and signs out its
+other sessions.** TUFF's own sign-up never verifies an email address, so
+whoever registered `someone@gmail.com` first might not be its owner; Google
+just proved who is. Without this, a squatter's password would keep working
+after the real owner signs in with Google.
+
+#### Setting up Google sign-in
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), pick or
+   create a project, then **APIs & Services → OAuth consent screen**:
+   External, app name "TUFF", your support email, scopes `openid`,
+   `email`, `profile`. While it's in Testing, add the accounts that may sign
+   in as test users (or publish it).
+2. **APIs & Services → Credentials → Create credentials → OAuth client ID**,
+   type **Web application**. Under **Authorized redirect URIs** add, exactly:
+   - `http://localhost:3000/auth/google/callback`
+   - `https://<your-vercel-domain>/auth/google/callback`
+3. Copy the client ID and secret:
+   - Backend (`.env` and Render): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+   - Frontend (`.env.local` and Vercel): `GOOGLE_CLIENT_ID` only. Redeploy
+     both.
 
 ## Users (the signed-in user's own account) — built
 
