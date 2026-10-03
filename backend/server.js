@@ -9,6 +9,8 @@ const connectDB = require("./config/dbConfig");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { syncAchievementCatalog } = require("./services/achievementService");
 
+
+
 // Registers every schema with Mongoose before any route can use it — a
 // model referenced via `ref: "User"` etc. (see models/*.js) needs its
 // schema loaded first, even if this file never uses the export directly.
@@ -39,6 +41,7 @@ app.use("/api/teams", require("./routes/teamRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/achievements", require("./routes/achievementRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/leaderboards", require("./routes/leaderboardRoutes"));
 
 // TODO(team): mount each resource's routes here as they're built, e.g.
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));
