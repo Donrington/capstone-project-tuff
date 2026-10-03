@@ -10,7 +10,7 @@ const TABS: { key: LeaderboardPeriod; label: string; subtitle: string }[] = [
   {
     key: "week",
     label: "This week",
-    subtitle: "Points from every logged set, step, and streak day this week.",
+    subtitle: "Points from every set and step logged this week.",
   },
   { key: "all-time", label: "All time", subtitle: "Every point since you joined." },
 ];

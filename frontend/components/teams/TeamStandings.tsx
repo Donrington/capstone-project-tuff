@@ -12,8 +12,7 @@ export function TeamStandings({ teams, myTeamId }: { teams: Team[]; myTeamId: st
       <h2 id="standings-heading" className={styles.kicker}>
         {ranked ? "Standings this week" : "All teams"}
       </h2>
-      {/* TODO(leaderboard): points and ranks arrive with GET /api/leaderboard/teams. */}
-      {!ranked && <p className={styles.muted}>Points and ranks show up here once the leaderboard is live.</p>}
+      {!ranked && <p className={styles.muted}>Ranks start once a team logs its first set this week.</p>}
       <ol className={styles.standingsList}>
         {teams.map((t) => {
           const mine = t.id === myTeamId;

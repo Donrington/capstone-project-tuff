@@ -9,7 +9,7 @@ import type { TeamSummary } from "@/lib/types";
 import styles from "./TeamCard.module.css";
 
 function gapLine(team: TeamSummary) {
-  // TODO(leaderboard): the race needs points; until then, a nudge.
+  // No points yet this week, so there's no race to report — a nudge instead.
   if (team.weeklyPoints === null) return "Log together and invite your people in.";
   if (!team.rivalName) return "The only team so far. Invite some rivals.";
   const n = Math.abs(team.gapToRival).toLocaleString("en-US");

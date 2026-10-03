@@ -582,14 +582,13 @@ function leaderboardFrom(d: MockDb, period: LeaderboardPeriod): LeaderboardEntry
   }));
 }
 
-// TODO(backend): GET /leaderboard?period= (the leaderboard work, in progress)
 export const getLeaderboard = cache(
-  async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[] | null> =>
+  async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[]> =>
     settle(leaderboardFrom(await db(), period)),
 );
 
 /** Dashboard preview: the top five, plus wherever the current user sits. */
-export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[] | null> =>
+export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[]> =>
   settle(leaderboardFrom(await db(), "week").filter((entry) => entry.rank <= 5 || entry.isCurrentUser)),
 );
 

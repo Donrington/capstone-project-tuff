@@ -191,20 +191,40 @@ Verified against a disposable MongoDB: 20 checks (live totals, ordering,
 limits, member-only access, every stats field, empty stats). The profile
 (45) and achievements (48) suites were re-run alongside; all passed.
 
-## Leaderboard — proposed contract (not built)
+## Leaderboard — built
 
-The frontend already calls these and hides the sections that need them
-until they answer, so building them lights things up with no frontend work:
+All require a session. `period` is `week` (the default) or `all-time`;
+anything else is a `400`.
 
 | Method & path | Returns |
 |---|---|
-| `GET /api/leaderboard?period=week\|all-time` | `[{ rank, previousRank?, user: { id, name, initials }, teamName, score, scoreUnit: "pts" }]`, best first. Leave out anyone with `privacy.showOnLeaderboards: false` |
-| `GET /api/leaderboard/teams?period=week` | `[{ id, name, rank, points, memberCount, streakDays?, members?: [{ id, points }] }]`, best first |
+| `GET /api/leaderboard?period=` | `[{ rank, previousRank?, user: { id, name, initials }, teamName, score, scoreUnit: "pts" }]`, best first: the top 50, plus your own row if you're further down |
+| `GET /api/leaderboard/teams?period=` | `[{ id, name, rank, points, memberCount, streakDays, members? }]`, best first. `members: [{ id, points }]` only on your own team (rosters are members-only) |
+| `GET /api/leaderboard/challenge/:challengeId` | `{ challenge, count, leaderboard: [{ rank, user, progress, points, completed }] }` — everyone in one challenge |
+| `GET /api/leaderboard/challenge/:challengeId/teams` | `{ challenge, count, leaderboard: [{ rank, team, points, progress, members }] }` — teams in one challenge |
+| `GET /api/leaderboard/challenge/:challengeId/team/:teamId` | `{ team, challenge, count, leaderboard }` — one team's members in one challenge |
 
-Points are `value × challenge.pointsPerUnit`, summed over the period
-(`ChallengeParticipant.points` already accumulates the all-time version).
-The frontend gives new challenges `pointsPerUnit` of 0.01 for steps, 1 for
-reps and 0.5 for seconds.
+The two global boards, in `services/leaderboardService.js`:
+
+- **Points** are each activity's `value × challenge.pointsPerUnit`, summed
+  from `Activity` for both periods, so a week's total can never exceed the
+  all-time one. The frontend gives new challenges `pointsPerUnit` of 0.01
+  for steps, 1 for reps and 0.5 for seconds.
+- **The week** starts Monday 00:00 UTC. `previousRank` (week only) is where
+  you finished last week.
+- **Ranks** are competition ranks: ties share a rank and the next one skips
+  (1, 2, 2, 4). Nobody with zero points is ranked, and no team either.
+- **Privacy:** people with `privacy.showOnLeaderboards: false` (and
+  suspended accounts) aren't listed. Their points still count toward their
+  team's total — they just aren't named.
+- **`streakDays`** is how many days in a row every current member logged
+  something, counting back from today (or yesterday, if today's not done).
+- **`name`** is the user's `displayName`, falling back to their full name.
+
+Verified against a disposable local MongoDB: 18 checks, covering ties,
+privacy, last week's ranks, the 50-row cap with the viewer pinned, team
+streaks, zero-point teams, and the per-challenge endpoints (including a bad
+id answering `404`, not `500`). All passed.
 
 ## Before building on a model, check the open issues
 
