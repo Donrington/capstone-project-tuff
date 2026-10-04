@@ -87,7 +87,7 @@ export function returningUser(now: number): User {
     bio: "Chasing a 30-day streak. Push-ups are the enemy.",
     notificationPrefs: { ...DEFAULT_PREFS },
     privacy: { ...DEFAULT_PRIVACY },
-    motivations: ["build_streak", "team"],
+    motivations: ["build_muscle", "team"],
     fitnessLevel: "intermediate",
     onboardingCompletedAt: new Date(now - 213 * DAY_MS).toISOString(),
   };

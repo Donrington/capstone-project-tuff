@@ -457,7 +457,18 @@ export async function deleteAccountAction(_prev: DeleteAccountState, formData: F
 
 /* ----------------------------------------------------------- onboarding --- */
 
-const MOTIVATIONS: Motivation[] = ["move_more", "get_stronger", "build_streak", "compete", "team"];
+const MOTIVATIONS: Motivation[] = [
+  "lose_weight",
+  "build_muscle",
+  "get_stronger",
+  "more_energy",
+  "feel_confident",
+  "team",
+  // Older wording, still accepted so a half-finished form from before works.
+  "move_more",
+  "build_streak",
+  "compete",
+];
 const GENDERS: Gender[] = ["male", "female", "other"];
 const LEVELS: FitnessLevel[] = ["beginner", "intermediate", "advanced"];
 

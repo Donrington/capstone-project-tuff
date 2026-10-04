@@ -163,13 +163,13 @@ test.describe("new user", () => {
     await signup.getByRole("button", { name: "Create account" }).click();
 
     await expect(page).toHaveURL(/\/onboarding$/);
-    await expect(page.getByRole("heading", { name: "What brings you to TUFF, Zainab?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What do you want to change, Zainab?" })).toBeVisible();
     const next = () => page.getByRole("button", { name: "Continue" }).click();
 
-    await page.getByText("Build a streak").click();
+    await page.getByText("Lose weight").click();
     await next();
 
-    await expect(page.getByRole("heading", { name: "A little about you" })).toBeFocused();
+    await expect(page.getByRole("heading", { name: "Where are you starting from?" })).toBeFocused();
     await page.getByLabel("Height (cm)").fill("170");
     await page.getByLabel("Weight (kg)").fill("65");
     await page.getByText("Beginner", { exact: true }).click();

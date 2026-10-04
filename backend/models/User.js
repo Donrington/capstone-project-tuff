@@ -120,7 +120,20 @@ const userSchema = new mongoose.Schema(
         // Onboarding step 1, "What brings you to TUFF?"
         motivations: {
             type: [String],
-            enum: ["move_more", "get_stronger", "build_streak", "compete", "team"],
+            // The first six are what onboarding asks now. The last three are
+            // the older wording, kept so accounts that answered before still
+            // pass validation the next time they are saved.
+            enum: [
+                "lose_weight",
+                "build_muscle",
+                "get_stronger",
+                "more_energy",
+                "feel_confident",
+                "team",
+                "move_more",
+                "build_streak",
+                "compete",
+            ],
             default: [],
         },
 

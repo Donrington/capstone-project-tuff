@@ -13,26 +13,58 @@ import styles from "./OnboardingFlow.module.css";
 const INITIAL: OnboardingState = {};
 
 const STEPS = [
-  { key: "why", title: "What brings you to TUFF?" },
-  { key: "about", title: "A little about you" },
-  { key: "goal", title: "Pick a daily step goal" },
-  { key: "challenge", title: "Start with a challenge" },
-  { key: "team", title: "Train with a team?" },
-  { key: "done", title: "You're in." },
+  {
+    key: "why",
+    title: "What do you want to change?",
+    lede: "Everything else in the app bends around this.",
+  },
+  {
+    key: "about",
+    title: "Where are you starting from?",
+    lede: "Optional, and only you ever see it. It lets us set targets that fit your body instead of an average one.",
+  },
+  {
+    key: "goal",
+    title: "How much do you want to move?",
+    lede: "Walking is the easiest win in fitness. Pick a number you will actually hit on a normal day, then beat it.",
+  },
+  {
+    key: "challenge",
+    title: "Pick your first week",
+    lede: "Seven days, one clear target. Short enough to finish, long enough to feel the difference.",
+  },
+  {
+    key: "team",
+    title: "Who is doing this with you?",
+    lede: "Training with someone makes you far more likely to show up. Bring a friend, or start solo and add people later.",
+  },
+  { key: "done", title: "You're set", lede: "Here is the plan you just built." },
 ] as const;
 
 /** Which step to send someone back to when the server rejects a field. */
 const FIELD_STEP: Record<string, number> = { dateOfBirth: 1, height: 1, weight: 1, stepGoal: 2, teamCode: 4, teamName: 4 };
 
 const MOTIVATIONS = [
-  { value: "move_more", label: "Move more every day" },
-  { value: "get_stronger", label: "Get stronger" },
-  { value: "build_streak", label: "Build a streak" },
-  { value: "compete", label: "Compete with friends" },
-  { value: "team", label: "Train with my team" },
+  { value: "lose_weight", label: "Lose weight", hint: "Burn a bit more than you take in, most days." },
+  { value: "build_muscle", label: "Build muscle", hint: "Put real shape on your arms, chest and legs." },
+  { value: "get_stronger", label: "Get stronger", hint: "Lift heavier, hold longer, carry more." },
+  { value: "more_energy", label: "Have more energy", hint: "Stop running out of steam by the afternoon." },
+  { value: "feel_confident", label: "Feel good in my body", hint: "Move easily. Like what you see in the mirror." },
+  { value: "team", label: "Train with people", hint: "Much harder to skip when someone is counting on you." },
 ];
 
-const GOALS = ["6000", "8000", "10000", "12000"];
+/** "a", "a and b", "a, b and c" — how a person would say the list out loud. */
+function listOf(items: string[]) {
+  if (items.length < 2) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+const GOALS = [
+  { value: "6000", hint: "About a 45 minute walk." },
+  { value: "8000", hint: "A properly active day." },
+  { value: "10000", hint: "The classic target." },
+  { value: "12000", hint: "You are chasing something." },
+];
 
 export function OnboardingFlow({ firstName, suggestions }: { firstName: string; suggestions: SuggestedChallenge[] }) {
   const [state, formAction] = useActionState(completeOnboardingAction, INITIAL);
@@ -90,9 +122,12 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
 
   const chosen = suggestions.filter((s) => challengeIds.includes(s.id));
   const summary = [
-    motivations.length > 0 && `Here to ${MOTIVATIONS.filter((m) => motivations.includes(m.value)).map((m) => m.label.toLowerCase()).join(", ")}.`,
+    motivations.length > 0 &&
+      `You're here to ${listOf(
+        MOTIVATIONS.filter((m) => motivations.includes(m.value)).map((m) => m.label.toLowerCase()),
+      )}.`,
     stepGoal !== "later" ? `Daily goal: ${Number(stepGoal).toLocaleString("en-US")} steps.` : "Step goal: set it later.",
-    chosen.length > 0 ? `Starting ${chosen.map((c) => c.title).join(" and ")}.` : "No challenge yet.",
+    chosen.length > 0 ? `First week: ${listOf(chosen.map((c) => c.title))}.` : "No plan picked yet.",
     teamChoice === "join" && teamCode
       ? `Joining the team with code ${teamCode}.`
       : teamChoice === "create" && teamName
@@ -142,8 +177,9 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
               tabIndex={-1}
               className={styles.title}
             >
-              {s.key === "why" ? `${s.title.replace("TUFF?", "")}TUFF, ${firstName}?` : s.title}
+              {s.key === "why" ? `What do you want to change, ${firstName}?` : s.title}
             </h1>
+            <p className={styles.lede}>{s.lede}</p>
 
             {s.key === "why" && (
               <RadioChips
@@ -158,7 +194,6 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
 
             {s.key === "about" && (
               <>
-                <p className={styles.lede}>Optional. It helps us suggest sensible goals, and only you can see it.</p>
                 <FormField
                   label="Date of birth"
                   name="dateOfBirth"
@@ -212,9 +247,9 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
                   value={fitnessLevel}
                   onChange={(v) => setFitnessLevel(v as string)}
                   options={[
-                    { value: "beginner", label: "Beginner", hint: "New to training, or coming back." },
-                    { value: "intermediate", label: "Intermediate", hint: "Training a few times a week." },
-                    { value: "advanced", label: "Advanced", hint: "Training is part of the routine." },
+                    { value: "beginner", label: "Beginner", hint: "New to this, or coming back after a break." },
+                    { value: "intermediate", label: "Intermediate", hint: "You train a few times most weeks." },
+                    { value: "advanced", label: "Advanced", hint: "Training is already part of your week." },
                   ]}
                 />
               </>
@@ -228,7 +263,7 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
                 value={stepGoal}
                 onChange={(v) => setStepGoal(v as string)}
                 options={[
-                  ...GOALS.map((g) => ({ value: g, label: Number(g).toLocaleString("en-US") })),
+                  ...GOALS.map((g) => ({ ...g, label: Number(g.value).toLocaleString("en-US") })),
                   { value: "later", label: "I'll set it later" },
                 ]}
                 error={state.errors?.stepGoal}
