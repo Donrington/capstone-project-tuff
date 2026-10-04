@@ -201,20 +201,6 @@ test.describe("auth and system pages", () => {
 test.describe("phones", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("search opens in a sheet, and the top-bar avatar opens the account menu", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    const sheet = page.getByRole("dialog", { name: "Search" });
-    const box = sheet.getByRole("combobox");
-    await expect(box).toBeFocused();
-    await box.fill("plank");
-    await expect(sheet.getByRole("option", { name: /Plank Ladder/ })).toBeVisible();
-    await sheet.getByRole("button", { name: "Close" }).click();
-
-    await page.getByRole("button", { name: /^Account:/ }).click();
-    await expect(page.getByRole("menuitem", { name: "View profile" })).toBeVisible();
-  });
-
   test("settings: the section pills stay in view below the top bar while you scroll", async ({ page }) => {
     await page.goto("/settings");
     const nav = page.getByRole("navigation", { name: "Settings sections" });
@@ -240,5 +226,19 @@ test.describe("phones", () => {
       return document.getElementById("privacy")!.getBoundingClientRect().top - pills.bottom;
     });
     expect(gap).toBeGreaterThanOrEqual(0);
+  });
+
+  test("search opens in a sheet, and the top-bar avatar opens the account menu", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Search" });
+    const box = sheet.getByRole("combobox");
+    await expect(box).toBeFocused();
+    await box.fill("plank");
+    await expect(sheet.getByRole("option", { name: /Plank Ladder/ })).toBeVisible();
+    await sheet.getByRole("button", { name: "Close" }).click();
+
+    await page.getByRole("button", { name: /^Account:/ }).click();
+    await expect(page.getByRole("menuitem", { name: "View profile" })).toBeVisible();
   });
 });
