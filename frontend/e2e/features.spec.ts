@@ -265,4 +265,18 @@ test.describe("phones", () => {
     await page.getByRole("button", { name: /^Account:/ }).click();
     await expect(page.getByRole("menuitem", { name: "View profile" })).toBeVisible();
   });
+
+  test("back to top: shows up after scrolling, and takes you back to the top", async ({ page }) => {
+    await page.goto("/dashboard");
+    const button = page.getByRole("button", { name: "Back to top" });
+    await expect(button).toHaveAttribute("data-visible", "false");
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(button).toHaveAttribute("data-visible", "true");
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
+
+    await button.click();
+    await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 5_000 }).toBe(0);
+    await expect(button).toHaveAttribute("data-visible", "false");
+  });
 });

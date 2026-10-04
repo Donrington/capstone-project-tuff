@@ -3,7 +3,7 @@
 .button {
   position: fixed;
   right: var(--space-4);
-  bottom: var(--space-4);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
   z-index: 20;
   display: grid;
   place-items: center;
@@ -39,7 +39,7 @@
 @media (min-width: 720px) {
   .button {
     right: var(--space-6);
-    bottom: var(--space-6);
+    bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
   }
 }
 
