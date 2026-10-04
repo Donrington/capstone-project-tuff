@@ -229,6 +229,12 @@
 }
 
 /* ------------------------------------------------------------ first run */
+.firstLogBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
 .firstLog {
   font: 700 18px/1.3 var(--font-heading);
   color: var(--ink);

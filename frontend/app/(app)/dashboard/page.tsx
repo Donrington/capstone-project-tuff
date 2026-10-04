@@ -7,6 +7,7 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Leaderboard } from "@/components/ui/Leaderboard";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
 import { LogActivityButton } from "@/components/activity/LogActivityButton";
 import { WeeklyActivity } from "@/components/dashboard/WeeklyActivity";
 import { TeamCard } from "@/components/dashboard/TeamCard";
@@ -41,6 +42,8 @@ export default async function DashboardPage() {
     getSuggestedChallenges(),
   ]);
   const featuredToday = featured ? await getTodayOnChallenge(featured.id) : 0;
+  // The Today ring counts steps, so its empty state points at a steps challenge to log to.
+  const stepsTarget = featured?.unit === "steps" ? featured : steps;
 
   const todayPct = (todayStats.steps / todayStats.stepGoal) * 100;
   const remaining = Math.max(0, todayStats.stepGoal - todayStats.steps);
@@ -86,7 +89,18 @@ export default async function DashboardPage() {
               sublabel={`${formatCount(todayStats.steps)} / ${formatCount(todayStats.stepGoal)}`}
             />
             {todayStats.steps === 0 && todayStats.activeMinutes === 0 ? (
-              <p className={styles.firstLog}>Log your first activity.</p>
+              <div className={styles.firstLogBlock}>
+                <p className={styles.firstLog}>Log your steps to fill the ring.</p>
+                {stepsTarget ? (
+                  <LogActivityButton challengeId={stepsTarget.id} variant="secondary">
+                    Log steps
+                  </LogActivityButton>
+                ) : (
+                  <ButtonLink href="/challenges/new?activity=steps" variant="secondary">
+                    Start a steps challenge
+                  </ButtonLink>
+                )}
+              </div>
             ) : (
               <ul className={styles.stats}>
                 <li>
