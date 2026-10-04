@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
+import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import type {
   Achievement,
   Activity,
@@ -203,7 +204,8 @@ function myActivities(d: MockDb) {
 
 /** Your total per UTC day for one unit, e.g. steps. */
 function myDailyTotals(d: MockDb, unit: string): Map<number, number> {
-  const units = new Map(d.challenges.map((c) => [c.id, c.unit]));
+  const units = new Map<string, string>(d.challenges.map((c) => [c.id, c.unit]));
+  units.set(DAILY_STEPS_ID, "steps");
   const out = new Map<number, number>();
   for (const a of myActivities(d)) {
     if (units.get(a.challengeId) !== unit) continue;
@@ -242,15 +244,16 @@ function personFor(d: MockDb, id: string) {
 }
 
 function toEntry(d: MockDb, a: Activity): ActivityEntry {
+  const free = a.challengeId === DAILY_STEPS_ID;
   const c = d.challenges.find((x) => x.id === a.challengeId);
   return {
     id: a.id,
     person: personFor(d, a.userId),
     isCurrentUser: a.userId === d.user.id,
-    challengeId: a.challengeId,
-    challengeName: c?.title ?? "a challenge",
+    challengeId: free ? "" : a.challengeId,
+    challengeName: free ? "" : (c?.title ?? "a challenge"),
     value: a.value,
-    unit: c?.unit ?? "reps",
+    unit: free ? "steps" : (c?.unit ?? "reps"),
     recordedAt: a.recordedAt,
   };
 }
@@ -967,6 +970,31 @@ export async function addActivity(input: {
     target: after.goal,
     completed,
     daysLeft: Math.max(0, after.totalDays - after.dayIndex),
+    newAchievements: evaluateAchievements(d),
+  };
+}
+
+/** What logging steps without a challenge reports back. */
+export interface DailyStepsLogged {
+  /** Today's steps across everything, including this entry. */
+  todaySteps: number;
+  newAchievements: string[];
+}
+
+// TODO(backend): POST /api/users/me/activities
+export async function addDailySteps(input: { value: number; when: "today" | "yesterday" }): Promise<DailyStepsLogged> {
+  const d = await db();
+  const recordedAt = new Date();
+  if (input.when === "yesterday") recordedAt.setUTCDate(recordedAt.getUTCDate() - 1);
+  d.activities.push({
+    id: `act-${d.nextId++}`,
+    userId: d.user.id,
+    challengeId: DAILY_STEPS_ID,
+    recordedAt: recordedAt.toISOString(),
+    value: input.value,
+  });
+  return {
+    todaySteps: myDailyTotals(d, "steps").get(today()) ?? 0,
     newAchievements: evaluateAchievements(d),
   };
 }

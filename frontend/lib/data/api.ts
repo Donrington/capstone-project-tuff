@@ -27,7 +27,7 @@ import type {
   TodayStats,
   User,
 } from "@/lib/types";
-import type { CodeMatch, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";
+import type { CodeMatch, DailyStepsLogged, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";
 
 /**
  * The real data source: every read and write goes to the Express backend
@@ -770,6 +770,15 @@ export async function addActivity(input: {
     daysLeft: Math.max(0, before.totalDays - before.dayIndex),
     newAchievements: (res.newAchievements ?? []).map((a) => a.name),
   };
+}
+
+export async function addDailySteps(input: { value: number; when: "today" | "yesterday" }): Promise<DailyStepsLogged> {
+  const recordedAt = new Date(Date.now() - (input.when === "yesterday" ? DAY_MS : 0)).toISOString();
+  const res = await api<{ todaySteps: number; newAchievements?: Achievement[] }>("/api/users/me/activities", {
+    method: "POST",
+    body: { value: input.value, recordedAt },
+  });
+  return { todaySteps: res.todaySteps, newAchievements: (res.newAchievements ?? []).map((a) => a.name) };
 }
 
 export async function createTeam(input: { name: string; description: string }): Promise<TeamResult> {

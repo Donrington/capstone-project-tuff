@@ -17,7 +17,8 @@ function toActivityEntry(doc) {
       profilePicture: user?.profilePicture ?? null,
     },
     challengeId: challenge ? challenge._id.toString() : doc.challenge ? doc.challenge.toString() : null,
-    challengeName: challenge?.title ?? "a challenge",
+    // Steps logged without a challenge have none — the feed shows just the entry.
+    challengeName: doc.challenge ? (challenge?.title ?? "a challenge") : "",
     value: doc.value,
     unit: doc.unit,
     recordedAt: doc.recordedAt,

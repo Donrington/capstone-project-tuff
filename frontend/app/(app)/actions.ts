@@ -10,6 +10,7 @@ import { clearSessionCookies } from "@/lib/api/cookies";
 import {
   PERSONA_COOKIE,
   addActivity,
+  addDailySteps,
   deleteAccount,
   joinChallengeByCode,
   completeOnboarding,
@@ -27,8 +28,10 @@ import {
   updatePrivacy,
   updateProfile,
   updateProfilePhoto,
+  type DailyStepsLogged,
   type LoggedActivity,
 } from "@/lib/data";
+import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import type { FitnessLevel, Gender, Motivation, NotificationPrefs, Persona, ProfileVisibility } from "@/lib/types";
 
 /**
@@ -69,6 +72,8 @@ function failed<Field extends string>(err: unknown, values?: ActionState<Field>[
 
 export type LogActivityState = ActionState<"challengeId" | "value"> & {
   logged?: LoggedActivity;
+  /** Set instead of `logged` when the entry was steps with no challenge. */
+  daily?: DailyStepsLogged;
 };
 
 /** One entry can only hold so much before it's probably a typo. */
@@ -92,6 +97,7 @@ export async function logActivity(
 
   const errors: LogActivityState["errors"] = {};
   if (!challengeId) errors.challengeId = "Pick a challenge to log against.";
+  const daily = challengeId === DAILY_STEPS_ID;
 
   const value = Number(raw);
   if (!raw) {
@@ -104,6 +110,17 @@ export async function logActivity(
 
   if (Object.keys(errors).length > 0) {
     return { errors, values: { challengeId, value: raw } };
+  }
+
+  if (daily) {
+    try {
+      const result = await addDailySteps({ value, when });
+      refresh();
+      return { ok: true, daily: result };
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err;
+      return { errors: { value: err.message }, values: { challengeId, value: raw } };
+    }
   }
 
   let logged;

@@ -104,6 +104,21 @@ test.describe("returning user", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 
+  test("steps can be logged without a challenge, and move the Today ring", async ({ page }) => {
+    await page.goto("/dashboard");
+    const ring = page.getByText(/^[\d,]+ \/ 10,000$/);
+    const before = toNumber((await ring.textContent())?.split("/")[0] ?? "");
+
+    await page.getByRole("button", { name: "Log today's set" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log activity" });
+    await dialog.getByLabel("Challenge").selectOption("daily-steps");
+    await expect(dialog.getByText("Leaderboard points come from challenges.")).toBeVisible();
+    await dialog.getByLabel("How many steps?").fill("1000");
+    await dialog.getByRole("button", { name: "Log 1,000 steps" }).click();
+
+    await expect(page.getByText(`${(before + 1000).toLocaleString("en-US")} / 10,000`)).toBeVisible();
+  });
+
   test("logging moves the challenge total and shows up in its history", async ({ page }) => {
     await page.goto("/challenges/plank-ladder");
     const total = page.getByText(/ \/ 1,190 seconds$/);
@@ -121,15 +136,20 @@ test.describe("returning user", () => {
 
 test.describe("new user", () => {
   // First in the block, so the account is still the untouched seed with no challenges.
-  test("the empty Today ring says how to fill it, and leads to a steps challenge", async ({ page, context, baseURL }) => {
+  test("the empty Today ring takes steps with no challenge, and fills", async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: "tuff-persona", value: "new", url: baseURL! }]);
     await page.goto("/dashboard");
     await expect(page.getByText("Log your steps to fill the ring.")).toBeVisible();
 
-    await page.getByRole("link", { name: "Start a steps challenge" }).click();
-    await expect(page).toHaveURL(/\/challenges\/new\?activity=steps/);
-    await page.getByRole("button", { name: "Continue" }).click(); // Solo
-    await expect(page.getByRole("radio", { name: /^Steps/ })).toBeChecked();
+    await page.getByRole("button", { name: "Log steps" }).click();
+    const dialog = page.getByRole("dialog", { name: "Log activity" });
+    // No challenges yet, so the dialog opens on the no-challenge option.
+    await expect(dialog.getByLabel("Challenge")).toHaveValue("daily-steps");
+    await dialog.getByLabel("How many steps?").fill("2500");
+    await dialog.getByRole("button", { name: "Log 2,500 steps" }).click();
+
+    await expect(page.getByText("2,500 steps today.")).toBeVisible();
+    await expect(page.getByText(/^2,500 \/ [\d,]+$/)).toBeVisible();
   });
 
   test("sign up → onboarding → a dashboard that reflects the answers", async ({ page }) => {
