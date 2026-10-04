@@ -112,6 +112,10 @@
   mask-composite: exclude;
   animation: beam-rotate 5s linear infinite;
   z-index: 2;
+  /* It sits above the card's content to draw the border ring, and a mask
+     hides pixels but doesn't stop hit-testing — without this, the whole card
+     (including its action button) is unclickable under an invisible layer. */
+  pointer-events: none;
 }
 .featuredWrap::after {
   content: "";
@@ -123,6 +127,8 @@
   opacity: 0.3;
   animation: beam-rotate 5s linear infinite;
   z-index: 0;
+  /* Spills 14px past the card, over the edges of neighbouring tiles. */
+  pointer-events: none;
 }
 .blobs {
   position: absolute;

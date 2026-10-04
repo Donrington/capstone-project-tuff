@@ -1,6 +1,7 @@
 const ChallengeParticipant = require("../models/ChallengeParticipant");
 const Challenge = require("../models/Challenge");
 const Activity = require("../models/Activity");
+const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 const { notify, bestEffort } = require("../services/notificationService");
@@ -70,6 +71,20 @@ async function getChallengeParticipants(req, res) {
 const ACTIVITY_TYPES = new Set(["running", "walking", "cycling", "swimming", "workout", "steps", "hiking", "other"]);
 const ACTIVITY_UNITS = new Set(["km", "miles", "steps", "minutes", "seconds", "reps"]);
 
+/** A team challenge is the whole team's, so a teammate's first log joins them
+ *  to it. An upsert, so two quick logs can't create two participant records.
+ *  Returns null when the challenge isn't this user's team's, or has ended. */
+async function enrollTeammate(userId, challenge) {
+  if (!challenge.teamId || challenge.status === "completed" || challenge.status === "cancelled") return null;
+  const user = await User.findById(userId).select("teamId");
+  if (!user?.teamId || !user.teamId.equals(challenge.teamId)) return null;
+  return ChallengeParticipant.findOneAndUpdate(
+    { user: userId, challenge: challenge._id },
+    { $setOnInsert: { user: userId, challenge: challenge._id } },
+    { upsert: true, new: true },
+  );
+}
+
 // POST /api/challenge-participants/:challengeId/activities — the real,
 // server-computed way progress increases. Replaces trusting a client-sent
 // progress number: this creates an Activity record and increments from it.
@@ -88,7 +103,8 @@ async function logActivity(req, res) {
     throw ApiError.badRequest(`Logging isn't supported yet for challenges measured in "${challenge.unit}".`);
   }
 
-  const participant = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });
+  let participant = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });
+  if (!participant) participant = await enrollTeammate(userId, challenge);
   if (!participant) throw ApiError.badRequest("Join this challenge before logging activity against it.");
   if (participant.completed) throw ApiError.badRequest("You've already completed this challenge.");
 

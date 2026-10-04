@@ -178,7 +178,7 @@ and every cross-user access answering `404`. All passed.
 
 | Method & path | Returns | Notes |
 |---|---|---|
-| `GET /api/challenges` | `200` + the challenges you've joined, each with `current`, `dayIndex`, `totalDays` | Featured first, then newest start |
+| `GET /api/challenges` | `200` + the challenges you've joined, plus every challenge your team runs, each with `current`, `dayIndex`, `totalDays` | Featured first, then newest start. A team challenge is the whole team's: a teammate's first `POST …/activities` against it joins them to it |
 | `GET /api/challenge-participants/:challengeId/activities?limit=` | `200` + activity entries, newest first | Default 200, max 1000. Feeds the per-day chart and the history |
 | `GET /api/users/me/activities?limit=` | `200` + your entries, newest first | Default 20, max 200 |
 | `GET /api/teams/:id/activity?limit=` | `200` + the team's entries, newest first | Members only (`403` otherwise), like the roster |
