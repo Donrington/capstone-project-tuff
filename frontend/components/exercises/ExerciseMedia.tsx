@@ -1,4 +1,4 @@
-import { Activity, Dumbbell, Flame, Footprints, PersonStanding, type LucideIcon } from "lucide-react";
+import { Activity, Dumbbell, Flame, Footprints, PersonStanding, Spline, type LucideIcon } from "lucide-react";
 import { LoopingVideo } from "@/components/about/LoopingVideo";
 import type { Exercise, ExerciseCategory } from "@/data/exercises";
 import styles from "./exercises.module.css";
@@ -9,6 +9,7 @@ const CATEGORY_ICON: Record<ExerciseCategory, LucideIcon> = {
   Core: PersonStanding,
   "Full body": Flame,
   Cardio: Activity,
+  Pilates: Spline,
 };
 
 /**

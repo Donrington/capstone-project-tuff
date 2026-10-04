@@ -31,7 +31,11 @@ interface ActivityOption {
  *  with this" on any exercise page lands with it already picked. */
 const ACTIVITIES: ActivityOption[] = [
   { slug: "steps", label: "Steps", unit: "steps" },
-  ...exercises.map((e) => ({ slug: e.slug, label: e.unit === "seconds" ? e.name : `${e.name}s`, unit: e.unit })),
+  ...exercises.map((e) => ({
+    slug: e.slug,
+    label: e.plural ?? (e.unit === "seconds" ? e.name : `${e.name}s`),
+    unit: e.unit,
+  })),
   { slug: "custom", label: "Custom", unit: "reps", pro: true },
 ];
 
