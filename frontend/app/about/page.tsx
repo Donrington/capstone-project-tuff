@@ -9,13 +9,15 @@ import { LoopingVideo } from "@/components/about/LoopingVideo";
 import { Marquee } from "@/components/about/Marquee";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { aboutMedia } from "@/data/about-media";
+import { publicPage } from "@/lib/seo";
 import styles from "./about.module.css";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPage({
   title: "About",
   description:
     "TUFF turns training into a team sport. Log your reps, keep your streak alive, and climb the board together.",
-};
+  path: "/about",
+});
 
 const line = (n: number) => ({ "--line": n }) as CSSProperties;
 const order = (n: number) => ({ "--i": n }) as CSSProperties;

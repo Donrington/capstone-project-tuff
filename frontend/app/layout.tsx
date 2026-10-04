@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/components/theme/ThemeProvider";
+import { siteConfig } from "@/lib/site-config";
+import { siteUrl } from "@/lib/site-url";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -11,9 +13,30 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "TUFF turns training into a team sport. Log your reps, steps and holds, keep your streak alive, and climb the leaderboard with your team.";
+
+// The icons, the share image (opengraph-image.png, twitter-image.png) and the
+// web manifest come from the files beside this one; see scripts/brand-assets.mjs.
 export const metadata: Metadata = {
-  title: { default: "TUFF", template: "%s · TUFF" },
-  description: "Team fitness challenges, streaks, and leaderboards.",
+  metadataBase: new URL(siteUrl),
+  title: { default: `${siteConfig.name} — ${siteConfig.tagline}`, template: "%s · TUFF" },
+  description: DESCRIPTION,
+  applicationName: siteConfig.name,
+  keywords: ["team fitness", "fitness challenges", "step challenge", "workout streaks", "fitness leaderboard", "TUFF"],
+  openGraph: {
+    type: "website",
+    siteName: siteConfig.name,
+    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    description: DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    description: DESCRIPTION,
+  },
+  appleWebApp: { title: siteConfig.name },
 };
 
 export const viewport: Viewport = {

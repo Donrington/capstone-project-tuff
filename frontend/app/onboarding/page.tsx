@@ -3,9 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { getCurrentUser, getSuggestedChallenges } from "@/lib/data";
+import { noIndex } from "@/lib/seo";
 import styles from "./onboarding.module.css";
 
-export const metadata: Metadata = { title: "Get set up" };
+export const metadata: Metadata = { title: "Get set up", ...noIndex };
 
 /** Outside the app shell on purpose: no nav, one question at a time. */
 export default async function OnboardingPage() {
