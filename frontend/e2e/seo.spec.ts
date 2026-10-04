@@ -34,7 +34,7 @@ test.describe("search and sharing", () => {
   test("robots.txt keeps crawlers out of the app and points at the sitemap", async ({ request }) => {
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toMatch(/^Allow: \/$/m);
-    for (const path of ["/dashboard", "/challenges", "/settings", "/onboarding", "/auth/"]) {
+    for (const path of ["/dashboard", "/challenges", "/settings", "/onboarding", "/admin", "/auth/"]) {
       expect(robots).toContain(`Disallow: ${path}`);
     }
     expect(robots).toMatch(/^Sitemap: https?:\/\/.+\/sitemap\.xml$/m);

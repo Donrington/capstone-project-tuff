@@ -15,6 +15,7 @@ const PRIVATE = [
   "/search",
   "/join",
   "/onboarding",
+  "/admin",
   "/forgot-password",
   "/reset-password",
   "/auth/",
