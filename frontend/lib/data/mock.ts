@@ -1,8 +1,8 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
-import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import type {
   Achievement,
   Activity,
