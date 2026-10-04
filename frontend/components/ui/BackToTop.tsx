@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { getLenis } from "@/components/motion/lenis-instance";
 import styles from "./BackToTop.module.css";
 
 /**
  * A round volt button, fixed bottom-right, that appears once you've
- * scrolled past the hero and glides back to the top of the page. Like
- * SmoothAnchor, it moves focus to the top afterwards for keyboard and
- * screen-reader users, and jumps instead of gliding under reduced motion.
+ * scrolled a screen or so and glides back to the top of the page. Like
+ * SmoothAnchor, it moves focus to the element with id="top" afterwards for
+ * keyboard and screen-reader users, and jumps instead of gliding under
+ * reduced motion. Inside the app shell the glide goes through Lenis.
  */
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
@@ -23,7 +25,9 @@ export function BackToTop() {
   function handleClick() {
     const top = document.getElementById("top");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    const lenis = getLenis();
+    if (lenis) lenis.scrollTo(0, { immediate: reduceMotion });
+    else window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 
     if (!top) return;
     if (!top.hasAttribute("tabindex")) {

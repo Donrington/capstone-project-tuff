@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Lenis from "lenis";
+import { setLenis } from "./lenis-instance";
 
 /**
  * Lenis smooth scrolling for the app shell — wheel/trackpad only (fine
@@ -15,7 +16,11 @@ export function SmoothScroll() {
     if (reduceMotion || !finePointer) return;
 
     const lenis = new Lenis({ autoRaf: true, lerp: 0.12 });
-    return () => lenis.destroy();
+    setLenis(lenis);
+    return () => {
+      setLenis(null);
+      lenis.destroy();
+    };
   }, []);
 
   return null;
