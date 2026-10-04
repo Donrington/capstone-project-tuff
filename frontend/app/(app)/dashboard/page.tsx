@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
   const todayPct = (todayStats.steps / todayStats.stepGoal) * 100;
   const remaining = Math.max(0, todayStats.stepGoal - todayStats.steps);
-  const ranked = board?.some((entry) => entry.isCurrentUser) ?? false;
+  const ranked = board.some((entry) => entry.isCurrentUser);
   const firstRun = todayStats.streakDays === 0 && todayStats.steps === 0 && !featured;
 
   const subtitle =
@@ -155,15 +155,8 @@ export default async function DashboardPage() {
               <ArrowUpRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </Link>
           </div>
-          {board ? (
-            <>
-              <Leaderboard entries={board} variant="bare" />
-              {!ranked && <p className={styles.unranked}>Log once to get ranked.</p>}
-            </>
-          ) : (
-            // TODO(leaderboard): shows until GET /api/leaderboard exists.
-            <p className={styles.unranked}>The leaderboard is on its way. Keep logging — your points already count.</p>
-          )}
+          <Leaderboard entries={board} variant="bare" />
+          {!ranked && <p className={styles.unranked}>Log once to get ranked.</p>}
         </section>
 
         {steps ? (

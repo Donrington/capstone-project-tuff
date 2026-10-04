@@ -36,9 +36,9 @@ import type { CodeMatch, LoggedActivity, OnboardingAnswers, TeamMember, TeamResu
  * lib/data/index.ts picks.
  *
  * Leaderboard-derived numbers (weekly points, ranks, rivals, team streaks)
- * come from GET /api/leaderboard*, which isn't built yet; until it is they're
- * null and the UI leaves those bits out. See backend/README.md for the
- * proposed contract.
+ * come from GET /api/leaderboard and /api/leaderboard/teams. A team that
+ * hasn't scored this week isn't in the standings, so its rank and points
+ * are null and the UI leaves those bits out.
  */
 
 /* ------------------------------------------------------- backend shapes --- */
@@ -129,7 +129,7 @@ interface RawStats {
   personalBests: Record<"mostStepsInADay" | "mostRepsInADay" | "longestHoldSeconds", { value: number; date: string } | null>;
 }
 
-/** The proposed GET /api/leaderboard/teams shape (backend/README.md). */
+/** GET /api/leaderboard/teams (backend/README.md). */
 interface RawTeamStanding {
   id: string;
   name: string;
@@ -259,15 +259,29 @@ export const getWeeklyActivity = cache(async (): Promise<{ days: DayActivity[]; 
 
 /* teams */
 
+/** The boards are a side dish. If the backend can't answer for them (it's mid-deploy and
+ *  doesn't have the route yet, or the query fails), the page renders without ranks rather
+ *  than taking the whole dashboard down with it. Sign-in redirects and real bugs still throw. */
+async function boardOrEmpty<T>(read: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await read();
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    console.error(`Leaderboard unavailable (${err.status}): ${err.message}`);
+    return [];
+  }
+}
+
 const getRawTeams = cache(() => api<RawTeam[]>("/api/teams"));
-// TODO(leaderboard): GET /api/leaderboard/teams — null until it's built.
-const getTeamStandings = cache(() => apiOptional<RawTeamStanding[]>("/api/leaderboard/teams?period=week"));
+const getTeamStandings = cache(() =>
+  boardOrEmpty(() => api<RawTeamStanding[]>("/api/leaderboard/teams?period=week")),
+);
 const getRawMembers = cache((teamId: string) => api<RawMember[]>(`/api/teams/${teamId}/members`));
 
 export const getTeams = cache(async (): Promise<Team[]> => {
   const [raw, standings, me] = await Promise.all([getRawTeams(), getTeamStandings(), getCurrentUser()]);
   const myMembers = me.teamId ? await getRawMembers(me.teamId) : [];
-  const standing = new Map((standings ?? []).map((s) => [s.id, s]));
+  const standing = new Map(standings.map((s) => [s.id, s]));
 
   const teams = raw.map((t): Team => {
     const s = standing.get(t._id);
@@ -288,9 +302,9 @@ export const getTeams = cache(async (): Promise<Team[]> => {
     };
   });
 
-  if (!standings) return teams.sort((a, b) => a.name.localeCompare(b.name));
-  // Ranked teams first, best first; the rival is the team just above (#1 watches #2).
-  teams.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+  // Ranked teams first, best first, then the rest by name; the rival is the
+  // team just above (#1 watches #2).
+  teams.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.name.localeCompare(b.name));
   const ranked = teams.filter((t) => t.rank !== null);
   ranked.forEach((t, i) => {
     t.rivalId = ranked.length < 2 ? null : (ranked[i === 0 ? 1 : i - 1]?.id ?? null);
@@ -344,7 +358,7 @@ export const getTeamMembers = cache(async (teamId: string): Promise<TeamMember[]
   ]);
   const today = utcDay(Date.now());
   const activeToday = new Set(recent.filter((e) => utcDay(e.recordedAt) === today).map((e) => e.person.id));
-  const points = new Map((standings?.find((s) => s.id === teamId)?.members ?? []).map((m) => [m.id, m.points]));
+  const points = new Map((standings.find((s) => s.id === teamId)?.members ?? []).map((m) => [m.id, m.points]));
 
   return members
     .map((m) => ({
@@ -486,18 +500,17 @@ export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
 
 /* leaderboard */
 
-// TODO(leaderboard): GET /api/leaderboard?period= — null until it's built.
-export const getLeaderboard = cache(async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[] | null> => {
+export const getLeaderboard = cache(async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[]> => {
   const [board, me] = await Promise.all([
-    apiOptional<LeaderboardEntry[]>(`/api/leaderboard?period=${period}`),
+    boardOrEmpty(() => api<LeaderboardEntry[]>(`/api/leaderboard?period=${period}`)),
     getCurrentUser(),
   ]);
-  return board?.map((e) => ({ ...e, isCurrentUser: e.user.id === me.id || undefined })) ?? null;
+  return board.map((e) => ({ ...e, isCurrentUser: e.user.id === me.id || undefined }));
 });
 
-export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[] | null> => {
+export const getDashboardLeaderboard = cache(async (): Promise<LeaderboardEntry[]> => {
   const board = await getLeaderboard("week");
-  return board?.filter((e) => e.rank <= 5 || e.isCurrentUser) ?? null;
+  return board.filter((e) => e.rank <= 5 || e.isCurrentUser);
 });
 
 /* people, feeds, profile */
