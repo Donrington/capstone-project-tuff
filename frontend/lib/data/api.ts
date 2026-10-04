@@ -5,6 +5,13 @@ import { clearSessionCookies } from "@/lib/api/cookies";
 import type {
   Achievement,
   ActivityEntry,
+  AdminChallenge,
+  AdminOverview,
+  AdminPage,
+  AdminResult,
+  AdminTeam,
+  AdminUser,
+  AdminUserQuery,
   AppNotification,
   Challenge,
   ChallengeDetail,
@@ -845,3 +852,49 @@ export async function deleteAccount(): Promise<{ ok: boolean; message?: string }
   await clearSessionCookies();
   return { ok: true };
 }
+
+/* admin — every call is checked against the database by the backend, whatever the UI showed */
+
+function pageQuery(params: Record<string, string | number | undefined>) {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") qs.set(key, String(value));
+  }
+  const text = qs.toString();
+  return text ? `?${text}` : "";
+}
+
+export const getAdminOverview = cache(() => api<AdminOverview>("/api/admin/overview"));
+
+export const getAdminUsers = cache((query: AdminUserQuery = {}) =>
+  api<AdminPage<AdminUser>>(`/api/admin/users${pageQuery({ ...query })}`),
+);
+
+export async function updateAdminUser(
+  id: string,
+  patch: { status?: "active" | "suspended"; role?: "member" | "admin" },
+): Promise<AdminResult> {
+  try {
+    await api(`/api/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: patch });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: messageOf(err, "Couldn't update that account. Try again.") };
+  }
+}
+
+export const getAdminChallenges = cache((query: { status?: string; page?: number } = {}) =>
+  api<AdminPage<AdminChallenge>>(`/api/admin/challenges${pageQuery({ ...query })}`),
+);
+
+export async function cancelAdminChallenge(id: string): Promise<AdminResult> {
+  try {
+    await api(`/api/admin/challenges/${encodeURIComponent(id)}`, { method: "PATCH", body: { status: "cancelled" } });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: messageOf(err, "Couldn't cancel that challenge. Try again.") };
+  }
+}
+
+export const getAdminTeams = cache((query: { page?: number } = {}) =>
+  api<AdminPage<AdminTeam>>(`/api/admin/teams${pageQuery({ ...query })}`),
+);

@@ -32,6 +32,7 @@ const APP_PREFIXES = [
   "/search",
   "/join",
   "/onboarding",
+  "/admin",
 ];
 
 const isAppRoute = (path: string) => APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));

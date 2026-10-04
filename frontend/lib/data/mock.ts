@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
@@ -7,6 +8,13 @@ import type {
   Achievement,
   Activity,
   ActivityEntry,
+  AdminChallenge,
+  AdminOverview,
+  AdminPage,
+  AdminResult,
+  AdminTeam,
+  AdminUser,
+  AdminUserQuery,
   AppNotification,
   Challenge,
   ChallengeDetail,
@@ -54,7 +62,7 @@ import type {
 
 /** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
  *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 12;
+const SEED_VERSION = 13;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";
@@ -77,11 +85,13 @@ interface MockDb {
   earnedAt: Record<string, string>;
   personalBests: PersonalBest[];
   history: typeof seed.returningHistory;
+  /** What the admin pages changed: account status/role by id, challenges cancelled. */
+  admin: { status: Record<string, "active" | "suspended">; role: Record<string, "member" | "admin">; cancelled: string[] };
   nextId: number;
 }
 
 declare global {
-  var __tuffDbs: Partial<Record<Persona, MockDb>> | undefined;
+  var __tuffDbs: Partial<Record<Persona | "admin", MockDb>> | undefined;
 }
 
 const EMPTY_HISTORY: typeof seed.returningHistory = {
@@ -119,6 +129,7 @@ function seedReturning(): MockDb {
     ),
     personalBests: seed.returningPersonalBests(now),
     history: seed.returningHistory,
+    admin: { status: {}, role: {}, cancelled: [] },
     nextId: activities.length + 1,
   };
 
@@ -152,6 +163,7 @@ function seedNew(input: { firstName: string; lastName: string; email: string }):
     earnedAt: {},
     personalBests: [],
     history: EMPTY_HISTORY,
+    admin: { status: {}, role: {}, cancelled: [] },
     nextId: 1,
   });
 }
@@ -165,13 +177,26 @@ async function currentPersona(): Promise<Persona> {
   }
 }
 
+/** Which in-memory DB this request reads. Someone looking at the app as an
+ *  admin gets one of their own, so suspending a member or cancelling a
+ *  challenge there never shows up in the other specs' data (and `/dev/reset`
+ *  leaves it alone unless asked: `?scope=admin`). */
+async function storeKey(): Promise<Persona | "admin"> {
+  try {
+    if ((await cookies()).get(MOCK_ROLE_COOKIE)?.value === "admin") return "admin";
+  } catch {
+    // Outside a request: fall through to the persona.
+  }
+  return currentPersona();
+}
+
 async function db(): Promise<MockDb> {
-  const persona = await currentPersona();
+  const key = await storeKey();
   const store = (globalThis.__tuffDbs ??= {});
-  const existing = store[persona];
+  const existing = store[key];
   if (existing?.version === SEED_VERSION) return existing;
-  const fresh = persona === "new" ? seedNew(DEFAULT_NEW_USER) : seedReturning();
-  store[persona] = fresh;
+  const fresh = key === "new" ? seedNew(DEFAULT_NEW_USER) : seedReturning();
+  store[key] = fresh;
   return fresh;
 }
 
@@ -1075,3 +1100,155 @@ export async function markAllNotificationsRead() {
   const d = await db();
   for (const n of d.notifications) n.read = true;
 }
+
+/* ----------------------------------------------------------------- admin --- */
+
+// TODO(backend): GET/PATCH /api/admin/* — see backend/controllers/adminController.js.
+// Mock only: whoever is signed in is the admin (the session seam decides who
+// gets to the pages), and their own account can't be changed, as on the backend.
+
+const ADMIN_PAGE_SIZE = 20;
+
+/** The mock has no real accounts, so these are the demo people with made-up
+ *  join dates, spread over the last weeks. */
+function adminUsersOf(d: MockDb): AdminUser[] {
+  const now = Date.now();
+  const lastActive = (id: string) =>
+    d.activities.filter((a) => a.userId === id).sort(newestFirst)[0]?.recordedAt ?? null;
+  const people = [
+    { id: d.user.id, firstName: d.user.firstName, lastName: d.user.lastName, teamId: d.user.teamId, profilePicture: d.user.profilePicture },
+    ...d.people,
+  ];
+  return people.map((p, i) => ({
+    id: p.id,
+    name: fullName(p),
+    email: p.id === d.user.id ? d.user.email : `${p.firstName}.${p.lastName}@example.com`.toLowerCase(),
+    role: p.id === d.user.id ? "admin" : (d.admin.role[p.id] ?? "member"),
+    status: d.admin.status[p.id] ?? "active",
+    createdAt: new Date(now - (i * 2 + 1) * seed.DAY_MS).toISOString(),
+    profilePicture: p.profilePicture ?? null,
+    teamName: d.teams.find((t) => t.id === p.teamId)?.name ?? null,
+    activityCount: d.activities.filter((a) => a.userId === p.id).length,
+    lastActiveAt: lastActive(p.id),
+  }));
+}
+
+function adminChallengeStatus(d: MockDb, c: seed.ChallengeSeed): AdminChallenge["status"] {
+  if (d.admin.cancelled.includes(c.id)) return "cancelled";
+  const view = challengeView(d, c);
+  return view.current >= view.goal || Date.parse(`${c.endDate}T23:59:59Z`) < Date.now() ? "completed" : "active";
+}
+
+function adminPage<T>(all: T[], page = 1): AdminPage<T> {
+  const pages = Math.max(1, Math.ceil(all.length / ADMIN_PAGE_SIZE));
+  const at = Math.min(Math.max(1, page), pages);
+  return { rows: all.slice((at - 1) * ADMIN_PAGE_SIZE, at * ADMIN_PAGE_SIZE), total: all.length, page: at, pages };
+}
+
+export const getAdminOverview = cache(async (): Promise<AdminOverview> => {
+  const d = await db();
+  const users = adminUsersOf(d);
+  const now = Date.now();
+  const weekAgo = now - 7 * seed.DAY_MS;
+  const byStatus: Record<string, number> = { draft: 0, upcoming: 0, active: 0, completed: 0, cancelled: 0 };
+  for (const c of d.challenges) byStatus[adminChallengeStatus(d, c)]++;
+
+  const firstDay = seed.startOfUtcDay(now) - 13 * seed.DAY_MS;
+  const signups = Array.from({ length: 14 }, (_, i) => {
+    const day = firstDay + i * seed.DAY_MS;
+    return { date: new Date(day).toISOString().slice(0, 10), count: users.filter((u) => dayOf(u.createdAt) === day).length };
+  });
+
+  return settle({
+    users: {
+      total: users.length,
+      admins: users.filter((u) => u.role === "admin").length,
+      suspended: users.filter((u) => u.status === "suspended").length,
+      newLast7Days: users.filter((u) => Date.parse(u.createdAt) >= weekAgo).length,
+      activeLast7Days: users.filter((u) => u.lastActiveAt && Date.parse(u.lastActiveAt) >= weekAgo).length,
+    },
+    teams: d.teams.length,
+    challenges: { total: d.challenges.length, byStatus },
+    activities: {
+      total: d.activities.length,
+      last7Days: d.activities.filter((a) => Date.parse(a.recordedAt) >= weekAgo).length,
+    },
+    signups,
+  });
+});
+
+export const getAdminUsers = cache(async (query: AdminUserQuery = {}): Promise<AdminPage<AdminUser>> => {
+  const d = await db();
+  const q = (query.q ?? "").trim().toLowerCase();
+  const rows = adminUsersOf(d).filter(
+    (u) =>
+      (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)) &&
+      (!query.status || query.status === "all" || u.status === query.status) &&
+      (!query.role || query.role === "all" || u.role === query.role),
+  );
+  return settle(adminPage(rows, query.page));
+});
+
+export async function updateAdminUser(
+  id: string,
+  patch: { status?: "active" | "suspended"; role?: "member" | "admin" },
+): Promise<AdminResult> {
+  const d = await db();
+  if (id === d.user.id) return { ok: false, error: "You can't change your own role or status." };
+  if (!adminUsersOf(d).some((u) => u.id === id)) return { ok: false, error: "That account isn't there any more." };
+  if (patch.status) d.admin.status[id] = patch.status;
+  if (patch.role) d.admin.role[id] = patch.role;
+  return { ok: true };
+}
+
+export const getAdminChallenges = cache(
+  async (query: { status?: string; page?: number } = {}): Promise<AdminPage<AdminChallenge>> => {
+    const d = await db();
+    const rows = d.challenges
+      .map((c): AdminChallenge => {
+        const team = d.teams.find((t) => t.id === c.teamId);
+        return {
+          id: c.id,
+          title: c.title,
+          type: c.activity ?? c.unit,
+          unit: c.unit,
+          goal: c.goal,
+          status: adminChallengeStatus(d, c),
+          teamName: team?.name ?? null,
+          createdBy: fullName(d.user),
+          participants: c.teamId ? memberIdsOf(d, c.teamId).length : 1,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          createdAt: `${c.startDate}T00:00:00.000Z`,
+        };
+      })
+      .filter((c) => !query.status || query.status === "all" || c.status === query.status);
+    return settle(adminPage(rows, query.page));
+  },
+);
+
+export async function cancelAdminChallenge(id: string): Promise<AdminResult> {
+  const d = await db();
+  const challenge = d.challenges.find((c) => c.id === id);
+  if (!challenge) return { ok: false, error: "That challenge isn't there any more." };
+  const status = adminChallengeStatus(d, challenge);
+  if (status === "completed" || status === "cancelled") return { ok: false, error: `That challenge is already ${status}.` };
+  d.admin.cancelled.push(id);
+  return { ok: true };
+}
+
+export const getAdminTeams = cache(async (query: { page?: number } = {}): Promise<AdminPage<AdminTeam>> => {
+  const d = await db();
+  const rows = teamViews(d).map(
+    (t, i): AdminTeam => ({
+      id: t.id,
+      name: t.name,
+      status: "active",
+      members: t.memberCount,
+      maxMembers: t.maxMembers,
+      createdBy: fullName(t.createdBy === d.user.id ? d.user : (d.people.find((p) => p.id === t.createdBy) ?? d.user)),
+      createdAt: new Date(Date.now() - (i * 3 + 2) * seed.DAY_MS).toISOString(),
+    }),
+  );
+  return settle(adminPage(rows, query.page));
+});

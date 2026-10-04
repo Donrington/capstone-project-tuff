@@ -67,6 +67,12 @@ export const {
   deleteAccount,
   markNotificationRead,
   markAllNotificationsRead,
+  getAdminOverview,
+  getAdminUsers,
+  updateAdminUser,
+  getAdminChallenges,
+  cancelAdminChallenge,
+  getAdminTeams,
 } = source;
 
 export type { CodeMatch, DailyStepsLogged, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";

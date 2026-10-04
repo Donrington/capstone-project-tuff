@@ -3,6 +3,7 @@ import {
   Info,
   LayoutDashboard,
   Medal,
+  ShieldCheck,
   Trophy,
   UserRound,
   UsersRound,
@@ -28,6 +29,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: Medal, match: "prefix", requiresAuth: true },
   { href: "/teams", label: "Teams", icon: UsersRound, match: "prefix", requiresAuth: true },
   { href: "/profile", label: "Profile", icon: UserRound, match: "prefix", requiresAuth: true },
+  // Hides the link only; /admin and the API check the role themselves.
+  { href: "/admin", label: "Admin", icon: ShieldCheck, match: "prefix", requiresAuth: true, roles: ["admin"] },
 ];
 
 /** Below the main list and quieter — it leaves the app for the About page. */

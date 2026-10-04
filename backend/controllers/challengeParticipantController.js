@@ -99,6 +99,7 @@ async function logActivity(req, res) {
 
   const challenge = await Challenge.findById(challengeId);
   if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (challenge.status === "cancelled") throw ApiError.badRequest("This challenge was cancelled.");
   if (!ACTIVITY_UNITS.has(challenge.unit)) {
     throw ApiError.badRequest(`Logging isn't supported yet for challenges measured in "${challenge.unit}".`);
   }

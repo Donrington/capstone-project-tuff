@@ -338,3 +338,72 @@ export interface SuggestedChallenge {
 
 /** Mock only (#20): which dataset lib/data.ts serves. */
 export type Persona = "returning" | "new";
+
+/* ---------------------------------------------------------------- admin --- */
+
+/** One page of an admin list. Matches backend/controllers/adminController.js. */
+export interface AdminPage<T> {
+  rows: T[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface AdminOverview {
+  users: { total: number; admins: number; suspended: number; newLast7Days: number; activeLast7Days: number };
+  teams: number;
+  challenges: { total: number; byStatus: Record<string, number> };
+  activities: { total: number; last7Days: number };
+  /** The last 14 days, oldest first, zeros included. */
+  signups: { date: string; count: number }[];
+}
+
+export type AdminUserStatus = "active" | "inactive" | "suspended";
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "member" | "admin";
+  status: AdminUserStatus;
+  createdAt: string;
+  profilePicture: string | null;
+  teamName: string | null;
+  activityCount: number;
+  lastActiveAt: string | null;
+}
+
+export interface AdminUserQuery {
+  q?: string;
+  status?: string;
+  role?: string;
+  page?: number;
+}
+
+export interface AdminChallenge {
+  id: string;
+  title: string;
+  type: string;
+  unit: string;
+  goal: number;
+  status: "draft" | "upcoming" | "active" | "completed" | "cancelled";
+  teamName: string | null;
+  createdBy: string;
+  participants: number;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
+export interface AdminTeam {
+  id: string;
+  name: string;
+  status: "active" | "inactive";
+  members: number;
+  maxMembers: number;
+  createdBy: string;
+  createdAt: string;
+}
+
+/** What an admin action reports back. */
+export type AdminResult = { ok: true } | { ok: false; error: string };

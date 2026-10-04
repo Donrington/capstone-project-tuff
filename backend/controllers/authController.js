@@ -138,7 +138,7 @@ async function refresh(req, res) {
   if (!stored || stored.expiresAt < new Date()) throw ApiError.unauthorized("Your session expired. Sign in again.");
 
   const user = await User.findById(stored.user);
-  if (!user) throw ApiError.unauthorized();
+  if (!user || user.status === "suspended") throw ApiError.unauthorized();
 
   res.cookie(ACCESS_COOKIE, signAccessToken({ sub: user._id.toString(), role: user.role }), accessCookieOptions);
   res.status(204).end();
@@ -148,6 +148,9 @@ async function refresh(req, res) {
 async function getMe(req, res) {
   const user = await User.findById(req.user.id);
   if (!user) throw ApiError.notFound();
+  // A suspended person's access token lives on for up to 15 minutes; this is
+  // what the frontend asks on every page, so it sees them as signed out at once.
+  if (user.status === "suspended") throw ApiError.unauthorized("This account has been suspended.");
   res.json(toSafeUser(user));
 }
 
