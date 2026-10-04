@@ -44,7 +44,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
 
   const board: LeaderboardEntry[] = detail.contributions.map((c, i) => ({
     rank: i + 1,
-    user: { id: c.person.id, name: c.person.name, initials: c.person.initials },
+    user: { id: c.person.id, name: c.person.name, initials: c.person.initials, profilePicture: c.person.profilePicture },
     teamName: team?.name ?? "",
     score: c.total,
     scoreUnit: challenge.unit,

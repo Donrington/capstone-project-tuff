@@ -1,4 +1,5 @@
 import type { LeaderboardEntry } from "@/lib/types";
+import { AvatarPhoto } from "./AvatarPhoto";
 import styles from "./Leaderboard.module.css";
 
 const medalClass: Record<number, string> = {
@@ -31,6 +32,7 @@ export function Leaderboard({ entries, variant = "card" }: LeaderboardProps) {
             <div className={`${styles.rank} ${medalClass[entry.rank] ?? ""}`}>{entry.rank}</div>
             <div className={`${styles.avatar} ${entry.isCurrentUser ? styles.ring : ""}`}>
               {entry.user.initials}
+              {entry.user.profilePicture && <AvatarPhoto src={entry.user.profilePicture} className={styles.photo} />}
             </div>
             <div className={styles.info}>
               <div className={styles.name}>
