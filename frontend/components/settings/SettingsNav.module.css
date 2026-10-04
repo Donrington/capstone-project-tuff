@@ -1,6 +1,8 @@
+/* Below 1024px the floating top bar (sticky, --space-3 from the top) is on
+   screen, so the pills stick just under it rather than behind it. */
 .nav {
   position: sticky;
-  top: var(--space-3);
+  top: calc(var(--space-3) + var(--topbar-h) + var(--space-2));
   z-index: 5;
   margin: 0 calc(var(--space-4) * -1);
   padding: var(--space-2) var(--space-4);

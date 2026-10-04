@@ -72,6 +72,10 @@
   --space-12: 48px;
   --space-16: 64px;
 
+  /* Small screens' floating top bar. It sticks at --space-3 from the top, so
+     anything else that sticks beneath it starts at --topbar-h + --space-3. */
+  --topbar-h: 60px;
+
   /* Radius — TUFF's shape language is curved: pills for anything you press
      or type into, radius-xl for cards and bento tiles, radius-2xl for
      page-level panels (the auth video panel, the floating sidebar). */
@@ -172,8 +176,15 @@ body {
      not the fix for a specific overflow — it catches any absolutely
      positioned element (a tooltip, a decorative blur) that pokes past the
      viewport edge without clipping anything actually visible, since
-     fixed/absolute elements still paint at their coordinates regardless. */
+     fixed/absolute elements still paint at their coordinates regardless.
+
+     `clip`, not `hidden`: `hidden` on both html and body turns body into a
+     scroll container (it forces overflow-y to auto), and every
+     `position: sticky` inside it then sticks to a body that never scrolls —
+     the mobile top bar, the settings pills and the rail all scrolled away.
+     Browsers without `clip` keep the `hidden` line and just lose sticky. */
   overflow-x: hidden;
+  overflow-x: clip;
   background: var(--canvas);
   color: var(--ink);
 }

@@ -3,8 +3,9 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: var(--surface);
-  /* Clears the sticky top bar and section nav on phones. */
-  scroll-margin-top: 140px;
+  /* Clears the sticky top bar (72px) and the pill row under it (8 + 56px) on
+     phones, with a little air. */
+  scroll-margin-top: 148px;
 }
 .heading {
   font: 800 20px/1.2 var(--font-heading);

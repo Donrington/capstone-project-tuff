@@ -214,4 +214,31 @@ test.describe("phones", () => {
     await page.getByRole("button", { name: /^Account:/ }).click();
     await expect(page.getByRole("menuitem", { name: "View profile" })).toBeVisible();
   });
+
+  test("settings: the section pills stay in view below the top bar while you scroll", async ({ page }) => {
+    await page.goto("/settings");
+    const nav = page.getByRole("navigation", { name: "Settings sections" });
+
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await expect(nav.getByRole("link", { name: "Profile" })).toBeInViewport();
+
+    // Sticking is not enough if the top bar sits on top of it.
+    const { navTop, barBottom, covered } = await nav.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const bar = document.querySelector("header")?.getBoundingClientRect();
+      return { navTop: r.top, barBottom: bar?.bottom ?? 0, covered: !el.contains(hit) };
+    });
+    expect(covered).toBe(false);
+    expect(navTop).toBeGreaterThanOrEqual(barBottom);
+
+    // Jumping to a section lands it below the pills, not under them.
+    await nav.getByRole("link", { name: "Privacy" }).click();
+    await expect(nav.getByRole("link", { name: "Privacy" })).toHaveAttribute("aria-current", "location");
+    const gap = await page.evaluate(() => {
+      const pills = document.querySelector('nav[aria-label="Settings sections"]')!.getBoundingClientRect();
+      return document.getElementById("privacy")!.getBoundingClientRect().top - pills.bottom;
+    });
+    expect(gap).toBeGreaterThanOrEqual(0);
+  });
 });
