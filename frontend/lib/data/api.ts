@@ -259,8 +259,23 @@ export const getWeeklyActivity = cache(async (): Promise<{ days: DayActivity[]; 
 
 /* teams */
 
+/** The boards are a side dish. If the backend can't answer for them (it's mid-deploy and
+ *  doesn't have the route yet, or the query fails), the page renders without ranks rather
+ *  than taking the whole dashboard down with it. Sign-in redirects and real bugs still throw. */
+async function boardOrEmpty<T>(read: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await read();
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    console.error(`Leaderboard unavailable (${err.status}): ${err.message}`);
+    return [];
+  }
+}
+
 const getRawTeams = cache(() => api<RawTeam[]>("/api/teams"));
-const getTeamStandings = cache(() => api<RawTeamStanding[]>("/api/leaderboard/teams?period=week"));
+const getTeamStandings = cache(() =>
+  boardOrEmpty(() => api<RawTeamStanding[]>("/api/leaderboard/teams?period=week")),
+);
 const getRawMembers = cache((teamId: string) => api<RawMember[]>(`/api/teams/${teamId}/members`));
 
 export const getTeams = cache(async (): Promise<Team[]> => {
@@ -487,7 +502,7 @@ export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
 
 export const getLeaderboard = cache(async (period: LeaderboardPeriod = "week"): Promise<LeaderboardEntry[]> => {
   const [board, me] = await Promise.all([
-    api<LeaderboardEntry[]>(`/api/leaderboard?period=${period}`),
+    boardOrEmpty(() => api<LeaderboardEntry[]>(`/api/leaderboard?period=${period}`)),
     getCurrentUser(),
   ]);
   return board.map((e) => ({ ...e, isCurrentUser: e.user.id === me.id || undefined }));
