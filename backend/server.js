@@ -40,6 +40,7 @@ app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/achievements", require("./routes/achievementRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/leaderboard", require("./routes/leaderboardRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 // TODO(team): mount each resource's routes here as they're built, e.g.
 //   app.use("/api/challenges", require("./routes/challengeRoutes"));

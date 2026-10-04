@@ -1,3 +1,4 @@
+const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { ACCESS_COOKIE, verifyAccessToken } = require("../utils/jwt");
 
@@ -30,4 +31,16 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+/**
+ * For the admin API: stack it after requireAuth, wrapped in asyncHandler.
+ * Unlike requireRole it asks the database, not the token — the access token
+ * carries the role it was issued with for up to 15 minutes, which is too long
+ * to keep acting as an admin after being demoted or suspended.
+ */
+async function requireAdmin(req, res, next) {
+  const user = await User.findById(req.user.id).select("role status").lean();
+  if (!user || user.role !== "admin" || user.status !== "active") throw ApiError.forbidden();
+  next();
+}
+
+module.exports = { requireAuth, requireRole, requireAdmin };

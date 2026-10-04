@@ -261,6 +261,46 @@ privacy, last week's ranks, the 50-row cap with the viewer pinned, team
 streaks, zero-point teams, and the per-challenge endpoints (including a bad
 id answering `404`, not `500`). All passed.
 
+## Admin — built
+
+Everything under `/api/admin` is for admins only. The gate is `requireAuth` then
+`requireAdmin` (`middleware/authMiddleware.js`), which reads the role and status
+from the **database** on every request, not from the access token (which carries
+the role it was issued with for up to 15 minutes): a demoted or suspended admin
+is locked out at once.
+
+| Endpoint | Body / query | Returns |
+|---|---|---|
+| `GET /api/admin/overview` | | `{ users: { total, admins, suspended, newLast7Days, activeLast7Days }, teams, challenges: { total, byStatus }, activities: { total, last7Days }, signups: [{ date, count }] }` (signups: last 14 days, zeros included) |
+| `GET /api/admin/users` | `?q=` (name or email, matched literally), `?status=active\|inactive\|suspended`, `?role=member\|admin`, `?page=`, `?limit=` (max 50) | `{ rows: [{ id, name, email, role, status, createdAt, teamName, activityCount, lastActiveAt }], total, page, pages }`, newest first |
+| `PATCH /api/admin/users/:id` | `{ status?: "active"\|"suspended", role?: "member"\|"admin" }` | the updated row. `403` on your own account. Suspending also revokes the person's refresh tokens |
+| `GET /api/admin/challenges` | `?status=`, `?page=`, `?limit=` | `{ rows: [{ id, title, type, unit, goal, status, teamName, createdBy, participants, startDate, endDate, createdAt }], total, page, pages }` |
+| `PATCH /api/admin/challenges/:id` | `{ status: "cancelled" }` (the only change allowed) | `{ id, status }`. `409` if it's already completed or cancelled. Logging to a cancelled challenge is refused |
+| `GET /api/admin/teams` | `?page=`, `?limit=` | `{ rows: [{ id, name, status, members, maxMembers, createdBy, createdAt }], total, page, pages }` |
+
+**Suspended accounts** can't sign in (password or Google: `403 "This account has
+been suspended."`, said only after the right password, so it isn't a way to probe
+for accounts), can't refresh a session, and `GET /api/auth/me` answers `401` so
+the frontend treats them as signed out straight away. A suspended person's
+existing access token still works against other endpoints until it expires (at
+most 15 minutes), because `requireAuth` is stateless; that's the trade for not
+adding a database read to every request.
+
+**Making the first admin.** There is no sign-up path to admin, on purpose (TUFF
+doesn't verify emails at sign-up, so an "ADMIN_EMAILS" setting would let anyone
+register a listed address first). Run it yourself, against the right database:
+
+```
+cd backend
+npm run make-admin -- someone@example.com            # promote
+npm run make-admin -- someone@example.com --revoke   # take it back
+```
+
+It reads `MONGO_URI` from `backend/.env` or the environment, so point it at the
+database you mean. After that, admins can promote others from the dashboard.
+Admin actions are logged to stdout as `[admin] <who> changed user <id>: {...}`;
+there's no audit-log collection yet.
+
 ## Before building on a model, check the open issues
 
 Some model fields don't match what the frontend (`frontend/lib/types.ts`,

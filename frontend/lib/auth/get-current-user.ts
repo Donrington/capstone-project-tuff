@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { api } from "@/lib/api/client";
-import { DATA_SOURCE } from "@/lib/api/config";
+import { DATA_SOURCE, MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import { hasSession } from "@/lib/api/cookies";
 import { getCurrentUser as getProfileRecord } from "@/lib/data";
 
@@ -72,6 +72,6 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     name: `${user.firstName} ${user.lastName}`.trim(),
     email: user.email,
     avatarUrl: user.profilePicture ?? null,
-    role: "member",
+    role: jar.get(MOCK_ROLE_COOKIE)?.value === "admin" ? "admin" : "member",
   };
 });
