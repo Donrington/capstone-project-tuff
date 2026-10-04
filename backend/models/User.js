@@ -8,9 +8,12 @@ const userSchema = new mongoose.Schema(
             trim: true,
         },
 
+        // Optional for Google accounts: some people have a single name.
         lastName: {
             type: String,
-            required: true,
+            required: function () {
+                return !this.googleId;
+            },
             trim: true,
         },
 
@@ -43,11 +46,21 @@ const userSchema = new mongoose.Schema(
             trim: true,
         },
 
+        // Absent on accounts that sign in with Google only.
         passwordHash: {
             type: String,
-            required: true,
+            required: function () {
+                return !this.googleId;
+            },
             select: false,
             minlength: 8
+        },
+
+        // Google's stable account id (the ID token's `sub`), once linked.
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true,
         },
 
         dateOfBirth: {

@@ -121,6 +121,11 @@ async function updatePassword(req, res) {
   if (Object.keys(errors).length > 0) throw ApiError.badRequest("Check the form and try again.", errors);
 
   const user = await findMe(req, "+passwordHash");
+  if (!user.passwordHash) {
+    throw ApiError.badRequest("Check the form and try again.", {
+      currentPassword: "You sign in with Google, so there's no password to change.",
+    });
+  }
   const ok = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!ok) throw ApiError.badRequest("Check the form and try again.", { currentPassword: "That's not your current password." });
 

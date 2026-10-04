@@ -13,6 +13,8 @@ const MESSAGES: Record<string, ToastOptions> = {
   "team-created": { title: "Team created.", description: "Share the invite code to bring people in." },
   "account-deleted": { title: "Your account is deleted.", description: "Thanks for training with us." },
   "left-team": { title: "You left the team.", description: "Join another with a code whenever you're ready." },
+  "google-failed": { title: "Google sign-in didn't go through.", description: "Try again, or use your email.", tone: "danger" },
+  "google-unavailable": { title: "Google sign-in isn't set up yet.", description: "Use your email for now.", tone: "danger" },
 };
 
 /**

@@ -154,8 +154,17 @@ browser only talks to Next:
   from app pages to `/?mode=signin`, and sends signed-in visitors from `/` to
   the dashboard. It's an optimistic guard; the backend still checks every
   request.
+- **Google sign-in** is a server-side OAuth code flow with PKCE:
+  `app/auth/google/route.ts` stores a CSRF state and PKCE verifier in a
+  10-minute httpOnly cookie and sends you to Google;
+  `app/auth/google/callback/route.ts` checks the state and passes the code to
+  `POST /api/auth/google`, which trades it with Google, verifies the ID token
+  and sets the session cookies (copied onto our domain like any sign-in).
+  New accounts go to `/onboarding`. Needs `GOOGLE_CLIENT_ID` here and both
+  Google variables on the backend — see "Setting up Google sign-in" in
+  `backend/README.md`. Without them the button explains it isn't set up.
 - **Not built yet:** forgot/reset password (needs backend endpoints and an
-  email provider) and Google/Apple sign-in. Both are marked `TODO(backend)`.
+  email provider), marked `TODO(backend)`.
 
 ## The auth landing page
 
@@ -253,8 +262,8 @@ panel falls back to a drifting brand-gradient mesh rather than a black box.
 ## What's not here yet
 
 - **The leaderboard** (being built separately) — see "Data" above.
-- **Password reset emails, Google/Apple sign-in, tracker connections, push
-  and email notifications.** Every remaining seam is marked:
+- **Password reset emails, tracker connections, push and email
+  notifications.** Every remaining seam is marked:
   `grep -rn "TODO(backend)\|TODO(leaderboard)" app components lib`.
 - **Legal text.** `/terms` and `/privacy` are drafts that need legal review,
   including against Nigeria's Data Protection Act 2023.
