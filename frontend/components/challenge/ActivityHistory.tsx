@@ -74,7 +74,7 @@ export function ActivityHistory({
                     <p className={styles.entryText}>
                       <strong>{e.isCurrentUser ? "You" : e.person.name}</strong> logged{" "}
                       {e.value.toLocaleString("en-US")} {e.unit}
-                      {showChallenge && (
+                      {showChallenge && e.challengeId && (
                         <>
                           {" "}
                           to <Link href={`/challenges/${e.challengeId}`}>{e.challengeName}</Link>

@@ -11,6 +11,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { RadioChips } from "@/components/ui/RadioChips";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
+import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import type { Challenge } from "@/lib/types";
 import type { LoggedActivity } from "@/lib/data";
 import { logActivity, type LogActivityState } from "@/app/(app)/actions";
@@ -52,17 +53,27 @@ export function LogActivityDialog({
   useEffect(() => {
     if (!open) return;
     const fallback = challenges.find((c) => c.featured) ?? challenges[0];
-    setChallengeId(preselectId ?? fallback?.id ?? "");
+    setChallengeId(preselectId ?? fallback?.id ?? DAILY_STEPS_ID);
     setAmount("");
   }, [open, preselectId, challenges]);
 
   // A successful log either celebrates or toasts, then closes.
   useEffect(() => {
-    if (!state.ok || !state.logged || handled.current === state) return;
+    if (!state.ok || handled.current === state) return;
+    const { logged, daily } = state;
+    if (!logged && !daily) return;
     handled.current = state;
-
-    const logged = state.logged;
     onClose();
+
+    if (daily) {
+      toast({
+        title: "Steps logged.",
+        description: `${formatCount(daily.todaySteps)} steps today.`,
+        tone: "success",
+      });
+      return;
+    }
+    if (!logged) return;
 
     if (logged.completed) {
       onCompleted(logged);
@@ -77,8 +88,9 @@ export function LogActivityDialog({
     });
   }, [state, onClose, onCompleted, toast]);
 
+  const daily = challengeId === DAILY_STEPS_ID;
   const selected = challenges.find((c) => c.id === challengeId);
-  const unit = selected?.unit ?? "reps";
+  const unit = daily ? "steps" : (selected?.unit ?? "reps");
   const parsed = Number(amount);
   const validAmount = amount !== "" && Number.isInteger(parsed) && parsed > 0;
   const projected = selected && validAmount ? selected.current + parsed : null;
@@ -94,86 +106,87 @@ export function LogActivityDialog({
       open={open}
       onClose={onClose}
       title="Log activity"
-      description="It lands on the challenge straight away."
+      description={
+        daily
+          ? "Counts toward today's goal and your streak. Leaderboard points come from challenges."
+          : "It lands on the challenge straight away."
+      }
     >
-      {challenges.length === 0 ? (
-        <p className={styles.empty}>
-          Every challenge is cleared. Start a new one to keep logging.
-        </p>
-      ) : (
-        <form action={formAction} className={styles.form}>
-          <input type="hidden" name="unit" value={unit} />
+      <form action={formAction} className={styles.form}>
+        <input type="hidden" name="unit" value={unit} />
 
-          <Select
-            label="Challenge"
-            name="challengeId"
-            value={challengeId}
-            onChange={(event) => setChallengeId(event.target.value)}
-            error={Boolean(state.errors?.challengeId)}
-            helperText={state.errors?.challengeId}
-            options={challenges.map((c) => ({ value: c.id, label: c.title }))}
+        <Select
+          label="Challenge"
+          name="challengeId"
+          value={challengeId}
+          onChange={(event) => setChallengeId(event.target.value)}
+          error={Boolean(state.errors?.challengeId)}
+          helperText={state.errors?.challengeId}
+          options={[
+            ...challenges.map((c) => ({ value: c.id, label: c.title })),
+            { value: DAILY_STEPS_ID, label: "Daily steps (no challenge)" },
+          ]}
+        />
+
+        <div>
+          <FormField
+            label={`How many ${unit}?`}
+            name="value"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            placeholder="0"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            error={Boolean(state.errors?.value)}
+            helperText={state.errors?.value}
+            trailing={<span className={styles.unit}>{unit}</span>}
           />
-
-          <div>
-            <FormField
-              label={`How many ${unit}?`}
-              name="value"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              step={1}
-              placeholder="0"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              error={Boolean(state.errors?.value)}
-              helperText={state.errors?.value}
-              trailing={<span className={styles.unit}>{unit}</span>}
-            />
-            <div className={styles.quick}>
-              {(QUICK_ADD[unit] ?? QUICK_ADD.reps).map((step) => (
-                <button
-                  key={step}
-                  type="button"
-                  className={styles.quickChip}
-                  onClick={() => addQuick(step)}
-                >
-                  +{formatCount(step)}
-                </button>
-              ))}
-            </div>
+          <div className={styles.quick}>
+            {(QUICK_ADD[unit] ?? QUICK_ADD.reps).map((step) => (
+              <button
+                key={step}
+                type="button"
+                className={styles.quickChip}
+                onClick={() => addQuick(step)}
+              >
+                +{formatCount(step)}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <RadioChips
-            legend="When"
-            name="when"
-            defaultValue="today"
-            options={[
-              { value: "today", label: "Today" },
-              { value: "yesterday", label: "Yesterday" },
-            ]}
-          />
+        <RadioChips
+          legend="When"
+          name="when"
+          defaultValue="today"
+          options={[
+            { value: "today", label: "Today" },
+            { value: "yesterday", label: "Yesterday" },
+          ]}
+        />
 
-          <TextArea
-            label="Note"
-            name="note"
-            rows={2}
-            maxLength={NOTE_LIMIT}
-            placeholder="Optional — how did it feel?"
-          />
+        <TextArea
+          label="Note"
+          name="note"
+          rows={2}
+          maxLength={NOTE_LIMIT}
+          placeholder="Optional — how did it feel?"
+        />
 
-          {selected && projected !== null && (
-            <p className={styles.preview} aria-live="polite">
-              <span className={styles.previewFrom}>{formatCount(selected.current)}</span>
-              <span aria-hidden="true"> → </span>
-              <span className={styles.previewTo}>{formatCount(projected)}</span>
-              {` of ${formatCount(selected.goal)} ${unit}`}
-              {clears && <span className={styles.clears}>This clears the challenge.</span>}
-            </p>
-          )}
+        {selected && projected !== null && (
+          <p className={styles.preview} aria-live="polite">
+            <span className={styles.previewFrom}>{formatCount(selected.current)}</span>
+            <span aria-hidden="true"> → </span>
+            <span className={styles.previewTo}>{formatCount(projected)}</span>
+            {` of ${formatCount(selected.goal)} ${unit}`}
+            {clears && <span className={styles.clears}>This clears the challenge.</span>}
+          </p>
+        )}
 
-          <SubmitRow amount={validAmount ? parsed : null} unit={unit} onCancel={onClose} />
-        </form>
-      )}
+        <SubmitRow amount={validAmount ? parsed : null} unit={unit} onCancel={onClose} />
+      </form>
     </Dialog>
   );
 }

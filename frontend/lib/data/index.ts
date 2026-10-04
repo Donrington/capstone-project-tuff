@@ -59,6 +59,7 @@ export const {
   createChallenge,
   joinSuggestedChallenge,
   addActivity,
+  addDailySteps,
   createTeam,
   joinTeamByCode,
   leaveTeam,
@@ -68,4 +69,4 @@ export const {
   markAllNotificationsRead,
 } = source;
 
-export type { CodeMatch, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";
+export type { CodeMatch, DailyStepsLogged, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";

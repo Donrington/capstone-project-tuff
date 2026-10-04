@@ -7,11 +7,11 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Leaderboard } from "@/components/ui/Leaderboard";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ButtonLink } from "@/components/ui/Button";
 import { LogActivityButton } from "@/components/activity/LogActivityButton";
 import { WeeklyActivity } from "@/components/dashboard/WeeklyActivity";
 import { TeamCard } from "@/components/dashboard/TeamCard";
 import { StartChallenge } from "@/components/dashboard/StartChallenge";
+import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import { challengeCardCopy, challengePercent, formatCount } from "@/lib/challenge-card";
 import {
   getCurrentUser,
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
         {remaining > 0 ? `${formatCount(remaining)} more steps closes today out.` : "Today's goal is done."}
       </>
     ) : firstRun ? (
-      "Start a challenge, then log your first activity to start a streak."
+      "Log your first steps to start a streak."
     ) : (
       "Log something today to start a streak."
     );
@@ -91,15 +91,9 @@ export default async function DashboardPage() {
             {todayStats.steps === 0 && todayStats.activeMinutes === 0 ? (
               <div className={styles.firstLogBlock}>
                 <p className={styles.firstLog}>Log your steps to fill the ring.</p>
-                {stepsTarget ? (
-                  <LogActivityButton challengeId={stepsTarget.id} variant="secondary">
-                    Log steps
-                  </LogActivityButton>
-                ) : (
-                  <ButtonLink href="/challenges/new?activity=steps" variant="secondary">
-                    Start a steps challenge
-                  </ButtonLink>
-                )}
+                <LogActivityButton challengeId={stepsTarget?.id ?? DAILY_STEPS_ID} variant="secondary">
+                  Log steps
+                </LogActivityButton>
               </div>
             ) : (
               <ul className={styles.stats}>

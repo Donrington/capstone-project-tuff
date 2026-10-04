@@ -11,6 +11,8 @@ const { issueSession, clearSession } = require("../utils/session");
 const { cloudinary, isCloudinaryConfigured, avatarPublicId } = require("../utils/cloudinary");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 const { computeStats } = require("../services/statsService");
+const { evaluateAchievements } = require("../services/achievementService");
+const { bestEffort } = require("../services/notificationService");
 
 // GET /api/users/me/stats — today, the last 7 days, streaks, lifetime totals
 // and personal bests, all computed from your logged activity.
@@ -26,6 +28,49 @@ async function getMyActivities(req, res) {
     .populate("user", USER_FIELDS)
     .populate("challenge", CHALLENGE_FIELDS);
   res.json(activities.map(toActivityEntry));
+}
+
+const MAX_STEPS_PER_ENTRY = 100_000;
+const BACKDATE_LIMIT_MS = 7 * 24 * 60 * 60 * 1000;
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+// POST /api/users/me/activities — log steps toward your daily goal without
+// joining a challenge. They count for the Today ring, the week chart, streaks
+// and achievements like any other entry; they earn no leaderboard points,
+// which only come from challenges.
+async function logDailySteps(req, res) {
+  const { value, recordedAt } = req.body ?? {};
+  if (!Number.isInteger(value) || value < 1 || value > MAX_STEPS_PER_ENTRY) {
+    throw ApiError.badRequest(`value must be a whole number from 1 to ${MAX_STEPS_PER_ENTRY.toLocaleString("en-US")}.`);
+  }
+
+  let when = new Date();
+  if (recordedAt !== undefined) {
+    when = new Date(recordedAt);
+    const age = Date.now() - when.getTime();
+    if (Number.isNaN(when.getTime()) || age < -CLOCK_SKEW_MS || age > BACKDATE_LIMIT_MS) {
+      throw ApiError.badRequest("recordedAt must be a date within the last 7 days.");
+    }
+  }
+
+  const activity = await Activity.create({
+    user: req.user.id,
+    challenge: null,
+    type: "steps",
+    value,
+    unit: "steps",
+    recordedAt: when,
+  });
+
+  const [stats, newAchievements] = await Promise.all([
+    computeStats(req.user.id),
+    bestEffort("evaluate achievements", () => evaluateAchievements(req.user.id)),
+  ]);
+  res.status(201).json({
+    activity: toActivityEntry(activity),
+    todaySteps: stats.today.steps,
+    newAchievements: newAchievements ?? [],
+  });
 }
 
 // The frontend resizes photos to a 320px JPEG before sending, so real
@@ -236,6 +281,7 @@ async function deleteAccount(req, res) {
 module.exports = {
   getMyStats,
   getMyActivities,
+  logDailySteps,
   updateProfile,
   updatePhoto,
   updatePassword,
