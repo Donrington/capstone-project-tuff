@@ -236,7 +236,7 @@ export interface LeaderboardEntry {
   /** A read-only display projection, not a Pick<User, ...> — "other people"
    *  shown here never get edited, so there's no need to carry firstName/
    *  lastName separately; `name` is whatever the API already joined. */
-  user: { id: string; name: string; initials: string };
+  user: { id: string; name: string; initials: string; profilePicture?: string | null };
   teamName: string;
   score: number;
   scoreUnit: string;

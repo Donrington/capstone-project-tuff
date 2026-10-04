@@ -43,6 +43,20 @@ async function pointsByUser({ from, to }) {
 const fullName = (u) => `${u.firstName} ${u.lastName}`.trim();
 const initialsOf = (u) => `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase();
 
+/**
+ * The photo a viewer may see for `u`. Being on the board is its own opt-in
+ * (showOnLeaderboards), but the photo follows "who can see my profile":
+ * everyone, teammates only, or only me. You always see your own.
+ */
+function photoFor(u, viewerId, viewerTeamId) {
+  if (!u.profilePicture) return null;
+  if (String(u._id) === String(viewerId)) return u.profilePicture;
+  const visibility = u.privacy?.profileVisibility ?? "everyone";
+  if (visibility === "everyone") return u.profilePicture;
+  const sameTeam = u.teamId && viewerTeamId && String(u.teamId) === String(viewerTeamId);
+  return visibility === "teammates" && sameTeam ? u.profilePicture : null;
+}
+
 /** Competition ranking: ties share a rank and the next rank skips (1, 2, 2, 4). */
 function rankRows(rows, scoreOf) {
   let rank = 0;
@@ -64,7 +78,7 @@ async function rankedUsers(window) {
     "privacy.showOnLeaderboards": { $ne: false },
     status: { $ne: "suspended" },
   })
-    .select("firstName lastName displayName teamId")
+    .select("firstName lastName displayName teamId profilePicture privacy.profileVisibility")
     .lean();
 
   const rows = users
@@ -80,7 +94,10 @@ async function rankedUsers(window) {
  * `previousRank` (week only) is where they finished last week.
  */
 async function individualBoard(period, viewerId, now = Date.now()) {
-  const ranked = await rankedUsers(windowFor(period, now));
+  const [ranked, viewer] = await Promise.all([
+    rankedUsers(windowFor(period, now)),
+    User.findById(viewerId).select("teamId").lean(),
+  ]);
 
   let previous = new Map();
   if (period === "week") {
@@ -99,7 +116,12 @@ async function individualBoard(period, viewerId, now = Date.now()) {
     return {
       rank: r.rank,
       ...(previous.has(id) ? { previousRank: previous.get(id) } : {}),
-      user: { id, name: r.user.displayName || fullName(r.user), initials: initialsOf(r.user) },
+      user: {
+        id,
+        name: r.user.displayName || fullName(r.user),
+        initials: initialsOf(r.user),
+        profilePicture: photoFor(r.user, viewerId, viewer?.teamId),
+      },
       teamName: r.user.teamId ? (teamName.get(String(r.user.teamId)) ?? "") : "",
       score: r.score,
       scoreUnit: "pts",
