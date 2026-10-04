@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { publicPage } from "@/lib/seo";
 import { siteConfig } from "@/lib/site-config";
 import styles from "../legal.module.css";
 
-export const metadata: Metadata = { title: "Privacy" };
+export const metadata: Metadata = publicPage({
+  title: "Privacy",
+  description: "What TUFF collects, why, who sees it, how long it's kept, and your rights over it.",
+  path: "/privacy",
+});
 
 const SECTIONS = [
   { id: "collect", title: "What we collect" },

@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import { publicPage } from "@/lib/seo";
 import { siteConfig } from "@/lib/site-config";
 import styles from "../legal.module.css";
 
-export const metadata: Metadata = { title: "Terms" };
+export const metadata: Metadata = publicPage({
+  title: "Terms",
+  description: "The terms for using TUFF: accounts, acceptable use, challenges and content, fees, and ending your account.",
+  path: "/terms",
+});
 
 const SECTIONS = [
   { id: "accounts", title: "Accounts" },
