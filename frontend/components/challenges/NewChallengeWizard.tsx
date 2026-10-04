@@ -35,6 +35,14 @@ const ACTIVITIES: ActivityOption[] = [
   { slug: "custom", label: "Custom", unit: "reps", pro: true },
 ];
 
+/** Where the target starts. Steps follow your own daily goal over the challenge's
+ *  length (10,000 a day for a week is 70,000), because a flat 400 steps is one
+ *  short walk and the first log would clear the whole challenge. Everything
+ *  else keeps the Power Week default. */
+function defaultTarget(unit: string, days: number, dailyStepGoal: number) {
+  return unit === "steps" ? dailyStepGoal * days : 400;
+}
+
 /** A 7-day challenge is a "Power Week" — anything else says its length. */
 function suggestName(activityLabel: string, days: number) {
   if (days === 7) return `${activityLabel} Power Week`;
@@ -56,7 +64,7 @@ export function NewChallengeWizard({
   const [type, setType] = useState<string>("solo");
   const [activitySlug, setActivitySlug] = useState(initialActivity ?? "pushups");
   const [customName, setCustomName] = useState("");
-  const [target, setTarget] = useState("400");
+  const [typedTarget, setTypedTarget] = useState<string | null>(null);
   const [days, setDays] = useState("7");
   const [customDays, setCustomDays] = useState("");
   const [start, setStart] = useState("today");
@@ -68,6 +76,9 @@ export function NewChallengeWizard({
   const activity = ACTIVITIES.find((a) => a.slug === activitySlug) ?? ACTIVITIES[1];
   const isCustomLength = days === "custom";
   const totalDays = Number(isCustomLength ? customDays : days);
+  // The suggested target follows the activity and length until you type your own.
+  const target =
+    typedTarget ?? String(defaultTarget(activity.unit, Number.isFinite(totalDays) && totalDays > 0 ? totalDays : 7, user.stepGoal));
   const targetNumber = Number(target);
   const activityLabel = activitySlug === "custom" ? customName || "Custom" : activity.label;
 
@@ -172,7 +183,10 @@ export function NewChallengeWizard({
               hideLegend
               name="activity-choice"
               value={activitySlug}
-              onChange={(v) => setActivitySlug(v as string)}
+              onChange={(v) => {
+                setActivitySlug(v as string);
+                setTypedTarget(null); // a number typed for push-ups means nothing for steps
+              }}
               options={ACTIVITIES.map((a) => ({
                 value: a.slug,
                 label: a.label,
@@ -206,7 +220,7 @@ export function NewChallengeWizard({
               type="number"
               min={1}
               value={target}
-              onChange={(e) => setTarget(e.target.value)}
+              onChange={(e) => setTypedTarget(e.target.value)}
               error={Boolean(state.errors?.goal)}
               helperText={state.errors?.goal}
             />

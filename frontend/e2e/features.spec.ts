@@ -54,6 +54,25 @@ test.describe("returning user", () => {
     await expect(page.getByText("No matches for ‘zzzz’. Try a challenge or a teammate's name.")).toBeVisible();
   });
 
+  test("new challenge: Steps starts at your daily goal times the length, not a flat 400", async ({ page }) => {
+    await page.goto("/challenges/new");
+    const next = () => page.getByRole("button", { name: "Continue" }).click();
+    await next(); // Solo
+    await page.getByText("Steps", { exact: true }).click();
+    await next();
+
+    // 10,000 a day: a flat 400 steps would be cleared by one short walk.
+    const target = page.getByLabel(/^Target/);
+    await expect(target).toHaveValue("70000");
+    await page.getByText("14 days", { exact: true }).click();
+    await expect(target).toHaveValue("140000");
+
+    // A number you typed stays put when the length changes.
+    await target.fill("50000");
+    await page.getByText("30 days", { exact: true }).click();
+    await expect(target).toHaveValue("50000");
+  });
+
   test("settings: a new step goal moves the dashboard ring", async ({ page }) => {
     await page.goto("/settings#goals");
     const goals = page.locator("#goals");
@@ -101,6 +120,18 @@ test.describe("returning user", () => {
 });
 
 test.describe("new user", () => {
+  // First in the block, so the account is still the untouched seed with no challenges.
+  test("the empty Today ring says how to fill it, and leads to a steps challenge", async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: "tuff-persona", value: "new", url: baseURL! }]);
+    await page.goto("/dashboard");
+    await expect(page.getByText("Log your steps to fill the ring.")).toBeVisible();
+
+    await page.getByRole("link", { name: "Start a steps challenge" }).click();
+    await expect(page).toHaveURL(/\/challenges\/new\?activity=steps/);
+    await page.getByRole("button", { name: "Continue" }).click(); // Solo
+    await expect(page.getByRole("radio", { name: /^Steps/ })).toBeChecked();
+  });
+
   test("sign up → onboarding → a dashboard that reflects the answers", async ({ page }) => {
     await page.goto("/");
     const signup = page.locator('[aria-label="Create an account"]');
