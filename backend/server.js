@@ -24,7 +24,25 @@ require("./models/RefreshToken");
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "http://localhost:3000", credentials: true }));
+// FRONTEND_ORIGIN is one origin or a comma-separated list — a custom domain
+// move needs the old and new origin to both work until DNS and OAuth have
+// fully cut over (and www alongside the apex).
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header (server-to-server, curl, the app's own SSR fetches)
+      // isn't a browser request, so there's nothing to check it against.
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 // 3mb, not the 100kb default, so a profile photo (sent as a data URL —
 // see controllers/userController.js uploadPhoto) fits in the body.
 app.use(express.json({ limit: "3mb" }));
