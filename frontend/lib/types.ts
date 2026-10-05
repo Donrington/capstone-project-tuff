@@ -4,8 +4,20 @@ export type Plan = "free" | "pro";
 
 /* ------------------------------------------------------------- the user --- */
 
-/** Matches backend/models/User.js's `motivations` enum (onboarding step 1). */
-export type Motivation = "move_more" | "get_stronger" | "build_streak" | "compete" | "team";
+/** Matches backend/models/User.js's `motivations` enum (onboarding step 1).
+ *  The first five are what onboarding offers now; `move_more`, `build_streak`
+ *  and `compete` are the older wording, kept so accounts that answered before
+ *  still load and still save. */
+export type Motivation =
+  | "lose_weight"
+  | "build_muscle"
+  | "get_stronger"
+  | "more_energy"
+  | "feel_confident"
+  | "team"
+  | "move_more"
+  | "build_streak"
+  | "compete";
 export type Gender = "male" | "female" | "other";
 export type FitnessLevel = "beginner" | "intermediate" | "advanced";
 export type ProfileVisibility = "everyone" | "teammates" | "only_me";
