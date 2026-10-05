@@ -195,6 +195,7 @@ export const exercises: Exercise[] = [
       "Pumping from the elbows rather than the whole arm.",
       "Letting the lower back peel away from the mat.",
     ],
+    video: { src: "/media/exercises/hundred.mp4", poster: "/media/exercises/hundred.jpg" },
   },
   {
     slug: "roll-up",
@@ -214,6 +215,7 @@ export const exercises: Exercise[] = [
       "Feet lifting off the floor on the way up.",
       "Dropping back down in one piece instead of lowering bone by bone.",
     ],
+    video: { src: "/media/exercises/roll-up.mp4", poster: "/media/exercises/roll-up.jpg" },
   },
   {
     slug: "single-leg-circles",
@@ -234,6 +236,7 @@ export const exercises: Exercise[] = [
       "Letting the bottom leg drift or bend.",
       "Going so fast the shape stops being a circle.",
     ],
+    video: { src: "/media/exercises/single-leg-circles.mp4", poster: "/media/exercises/single-leg-circles.jpg" },
   },
   {
     slug: "rolling-like-a-ball",
@@ -254,6 +257,7 @@ export const exercises: Exercise[] = [
       "Letting the shape open up mid-roll so you cannot get back up.",
       "Using a leg kick instead of the stomach to come up.",
     ],
+    video: { src: "/media/exercises/rolling-like-a-ball.mp4", poster: "/media/exercises/rolling-like-a-ball.jpg" },
   },
   {
     slug: "single-leg-stretch",
@@ -274,6 +278,7 @@ export const exercises: Exercise[] = [
       "Shoulders sinking back to the mat halfway through the set.",
       "Yanking the knee in with the arms instead of the stomach.",
     ],
+    video: { src: "/media/exercises/single-leg-stretch.mp4", poster: "/media/exercises/single-leg-stretch.jpg" },
   },
   {
     slug: "double-leg-stretch",
@@ -294,6 +299,7 @@ export const exercises: Exercise[] = [
       "Taking the legs lower than your back can hold.",
       "Letting the head drop between reaches.",
     ],
+    video: { src: "/media/exercises/double-leg-stretch.mp4", poster: "/media/exercises/double-leg-stretch.jpg" },
   },
   {
     slug: "criss-cross",
@@ -314,6 +320,7 @@ export const exercises: Exercise[] = [
       "Rushing so it becomes elbows flapping rather than a twist.",
       "Elbows closing in and hiding how far you actually turned.",
     ],
+    video: { src: "/media/exercises/criss-cross.mp4", poster: "/media/exercises/criss-cross.jpg" },
   },
   {
     slug: "spine-stretch-forward",
@@ -334,6 +341,7 @@ export const exercises: Exercise[] = [
       "Collapsing the chest and calling it a stretch.",
       "Knees rolling inwards as you fold.",
     ],
+    video: { src: "/media/exercises/spine-stretch-forward.mp4", poster: "/media/exercises/spine-stretch-forward.jpg" },
   },
   {
     slug: "saw",
@@ -354,6 +362,7 @@ export const exercises: Exercise[] = [
       "Twisting from the arms rather than the ribs.",
       "Bouncing into the reach instead of breathing out into it.",
     ],
+    video: { src: "/media/exercises/saw.mp4", poster: "/media/exercises/saw.jpg" },
   },
   {
     slug: "swan",
@@ -373,6 +382,7 @@ export const exercises: Exercise[] = [
       "Shoulders bunching up by the ears.",
       "Letting the legs and glutes go soft.",
     ],
+    video: { src: "/media/exercises/swan.mp4", poster: "/media/exercises/swan.jpg" },
   },
   {
     slug: "side-kick-series",
@@ -393,6 +403,7 @@ export const exercises: Exercise[] = [
       "Kicking higher than your control allows.",
       "Resting the whole body weight on the bottom shoulder.",
     ],
+    video: { src: "/media/exercises/side-kick-series.mp4", poster: "/media/exercises/side-kick-series.jpg" },
   },
   {
     slug: "swimming",
@@ -412,6 +423,7 @@ export const exercises: Exercise[] = [
       "Beats so big the whole body rocks.",
       "Dropping the chest after the first few seconds.",
     ],
+    video: { src: "/media/exercises/swimming.mp4", poster: "/media/exercises/swimming.jpg" },
   },
   {
     slug: "teaser",
@@ -431,6 +443,7 @@ export const exercises: Exercise[] = [
       "The legs dropping or swinging as you lift.",
       "Landing back down in one heavy piece.",
     ],
+    video: { src: "/media/exercises/teaser.mp4", poster: "/media/exercises/teaser.jpg" },
   },
 ];
 
