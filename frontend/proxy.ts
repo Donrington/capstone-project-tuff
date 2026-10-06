@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Runs before every page (Next 16's "proxy", formerly middleware). With the
- * real backend it does two jobs; with mock data it does nothing.
+ * real backend it does three jobs; with mock data it only does the third.
  *
  * 1. Keeps the session alive. The access cookie lasts 15 minutes; when it's
  *    gone but the 30-day refresh cookie is still here, swap it for a new
@@ -11,6 +11,11 @@ import { NextResponse, type NextRequest } from "next/server";
  *    browser and on the request so this very render already uses it.
  * 2. Guards the app. No session on an app page → sign in. A session on the
  *    sign-in page → the dashboard.
+ * 3. Sets the response's security headers (CSP, HSTS, frame/sniff/referrer/
+ *    permissions policy) on every response this function returns, keyed to
+ *    one nonce per request — the only inline script on the page (the theme
+ *    init script in app/layout.tsx) carries that same nonce via the
+ *    x-nonce request header, so script-src can drop 'unsafe-inline'.
  *
  * It's an optimistic check, not the security boundary: the backend still
  * verifies every request.
@@ -71,34 +76,82 @@ async function refreshAccess(refresh: string): Promise<{ value: string; maxAge: 
 }
 
 export async function proxy(request: NextRequest) {
-  if (USE_MOCK) return NextResponse.next();
+  const requestNonce = nonce();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", requestNonce);
+  const next = () => NextResponse.next({ request: { headers: requestHeaders } });
+  const done = (response: NextResponse) => withSecurityHeaders(response, requestNonce);
+
+  if (USE_MOCK) return done(next());
 
   const path = request.nextUrl.pathname;
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
   const onAuthPage = path === "/";
 
-  if (!isAppRoute(path) && !onAuthPage) return NextResponse.next();
+  if (!isAppRoute(path) && !onAuthPage) return done(next());
 
   if (access) {
-    return onAuthPage ? NextResponse.redirect(new URL("/dashboard", request.url)) : NextResponse.next();
+    return done(onAuthPage ? NextResponse.redirect(new URL("/dashboard", request.url)) : next());
   }
 
-  if (!refresh) return onAuthPage ? NextResponse.next() : toSignIn(request);
+  if (!refresh) return done(onAuthPage ? next() : toSignIn(request));
 
   const fresh = await refreshAccess(refresh);
-  if (!fresh) return onAuthPage ? NextResponse.next() : toSignIn(request);
+  if (!fresh) return done(onAuthPage ? next() : toSignIn(request));
 
   if (onAuthPage) {
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
     response.cookies.set(ACCESS_COOKIE, fresh.value, cookieOptions(fresh.maxAge));
-    return response;
+    return done(response);
   }
 
   // Hand the new token to this render too, not just the browser.
   request.cookies.set(ACCESS_COOKIE, fresh.value);
-  const response = NextResponse.next({ request: { headers: request.headers } });
+  const refreshedHeaders = new Headers(request.headers);
+  refreshedHeaders.set("x-nonce", requestNonce);
+  const response = NextResponse.next({ request: { headers: refreshedHeaders } });
   response.cookies.set(ACCESS_COOKIE, fresh.value, cookieOptions(fresh.maxAge));
+  return done(response);
+}
+
+function nonce() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
+
+/** Only what the app actually loads: self-hosted fonts and scripts, Cloudinary
+ *  for profile photos, data: URLs for the client-side photo preview before
+ *  upload. No inline/remote script or style host needs listing beyond that —
+ *  see the proxy.ts audit in git history for how this was checked. */
+function csp(nonceValue: string) {
+  // Next's dev-mode HMR client eval()s its patches; production never does.
+  const dev = process.env.NODE_ENV !== "production";
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonceValue}' 'strict-dynamic' https:${dev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://res.cloudinary.com",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+function withSecurityHeaders(response: NextResponse, nonceValue: string) {
+  response.headers.set("Content-Security-Policy", csp(nonceValue));
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  }
   return response;
 }
 
