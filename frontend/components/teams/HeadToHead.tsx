@@ -44,6 +44,7 @@ export function HeadToHead({ team, rival, daysLeft }: { team: Team; rival: Team;
         </strong>{" "}
         {left}
       </p>
+      {team.rivalLine && <p className={styles.h2hBanter}>{team.rivalLine}</p>}
     </section>
   );
 }

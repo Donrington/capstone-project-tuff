@@ -6,6 +6,7 @@ import type {
   Achievement,
   ActivityEntry,
   AdminChallenge,
+  AdminFlag,
   AdminOverview,
   AdminPage,
   AdminResult,
@@ -101,6 +102,7 @@ interface RawTeam {
   createdBy: string | { _id: string } | null;
   maxMembers: number;
   memberCount?: number;
+  rivalLine?: string | null;
 }
 
 interface RawMember {
@@ -305,6 +307,7 @@ export const getTeams = cache(async (): Promise<Team[]> => {
       weeklyPoints: s?.points ?? null,
       streakDays: s?.streakDays ?? null,
       rivalId: null,
+      rivalLine: t.rivalLine ?? null,
       headToHead: [],
     };
   });
@@ -338,6 +341,7 @@ export const getTeam = cache(async (id: string): Promise<Team | undefined> => {
     weeklyPoints: null,
     streakDays: null,
     rivalId: null,
+    rivalLine: raw.rivalLine ?? null,
     headToHead: [],
   };
 });
@@ -395,6 +399,7 @@ export const getTeamSummary = cache(async (): Promise<TeamSummary | null> => {
     weeklyPoints: team.weeklyPoints,
     rivalName: rival?.name ?? null,
     gapToRival: rival && rival.weeklyPoints !== null && team.weeklyPoints !== null ? rival.weeklyPoints - team.weeklyPoints : 0,
+    rivalLine: rival ? team.rivalLine : null,
     members: members.slice(0, 4).map((m) => ({ id: m.id, initials: m.initials, profilePicture: m.profilePicture })),
     extraMembers: Math.max(0, members.length - 4),
   };
@@ -788,6 +793,18 @@ export async function addDailySteps(input: { value: number; when: "today" | "yes
   return { todaySteps: res.todaySteps, newAchievements: (res.newAchievements ?? []).map((a) => a.name) };
 }
 
+/** Pulls a whole-number total in `unit` out of free text ("3 sets of 12" ->
+ *  36). Only fills in the amount field — whatever the dialog does with the
+ *  number afterward is the same validated path as if it had been typed. */
+export async function parseActivityText(input: { text: string; unit: string }): Promise<{ value: number } | { error: string }> {
+  try {
+    const res = await api<{ value: number }>("/api/users/me/activities/parse", { method: "POST", body: input });
+    return { value: res.value };
+  } catch (err) {
+    return { error: messageOf(err, "Couldn't read that. Try the field below instead.") };
+  }
+}
+
 export async function createTeam(input: { name: string; description: string }): Promise<TeamResult> {
   const me = await getCurrentUser();
   if (me.teamId) return { ok: false, error: "You're already on a team. Leave it before starting a new one." };
@@ -898,3 +915,16 @@ export async function cancelAdminChallenge(id: string): Promise<AdminResult> {
 export const getAdminTeams = cache((query: { page?: number } = {}) =>
   api<AdminPage<AdminTeam>>(`/api/admin/teams${pageQuery({ ...query })}`),
 );
+
+export const getAdminFlags = cache((query: { page?: number } = {}) =>
+  api<AdminPage<AdminFlag>>(`/api/admin/flags${pageQuery({ ...query })}`),
+);
+
+export async function dismissAdminFlag(id: string): Promise<AdminResult> {
+  try {
+    await api(`/api/admin/flags/${encodeURIComponent(id)}`, { method: "PATCH", body: { dismissed: true } });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: messageOf(err, "Couldn't dismiss that. Try again.") };
+  }
+}

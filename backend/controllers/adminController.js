@@ -6,6 +6,8 @@ const ChallengeParticipant = require("../models/ChallengeParticipant");
 const Activity = require("../models/Activity");
 const RefreshToken = require("../models/RefreshToken");
 const ApiError = require("../utils/ApiError");
+const aiService = require("../services/aiService");
+const { bestEffort } = require("../services/notificationService");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_PAGE_SIZE = 50;
@@ -253,4 +255,99 @@ async function listTeams(req, res) {
   res.json(pageOf(rows, total, paged));
 }
 
-module.exports = { getOverview, listUsers, updateUser, listChallenges, updateChallenge, listTeams };
+/**
+ * Writes one AI sentence per flagged activity that doesn't have one yet,
+ * batched into a single call rather than one per row. Best-effort: without
+ * ANTHROPIC_API_KEY, or if the call fails, the flags still list — they just
+ * show flagReason (the deterministic one) with no aiNote. Cached on the
+ * document afterward, so a revisit of the same page never re-calls.
+ */
+async function explainFlags(activities) {
+  const unexplained = activities.filter((a) => !a.aiNote);
+  if (!aiService.isConfigured() || unexplained.length === 0) return;
+
+  await bestEffort("explain flagged activities", async () => {
+    const lines = unexplained
+      .map((a, i) => `${i + 1}. ${a.value.toLocaleString("en-US")} ${a.unit} in one entry.`)
+      .join("\n");
+    const reply = await aiService.complete({
+      system:
+        "You help a fitness app's admin triage logged activity entries a simple rule already flagged as " +
+        "unusually high for one entry. For each numbered line, write one short, plain sentence: say what it " +
+        "most likely is (a typo, a miscount, a unit mix-up) or that it's plausible for a dedicated athlete if " +
+        "it genuinely could be. Reply with exactly one line per number, same order, numbered the same way, " +
+        "no other text.",
+      prompt: lines,
+      maxTokens: 60 * unexplained.length,
+    });
+    const explained = reply
+      .split("\n")
+      .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
+      .filter(Boolean);
+
+    await Promise.all(
+      unexplained.map((a, i) => (explained[i] ? Activity.updateOne({ _id: a._id }, { aiNote: explained[i] }) : null)),
+    );
+    unexplained.forEach((a, i) => {
+      if (explained[i]) a.aiNote = explained[i];
+    });
+  });
+}
+
+// GET /api/admin/flags?page=&limit= — activity entries a simple rule marked
+// as implausibly high for one entry (see utils/flagActivity.js), newest
+// first. Not rejected, not deleted — just surfaced for a human to glance at.
+async function listFlags(req, res) {
+  const paged = paging(req.query);
+  const [total, activities] = await Promise.all([
+    Activity.countDocuments({ flagged: true }),
+    Activity.find({ flagged: true })
+      .sort({ recordedAt: -1 })
+      .skip(paged.skip)
+      .limit(paged.limit)
+      .populate("user", "firstName lastName")
+      .populate("challenge", "title")
+      .lean(),
+  ]);
+
+  await explainFlags(activities);
+
+  const rows = activities.map((a) => ({
+    id: a._id.toString(),
+    person: fullName(a.user),
+    value: a.value,
+    unit: a.unit,
+    context: a.challenge?.title ?? "Daily steps (no challenge)",
+    recordedAt: a.recordedAt,
+    flagReason: a.flagReason,
+    aiNote: a.aiNote ?? null,
+  }));
+  res.json(pageOf(rows, total, paged));
+}
+
+// PATCH /api/admin/flags/:id — { dismissed: true }. Clears the flag so the
+// entry drops off the queue; the logged activity itself is untouched.
+async function dismissFlag(req, res) {
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) throw ApiError.notFound("Entry not found.");
+  if (req.body?.dismissed !== true) throw ApiError.badRequest('The only change allowed is dismissed: true.');
+
+  const activity = await Activity.findOneAndUpdate(
+    { _id: id, flagged: true },
+    { flagged: false },
+    { new: true },
+  );
+  if (!activity) throw ApiError.notFound("That entry isn't flagged (any more).");
+  res.json({ id: activity._id.toString(), flagged: false });
+}
+
+module.exports = {
+  getOverview,
+  listUsers,
+  updateUser,
+  listChallenges,
+  updateChallenge,
+  listTeams,
+  listFlags,
+  dismissFlag,
+};

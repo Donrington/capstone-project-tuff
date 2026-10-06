@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 
 require("./jobs/challengeStatusJob");
+require("./jobs/rivalBanterJob");
 
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");

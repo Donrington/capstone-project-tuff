@@ -12,6 +12,7 @@ router.use(requireAuth);
 router.get("/me/stats", asyncHandler(user.getMyStats));
 router.get("/me/activities", asyncHandler(user.getMyActivities));
 router.post("/me/activities", asyncHandler(user.logDailySteps));
+router.post("/me/activities/parse", asyncHandler(user.parseActivityText));
 router.patch("/me", asyncHandler(user.updateProfile));
 router.put("/me/photo", asyncHandler(user.updatePhoto));
 router.patch("/me/password", asyncHandler(user.updatePassword));

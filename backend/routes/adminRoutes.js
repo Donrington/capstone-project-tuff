@@ -15,5 +15,7 @@ router.patch("/users/:id", asyncHandler(admin.updateUser));
 router.get("/challenges", asyncHandler(admin.listChallenges));
 router.patch("/challenges/:id", asyncHandler(admin.updateChallenge));
 router.get("/teams", asyncHandler(admin.listTeams));
+router.get("/flags", asyncHandler(admin.listFlags));
+router.patch("/flags/:id", asyncHandler(admin.dismissFlag));
 
 module.exports = router;

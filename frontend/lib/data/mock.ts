@@ -9,6 +9,7 @@ import type {
   Activity,
   ActivityEntry,
   AdminChallenge,
+  AdminFlag,
   AdminOverview,
   AdminPage,
   AdminResult,
@@ -86,7 +87,12 @@ interface MockDb {
   personalBests: PersonalBest[];
   history: typeof seed.returningHistory;
   /** What the admin pages changed: account status/role by id, challenges cancelled. */
-  admin: { status: Record<string, "active" | "suspended">; role: Record<string, "member" | "admin">; cancelled: string[] };
+  admin: {
+    status: Record<string, "active" | "suspended">;
+    role: Record<string, "member" | "admin">;
+    cancelled: string[];
+    dismissedFlags: string[];
+  };
   nextId: number;
 }
 
@@ -129,7 +135,7 @@ function seedReturning(): MockDb {
     ),
     personalBests: seed.returningPersonalBests(now),
     history: seed.returningHistory,
-    admin: { status: {}, role: {}, cancelled: [] },
+    admin: { status: {}, role: {}, cancelled: [], dismissedFlags: [] },
     nextId: activities.length + 1,
   };
 
@@ -163,7 +169,7 @@ function seedNew(input: { firstName: string; lastName: string; email: string }):
     earnedAt: {},
     personalBests: [],
     history: EMPTY_HISTORY,
-    admin: { status: {}, role: {}, cancelled: [] },
+    admin: { status: {}, role: {}, cancelled: [], dismissedFlags: [] },
     nextId: 1,
   });
 }
@@ -301,6 +307,21 @@ function weeklyPointsOf(d: MockDb, personId: string) {
   return d.people.find((p) => p.id === personId)?.weeklyPoints ?? 0;
 }
 
+// No Claude call in the mock (e2e needs deterministic, offline, no API key)
+// — a small set of fixed lines stands in for what the real rival banter job
+// would write, picked by how far ahead or behind the rival is.
+const RIVAL_LINE_BEHIND = [
+  "still chasing, not caught yet.",
+  "closing the gap, not there yet.",
+  "within reach. Let's go.",
+];
+const RIVAL_LINE_AHEAD = ["out front — keep the distance.", "setting the pace this week.", "leading, for now."];
+function rivalLineFor(teamName: string, rivalName: string, ahead: boolean) {
+  const pool = ahead ? RIVAL_LINE_AHEAD : RIVAL_LINE_BEHIND;
+  const line = pool[teamName.length % pool.length];
+  return `${teamName} vs ${rivalName}: ${line}`;
+}
+
 /** Every team with its computed numbers, best first. */
 function teamViews(d: MockDb): Team[] {
   const totals = d.teams.map((t) => {
@@ -308,22 +329,27 @@ function teamViews(d: MockDb): Team[] {
     return { t, memberIds, weeklyPoints: memberIds.reduce((sum, id) => sum + weeklyPointsOf(d, id), 0) };
   });
   totals.sort((a, b) => b.weeklyPoints - a.weeklyPoints);
-  return totals.map(({ t, memberIds, weeklyPoints }, i) => ({
-    id: t.id,
-    name: t.name,
-    description: t.description,
-    inviteCode: t.inviteCode,
-    createdBy: t.createdBy,
-    maxMembers: t.maxMembers,
-    memberCount: memberIds.length,
-    memberIds,
-    rank: i + 1,
-    weeklyPoints,
-    streakDays: t.streakDays,
+  return totals.map(({ t, memberIds, weeklyPoints }, i) => {
     // The team just above you is who you're chasing; #1 watches #2.
-    rivalId: totals.length < 2 ? null : (totals[i === 0 ? 1 : i - 1]?.t.id ?? null),
-    headToHead: t.headToHead,
-  }));
+    const rivalIndex = totals.length < 2 ? -1 : i === 0 ? 1 : i - 1;
+    const rival = rivalIndex >= 0 ? totals[rivalIndex] : null;
+    return {
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      inviteCode: t.inviteCode,
+      createdBy: t.createdBy,
+      maxMembers: t.maxMembers,
+      memberCount: memberIds.length,
+      memberIds,
+      rank: i + 1,
+      weeklyPoints,
+      streakDays: t.streakDays,
+      rivalId: rival?.t.id ?? null,
+      rivalLine: rival ? rivalLineFor(t.name, rival.t.name, weeklyPoints >= rival.weeklyPoints) : null,
+      headToHead: t.headToHead,
+    };
+  });
 }
 
 /** Matches the backend's computeMetrics, over the mock's data. */
@@ -479,6 +505,7 @@ export const getTeamSummary = cache(async (): Promise<TeamSummary | null> => {
     weeklyPoints: team.weeklyPoints,
     rivalName: rival?.name ?? null,
     gapToRival: rival ? (rival.weeklyPoints ?? 0) - (team.weeklyPoints ?? 0) : 0,
+    rivalLine: team.rivalLine,
     members: members.slice(0, 4).map((m) => ({ id: m.id, initials: m.initials, profilePicture: m.profilePicture })),
     extraMembers: Math.max(0, members.length - 4),
   });
@@ -1026,6 +1053,17 @@ export async function addDailySteps(input: { value: number; when: "today" | "yes
   };
 }
 
+// TODO(backend): POST /api/users/me/activities/parse — the real endpoint
+// calls Claude; the mock (offline, deterministic, no API key for e2e) just
+// handles "N sets of M" and a bare number, which is all the e2e spec needs.
+export async function parseActivityText(input: { text: string; unit: string }): Promise<{ value: number } | { error: string }> {
+  const sets = input.text.match(/(\d+)\s*(?:sets?|x)\D{0,6}(\d+)/i);
+  if (sets) return { value: Number(sets[1]) * Number(sets[2]) };
+  const bare = input.text.match(/\d+/);
+  if (bare) return { value: Number(bare[0]) };
+  return { error: `Couldn't find a number of ${input.unit} in that — try the field below instead.` };
+}
+
 export type TeamResult = { ok: true; teamId: string } | { ok: false; error: string };
 
 // TODO(backend): POST /api/teams
@@ -1252,3 +1290,56 @@ export const getAdminTeams = cache(async (query: { page?: number } = {}): Promis
   );
   return settle(adminPage(rows, query.page));
 });
+
+// TODO(backend): GET /api/admin/flags. Mock: a handful of fixed example
+// entries rather than deriving real ones from d.activities — what matters
+// for e2e is the list/dismiss flow, not where the numbers came from. No
+// Claude call: aiNote is written out, matching what the real explainer
+// would plausibly say, so the UI has something to show offline.
+const SEED_FLAGS: (Omit<AdminFlag, "recordedAt"> & { daysAgo: number })[] = [
+  {
+    id: "flag-1",
+    person: "Tunde Bakare",
+    value: 50000,
+    unit: "reps",
+    context: "Push-Up Power Week",
+    flagReason: "50,000 reps in one entry is well past the usual range for a single entry (over 500).",
+    aiNote: "Almost certainly a typo or a unit mix-up — 50,000 push-ups in one sitting isn't physically plausible.",
+    daysAgo: 0,
+  },
+  {
+    id: "flag-2",
+    person: "Funmilayo Adebayo",
+    value: 92000,
+    unit: "steps",
+    context: "Daily steps (no challenge)",
+    flagReason: "92,000 steps in one entry is well past the usual range for a single entry (over 40,000).",
+    aiNote: "Possible, but at the far edge — worth a quick check with them before trusting it for the board.",
+    daysAgo: 1,
+  },
+  {
+    id: "flag-3",
+    person: "Chidi Okeke",
+    value: 2400,
+    unit: "seconds",
+    context: "Plank Ladder",
+    flagReason: "2,400 seconds in one entry is well past the usual range for a single entry (over 1800).",
+    aiNote: "40 minutes in one plank hold is extraordinary — likely a miscount of minutes as seconds.",
+    daysAgo: 2,
+  },
+];
+
+export const getAdminFlags = cache(async (query: { page?: number } = {}): Promise<AdminPage<AdminFlag>> => {
+  const d = await db();
+  const rows: AdminFlag[] = SEED_FLAGS.filter((f) => !d.admin.dismissedFlags.includes(f.id)).map(
+    ({ daysAgo, ...f }) => ({ ...f, recordedAt: new Date(Date.now() - daysAgo * seed.DAY_MS).toISOString() }),
+  );
+  return settle(adminPage(rows, query.page));
+});
+
+export async function dismissAdminFlag(id: string): Promise<AdminResult> {
+  const d = await db();
+  if (!SEED_FLAGS.some((f) => f.id === id)) return { ok: false, error: "That entry isn't flagged (any more)." };
+  if (!d.admin.dismissedFlags.includes(id)) d.admin.dismissedFlags.push(id);
+  return { ok: true };
+}

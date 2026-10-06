@@ -11,6 +11,7 @@ import {
   PERSONA_COOKIE,
   addActivity,
   addDailySteps,
+  parseActivityText,
   deleteAccount,
   joinChallengeByCode,
   completeOnboarding,
@@ -136,6 +137,17 @@ export async function logActivity(
 
   refresh();
   return { ok: true, logged };
+}
+
+/** The log dialog's "describe it" field. Only ever fills in the amount —
+ *  the entry itself still goes through logActivity above, same validation
+ *  either way. */
+export async function parseActivityTextAction(
+  text: string,
+  unit: string,
+): Promise<{ value: number } | { error: string }> {
+  if (!text.trim()) return { error: "Describe what you did." };
+  return parseActivityText({ text, unit });
 }
 
 /* ------------------------------------------------------------- session --- */
