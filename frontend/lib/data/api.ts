@@ -699,7 +699,16 @@ export async function updatePrivacy(privacy: PrivacySettings) {
 export async function completeOnboarding(answers: OnboardingAnswers) {
   const { challengeIds, ...about } = answers;
   const raw = await api<RawUser>("/api/users/me/onboarding", { method: "POST", body: about });
-  for (const id of challengeIds) await joinSuggestedChallenge(id);
+  // Each challenge is a bonus, not the point of this call — one failing (a
+  // cold backend, a transient error) must never stop the profile save from
+  // reaching the dashboard.
+  for (const id of challengeIds) {
+    try {
+      await joinSuggestedChallenge(id);
+    } catch {
+      // Swallowed on purpose: the user can still start it from the dashboard.
+    }
+  }
   return userAfter(raw);
 }
 
