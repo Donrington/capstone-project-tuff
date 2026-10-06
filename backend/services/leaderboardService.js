@@ -202,4 +202,45 @@ function ymd(ms) {
   return [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()];
 }
 
-module.exports = { individualBoard, teamStandings, weekStart };
+/**
+ * Every team's weekly rank, points and rival — no viewer, no per-member
+ * breakdown, just enough for the rival banter job to run over every team
+ * at once. Same rival rule as teamStandings/the frontend's own copy of it
+ * (lib/data/api.ts getTeams): the team just above is who you're chasing;
+ * #1 watches #2 instead.
+ */
+async function weeklyTeamRanks(now = Date.now()) {
+  const [teams, points] = await Promise.all([
+    Team.find({ status: { $ne: "inactive" } }).select("name").lean(),
+    pointsByUser(windowFor("week", now)),
+  ]);
+  const members = await User.find({ teamId: { $in: teams.map((t) => t._id) } })
+    .select("teamId")
+    .lean();
+
+  const membersByTeam = new Map();
+  for (const m of members) {
+    const key = String(m.teamId);
+    if (!membersByTeam.has(key)) membersByTeam.set(key, []);
+    membersByTeam.get(key).push(String(m._id));
+  }
+
+  const rows = teams
+    .filter((t) => membersByTeam.has(String(t._id)))
+    .map((t) => {
+      const id = String(t._id);
+      const ids = membersByTeam.get(id);
+      const teamPoints = ids.reduce((sum, uid) => sum + Math.round(points.get(uid) ?? 0), 0);
+      return { id, name: t.name, points: teamPoints, memberCount: ids.length };
+    })
+    .filter((t) => t.points > 0)
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+
+  return rows.map((t, i) => ({
+    ...t,
+    rank: i + 1,
+    rivalId: rows.length < 2 ? null : (rows[i === 0 ? 1 : i - 1]?.id ?? null),
+  }));
+}
+
+module.exports = { individualBoard, teamStandings, weekStart, weeklyTeamRanks };

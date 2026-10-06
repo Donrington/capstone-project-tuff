@@ -13,6 +13,13 @@ const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require(".
 const { computeStats } = require("../services/statsService");
 const { evaluateAchievements } = require("../services/achievementService");
 const { bestEffort } = require("../services/notificationService");
+const { flagReasonFor } = require("../utils/flagActivity");
+const aiService = require("../services/aiService");
+
+// The units describing-it-in-words can fill in — the same ones the log
+// dialog's quick-add buttons cover (lib/data: QUICK_ADD). "minutes", "km"
+// and "miles" challenges exist but have no quick-add UI yet either.
+const PARSEABLE_UNITS = new Set(["reps", "steps", "seconds"]);
 
 // GET /api/users/me/stats — today, the last 7 days, streaks, lifetime totals
 // and personal bests, all computed from your logged activity.
@@ -53,6 +60,7 @@ async function logDailySteps(req, res) {
     }
   }
 
+  const flagReason = flagReasonFor("steps", value);
   const activity = await Activity.create({
     user: req.user.id,
     challenge: null,
@@ -60,6 +68,8 @@ async function logDailySteps(req, res) {
     value,
     unit: "steps",
     recordedAt: when,
+    flagged: Boolean(flagReason),
+    flagReason,
   });
 
   const [stats, newAchievements] = await Promise.all([
@@ -71,6 +81,41 @@ async function logDailySteps(req, res) {
     todaySteps: stats.today.steps,
     newAchievements: newAchievements ?? [],
   });
+}
+
+const MAX_DESCRIBE_LENGTH = 300;
+
+// POST /api/users/me/activities/parse — the log dialog's "describe it"
+// field. Pulls a whole-number total in the given unit out of free text
+// ("3 sets of 12 push-ups" -> 36), including simple arithmetic; never
+// guesses at a conversion between units (a distance never becomes steps).
+// It only fills in the amount field — the activity itself is still created
+// through the normal validated endpoints, same as if the number had been
+// typed by hand.
+async function parseActivityText(req, res) {
+  const text = String(req.body?.text ?? "").trim().slice(0, MAX_DESCRIBE_LENGTH);
+  const unit = String(req.body?.unit ?? "");
+
+  if (!PARSEABLE_UNITS.has(unit)) throw ApiError.badRequest("Unknown unit.");
+  if (!text) throw ApiError.badRequest("Describe what you did.");
+  if (!aiService.isConfigured()) throw ApiError.unavailable("Describing it in words isn't available right now.");
+
+  const reply = await aiService.complete({
+    system:
+      `Extract a single whole-number total in "${unit}" from what someone typed about a workout. ` +
+      "Do simple arithmetic if they described it as sets (\"3 sets of 12\" is 36). " +
+      "Reply with ONLY the number, or the word NONE if there's no clear amount in that unit. " +
+      "Never convert between units — a distance or a time never becomes a step count, and vice versa.",
+    prompt: text,
+    maxTokens: 20,
+  });
+
+  const cleaned = reply.trim();
+  const value = Math.round(Number(cleaned));
+  if (cleaned === "NONE" || !Number.isFinite(value) || value <= 0) {
+    throw ApiError.badRequest(`Couldn't find a number of ${unit} in that — try the field below instead.`);
+  }
+  res.json({ value });
 }
 
 // The frontend resizes photos to a 320px JPEG before sending, so real
@@ -282,6 +327,7 @@ module.exports = {
   getMyStats,
   getMyActivities,
   logDailySteps,
+  parseActivityText,
   updateProfile,
   updatePhoto,
   updatePassword,

@@ -61,6 +61,7 @@ export function TeamCard({ team }: { team: TeamSummary | null }) {
         {team.extraMembers > 0 && <span className={styles.more}>+{team.extraMembers}</span>}
       </div>
       <p className={styles.gap}>{gapLine(team)}</p>
+      {team.rivalLine && <p className={styles.banter}>{team.rivalLine}</p>}
       <InviteButton
         variant="secondary"
         fullWidth

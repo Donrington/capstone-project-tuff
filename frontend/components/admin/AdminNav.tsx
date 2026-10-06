@@ -9,6 +9,7 @@ const SECTIONS = [
   { href: "/admin/users", label: "Members" },
   { href: "/admin/challenges", label: "Challenges" },
   { href: "/admin/teams", label: "Teams" },
+  { href: "/admin/flags", label: "Flags" },
 ];
 
 /** The admin area's section tabs: pills that scroll sideways on a phone. */

@@ -4,6 +4,7 @@ const Activity = require("../models/Activity");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
+const { flagReasonFor } = require("../utils/flagActivity");
 const { notify, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
 
@@ -109,6 +110,7 @@ async function logActivity(req, res) {
   if (!participant) throw ApiError.badRequest("Join this challenge before logging activity against it.");
   if (participant.completed) throw ApiError.badRequest("You've already completed this challenge.");
 
+  const flagReason = flagReasonFor(challenge.unit, value);
   const activity = await Activity.create({
     user: userId,
     challenge: challengeId,
@@ -116,6 +118,8 @@ async function logActivity(req, res) {
     value,
     unit: challenge.unit,
     recordedAt: recordedAt ? new Date(recordedAt) : new Date(),
+    flagged: Boolean(flagReason),
+    flagReason,
   });
 
   const previousProgress = participant.progress;

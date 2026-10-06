@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser as getSession } from "@/lib/auth/get-current-user";
-import { cancelAdminChallenge, updateAdminUser } from "@/lib/data";
+import { cancelAdminChallenge, dismissAdminFlag, updateAdminUser } from "@/lib/data";
 import type { AdminResult } from "@/lib/types";
 
 /**
@@ -41,6 +41,13 @@ export async function setUserRoleAction(id: string, role: "member" | "admin"): P
 export async function cancelChallengeAction(id: string): Promise<AdminResult> {
   if (!(await isAdmin())) return NOT_ALLOWED;
   const result = await cancelAdminChallenge(id);
+  if (result.ok) refresh();
+  return result;
+}
+
+export async function dismissFlagAction(id: string): Promise<AdminResult> {
+  if (!(await isAdmin())) return NOT_ALLOWED;
+  const result = await dismissAdminFlag(id);
   if (result.ok) refresh();
   return result;
 }

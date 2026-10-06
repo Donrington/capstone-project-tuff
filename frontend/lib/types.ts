@@ -123,6 +123,9 @@ export interface Team {
   streakDays: number | null;
   /** The team directly above (or, at #1, directly below) in the standings. */
   rivalId: string | null;
+  /** One AI-written line about this week's rival, refreshed daily. Null
+   *  without ANTHROPIC_API_KEY configured, or before the first run. */
+  rivalLine: string | null;
   headToHead: HeadToHeadResult[];
 }
 
@@ -138,6 +141,8 @@ export interface TeamSummary {
   rivalName: string | null;
   /** Points between you and the rival. Positive = behind, negative = ahead. */
   gapToRival: number;
+  /** One AI-written line about the rival, when there is one. */
+  rivalLine: string | null;
   members: { id: string; initials: string; profilePicture?: string }[];
   extraMembers: number;
 }
@@ -419,3 +424,20 @@ export interface AdminTeam {
 
 /** What an admin action reports back. */
 export type AdminResult = { ok: true } | { ok: false; error: string };
+
+/** An activity entry a deterministic rule marked as implausibly high for
+ *  one entry — not rejected, just surfaced for an admin to glance at. */
+export interface AdminFlag {
+  id: string;
+  person: string;
+  value: number;
+  unit: string;
+  /** The challenge's title, or "Daily steps (no challenge)". */
+  context: string;
+  recordedAt: string;
+  /** Why the deterministic rule flagged it. */
+  flagReason: string;
+  /** One AI sentence on why it's probably a typo, a miscount, or genuine —
+   *  null without ANTHROPIC_API_KEY configured. */
+  aiNote: string | null;
+}

@@ -65,6 +65,25 @@ const activitySchema = new mongoose.Schema(
             type: Date,
             required: true,
         },
+
+        // Set deterministically at creation (utils/flagActivity.js) when a
+        // single entry's value is well outside the normal range for its
+        // unit — not blocked, just worth an admin's attention.
+        flagged: {
+            type: Boolean,
+            default: false,
+        },
+        flagReason: {
+            type: String,
+            default: null,
+        },
+        // One AI sentence on why a flagged entry looks off, generated lazily
+        // the first time an admin opens the flags list (see adminController
+        // listFlags) and cached here so it's never regenerated on a revisit.
+        aiNote: {
+            type: String,
+            default: null,
+        },
     },
     {
         timestamps: {
@@ -77,6 +96,8 @@ const activitySchema = new mongoose.Schema(
 // The feeds: one user's history, and one challenge's, newest first.
 activitySchema.index({ user: 1, recordedAt: -1 });
 activitySchema.index({ challenge: 1, recordedAt: -1 });
+// The admin flags queue.
+activitySchema.index({ flagged: 1, recordedAt: -1 });
 
 const Activity = mongoose.model("Activity", activitySchema);
 

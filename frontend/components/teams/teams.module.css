@@ -151,6 +151,12 @@
 .h2hLine strong {
   color: var(--ink);
 }
+.h2hBanter {
+  margin-top: var(--space-1);
+  font: 600 14px/20px var(--font-sans);
+  font-style: italic;
+  color: var(--volt-ink);
+}
 
 /* ------------------------------------------------------------- standings */
 .standingsList {

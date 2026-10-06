@@ -60,6 +60,7 @@ export const {
   joinSuggestedChallenge,
   addActivity,
   addDailySteps,
+  parseActivityText,
   createTeam,
   joinTeamByCode,
   leaveTeam,
@@ -73,6 +74,8 @@ export const {
   getAdminChallenges,
   cancelAdminChallenge,
   getAdminTeams,
+  getAdminFlags,
+  dismissAdminFlag,
 } = source;
 
 export type { CodeMatch, DailyStepsLogged, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";

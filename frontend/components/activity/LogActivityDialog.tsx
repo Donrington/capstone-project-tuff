@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
@@ -14,7 +14,7 @@ import { formatCount } from "@/lib/challenge-card";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import type { Challenge } from "@/lib/types";
 import type { LoggedActivity } from "@/lib/data";
-import { logActivity, type LogActivityState } from "@/app/(app)/actions";
+import { logActivity, parseActivityTextAction, type LogActivityState } from "@/app/(app)/actions";
 import styles from "./LogActivityDialog.module.css";
 
 const INITIAL: LogActivityState = {};
@@ -26,6 +26,11 @@ const QUICK_ADD: Record<string, number[]> = {
   steps: [1000, 2500, 5000],
   seconds: [30, 60, 90],
 };
+
+/** Units the "describe it" field can parse — matches the backend's own
+ *  PARSEABLE_UNITS (userController.js). Never a distance or a conversion
+ *  between units, so it's deliberately the same set as QUICK_ADD. */
+const DESCRIBABLE = new Set(["reps", "steps", "seconds"]);
 
 interface LogActivityDialogProps {
   open: boolean;
@@ -48,6 +53,11 @@ export function LogActivityDialog({
   const [amount, setAmount] = useState("");
   const handled = useRef<LogActivityState | null>(null);
 
+  const [describeOpen, setDescribeOpen] = useState(false);
+  const [describeText, setDescribeText] = useState("");
+  const [describeError, setDescribeError] = useState<string | null>(null);
+  const [describing, startDescribing] = useTransition();
+
   // Each open starts clean, on the challenge the caller asked for — otherwise
   // the featured one, otherwise the first that's still going.
   useEffect(() => {
@@ -55,6 +65,9 @@ export function LogActivityDialog({
     const fallback = challenges.find((c) => c.featured) ?? challenges[0];
     setChallengeId(preselectId ?? fallback?.id ?? DAILY_STEPS_ID);
     setAmount("");
+    setDescribeOpen(false);
+    setDescribeText("");
+    setDescribeError(null);
   }, [open, preselectId, challenges]);
 
   // A successful log either celebrates or toasts, then closes.
@@ -99,6 +112,20 @@ export function LogActivityDialog({
   function addQuick(step: number) {
     const base = Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
     setAmount(String(base + step));
+  }
+
+  function fillFromText() {
+    setDescribeError(null);
+    startDescribing(async () => {
+      const result = await parseActivityTextAction(describeText, unit);
+      if ("error" in result) {
+        setDescribeError(result.error);
+        return;
+      }
+      setAmount(String(result.value));
+      setDescribeText("");
+      setDescribeOpen(false);
+    });
   }
 
   return (
@@ -155,6 +182,41 @@ export function LogActivityDialog({
               </button>
             ))}
           </div>
+
+          {DESCRIBABLE.has(unit) &&
+            (describeOpen ? (
+              <div className={styles.describe}>
+                <FormField
+                  label="Describe it"
+                  placeholder={unit === "reps" ? "3 sets of 12 push-ups" : `What did you do, in ${unit}?`}
+                  value={describeText}
+                  onChange={(event) => setDescribeText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      fillFromText();
+                    }
+                  }}
+                  error={Boolean(describeError)}
+                  helperText={describeError ?? undefined}
+                  trailing={
+                    <button
+                      type="button"
+                      className={styles.describeFill}
+                      onClick={fillFromText}
+                      disabled={describing || !describeText.trim()}
+                    >
+                      {describing ? <Loader2 size={14} className={styles.spin} aria-hidden="true" /> : "Fill it in"}
+                    </button>
+                  }
+                />
+              </div>
+            ) : (
+              <button type="button" className={styles.describeToggle} onClick={() => setDescribeOpen(true)}>
+                <Sparkles size={14} aria-hidden="true" />
+                Describe it instead
+              </button>
+            ))}
         </div>
 
         <RadioChips
