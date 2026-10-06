@@ -888,7 +888,13 @@ export async function completeOnboarding(answers: OnboardingAnswers) {
     if (value !== undefined) (d.user as unknown as Record<string, unknown>)[key] = value;
   }
   d.user.onboardingCompletedAt = new Date().toISOString();
-  for (const id of challengeIds) await joinSuggestedChallenge(id);
+  for (const id of challengeIds) {
+    try {
+      await joinSuggestedChallenge(id);
+    } catch {
+      // Swallowed on purpose: the user can still start it from the dashboard.
+    }
+  }
   return d.user;
 }
 
