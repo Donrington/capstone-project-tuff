@@ -8,6 +8,7 @@ import { CreateTeamButton } from "@/components/teams/CreateTeamButton";
 import { HeadToHead } from "@/components/teams/HeadToHead";
 import { TeamOverview } from "@/components/teams/TeamOverview";
 import { TeamStandings } from "@/components/teams/TeamStandings";
+import { DemoCrewPreview } from "@/components/demo/DemoCrewPreview";
 import { getMyTeam, getTeamMembers, getTeams } from "@/lib/data";
 import styles from "./teams.module.css";
 
@@ -67,23 +68,26 @@ export default async function TeamsPage() {
               {showHeadToHead && <HeadToHead team={myTeam} rival={rival} daysLeft={daysLeftThisWeek()} />}
             </>
           ) : (
-            <EmptyState
-              icon={UsersRound}
-              title="You're not on a team yet"
-              text="Join one with a code from a friend, or start your own and invite people in."
-              action={
-                <div className={styles.emptyActions}>
-                  <JoinWithCodeButton>
-                    <KeyRound size={18} strokeWidth={2.25} aria-hidden="true" />
-                    Join with a code
-                  </JoinWithCodeButton>
-                  <CreateTeamButton variant="secondary">
-                    <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
-                    Create a team
-                  </CreateTeamButton>
-                </div>
-              }
-            />
+            <>
+              <EmptyState
+                icon={UsersRound}
+                title="You're not on a team yet"
+                text="Join one with a code from a friend, or start your own and invite people in."
+                action={
+                  <div className={styles.emptyActions}>
+                    <JoinWithCodeButton>
+                      <KeyRound size={18} strokeWidth={2.25} aria-hidden="true" />
+                      Join with a code
+                    </JoinWithCodeButton>
+                    <CreateTeamButton variant="secondary">
+                      <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
+                      Create a team
+                    </CreateTeamButton>
+                  </div>
+                }
+              />
+              <DemoCrewPreview variant="crew" />
+            </>
           )}
         </div>
         <TeamStandings teams={teams} myTeamId={myTeam?.id ?? null} />

@@ -17,7 +17,7 @@
     "postinstall": "npm run mediapipe:assets",
     "test:e2e": "playwright test",
     "test:reps": "tsx --test lib/rep-counter/counter.test.mjs lib/rep-counter/hold.test.mjs",
-    "test:unit": "tsx --test lib/share-card.test.mjs lib/auth/safe-next.test.mjs"
+    "test:unit": "tsx --test lib/share-card.test.mjs lib/auth/safe-next.test.mjs data/demo-crew.test.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

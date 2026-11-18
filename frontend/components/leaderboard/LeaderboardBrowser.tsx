@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Tabs, tabId, tabPanelId } from "@/components/ui/Tabs";
 import { Leaderboard } from "@/components/ui/Leaderboard";
+import { shouldShowDemoLeaderboard } from "@/data/demo-crew";
 import type { LeaderboardEntry, LeaderboardPeriod } from "@/lib/types";
 import styles from "./LeaderboardBrowser.module.css";
 
@@ -21,9 +22,12 @@ const VISIBLE_ROWS = 10;
 export function LeaderboardBrowser({
   boards,
   initialPeriod,
+  demoPreview,
 }: {
   boards: Record<LeaderboardPeriod, LeaderboardEntry[]>;
   initialPeriod: LeaderboardPeriod;
+  /** Server-rendered example block, shown only under a board with < 3 real rows. */
+  demoPreview: ReactNode;
 }) {
   const [index, setIndex] = useState(Math.max(0, TABS.findIndex((t) => t.key === initialPeriod)));
   const tab = TABS[index];
@@ -75,6 +79,7 @@ export function LeaderboardBrowser({
             <strong>You&apos;re not ranked yet.</strong> Log once to get on the board.
           </p>
         )}
+        {shouldShowDemoLeaderboard(board.length) && <div className={styles.demoSlot}>{demoPreview}</div>}
       </div>
     </>
   );

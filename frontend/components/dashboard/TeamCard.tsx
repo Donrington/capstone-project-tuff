@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { InviteButton } from "@/components/invite/InviteButton";
 import { JoinWithCodeButton } from "@/components/invite/JoinWithCodeButton";
 import { CreateTeamButton } from "@/components/teams/CreateTeamButton";
+import { DemoCrewPreview } from "@/components/demo/DemoCrewPreview";
 import { pluralize } from "@/lib/pluralize";
 import type { TeamSummary } from "@/lib/types";
 import styles from "./TeamCard.module.css";
@@ -36,6 +37,7 @@ export function TeamCard({ team }: { team: TeamSummary | null }) {
             Create a team
           </CreateTeamButton>
         </div>
+        <DemoCrewPreview variant="crew" />
       </div>
     );
   }
