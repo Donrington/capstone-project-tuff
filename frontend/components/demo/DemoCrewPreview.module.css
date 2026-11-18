@@ -1,0 +1,120 @@
+/* Dashed, muted and text-only: reads as a sample at a glance, never as a row
+   you could click or a score you earned. */
+.section {
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--surface-2) 35%, transparent);
+}
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.title {
+  font: 700 18px/1.2 var(--font-heading);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.explanation {
+  margin-top: var(--space-2);
+  max-width: 60ch;
+  font: 400 13px/19px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.listTitle {
+  margin-top: var(--space-4);
+  font: 700 11px/16px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.rows,
+.members,
+.activities {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: 20px 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+.row + .row {
+  border-top: 1px solid var(--border-subtle);
+}
+.rank {
+  text-align: center;
+  font: 800 12px/1 var(--font-heading);
+  color: var(--ink-tertiary);
+}
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 13px/18px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.points {
+  white-space: nowrap;
+  font: 700 13px/18px var(--font-heading);
+  color: var(--ink-secondary);
+}
+.unit {
+  margin-left: 3px;
+  font: 500 11px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.members {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-1) var(--space-3);
+}
+.member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) 0;
+}
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font: 700 11px/1 var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.activities li {
+  padding: var(--space-1) 0;
+  font: 400 12px/18px var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.activities li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+.actions {
+  display: flex;
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 479px) {
+  .section {
+    padding: var(--space-4);
+  }
+  .members {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .name {
+    font-size: 12px;
+  }
+  .actions > * {
+    flex: 1;
+  }
+}

@@ -13,6 +13,8 @@ cp .env.example .env.local   # optional: API_URL, TUFF_DATA_SOURCE
 npm run dev          # http://localhost:3000, talking to the API on :4000
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint (also runs in CI)
+npm run test:reps    # rep-counter unit tests (node:test via tsx)
+npm run test:unit    # demo-crew unit tests (node:test via tsx)
 npm run media:fetch  # re-download the auth clips into public/media (already done)
 npm run fonts:fetch  # fetch Satoshi into public/fonts (runs before dev and build)
 npm run test:e2e     # Playwright; reuses a dev server on :3000 or starts one
@@ -133,6 +135,12 @@ How the real data source handles the rest:
 - **Two personas (dev only).** A `tuff-persona=new` cookie serves a
   brand-new account (no stats, challenges or team) to show the first-run
   states. Sign-up switches to it; the account menu flips between them.
+- **Demo crew (display only).** `data/demo-crew.ts` is static example content —
+  no users, teams, activities or points are written to any data source. It
+  shows under the no-team states on `/teams` and the dashboard team card, and
+  under the leaderboard only when that board has fewer than three real entries.
+  In mock dev mode, `/leaderboard?preview=demo-board` trims the *real* rows for
+  preview only (nothing is written) so the labelled example block can be seen.
 - **The mock is per-process.** Its DB lives on `globalThis`, so it survives
   hot reloads but resets when the dev server restarts. `POST /dev/reset`
   (development, mock only) re-seeds it; the e2e specs call it first.

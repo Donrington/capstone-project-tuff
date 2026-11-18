@@ -33,6 +33,9 @@
 .unranked strong {
   color: var(--ink);
 }
+.demoSlot {
+  margin-top: var(--space-4);
+}
 @keyframes boardIn {
   from {
     opacity: 0;
