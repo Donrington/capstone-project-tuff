@@ -5,6 +5,7 @@ interface CallbackQuery {
   code?: string;
   state?: string;
   error?: string;
+  next?: string;
 }
 
 /**

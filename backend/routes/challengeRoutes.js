@@ -8,7 +8,9 @@ const router = express.Router();
 router.get("/", requireAuth, asyncHandler(challenge.listMyChallenges));
 router.post("/create", requireAuth, asyncHandler(challenge.createChallenge));
 router.get("/get/:id", requireAuth, asyncHandler(challenge.getChallenge));
-router.get("/getbyCode/:code", asyncHandler(challenge.getChallengeByInviteCode));
+// An invite code still resolves a challenge, but only for someone with a
+// session: the public /api/invites/:code route serves the stripped-down preview.
+router.get("/getbyCode/:code", requireAuth, asyncHandler(challenge.getChallengeByInviteCode));
 router.patch("/update/:id", requireAuth, asyncHandler(challenge.updateChallenge));
 router.delete("/delete/:id", requireAuth, asyncHandler(challenge.deleteChallenge));
 

@@ -38,8 +38,8 @@ const APP_PREFIXES = [
   "/search",
   // Personal share images live here too — unauthenticated requests get the
   // same sign-in redirect as the rest of the app before the route's own 401.
+  // (/join is deliberately absent: invite pages are public — see app/join.)
   "/share",
-  "/join",
   "/onboarding",
   "/admin",
 ];

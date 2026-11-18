@@ -55,7 +55,7 @@ const STORY: Record<
  * and it dips in scale for depth; the two clips crossfade underneath. Below
  * 1024px it stacks: video as a hero banner, the active form beneath it.
  */
-export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
+export function AuthSplit({ initialMode, next }: { initialMode: AuthMode; next: string | null }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [switched, setSwitched] = useState(false);
   const signupVideo = useRef<HTMLVideoElement>(null);
@@ -63,11 +63,17 @@ export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
   const signupHeading = useRef<HTMLHeadingElement>(null);
   const signinHeading = useRef<HTMLHeadingElement>(null);
 
-  function switchMode(next: AuthMode) {
-    if (next === mode) return;
+  function switchMode(nextMode: AuthMode) {
+    if (nextMode === mode) return;
     setSwitched(true);
-    setMode(next);
-    window.history.replaceState(null, "", next === "signin" ? "/?mode=signin" : "/");
+    setMode(nextMode);
+    // Keep the invite destination when someone toggles between sign-up and
+    // sign-in; otherwise the return link is silently lost.
+    const query = new URLSearchParams();
+    if (nextMode === "signin") query.set("mode", "signin");
+    if (next) query.set("next", next);
+    const qs = query.toString();
+    window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
   }
 
   // Play the visible clip, pause the hidden one once it has faded out. Under
@@ -104,7 +110,7 @@ export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
         inert={mode !== "signin"}
         aria-label="Sign in"
       >
-        <SignInForm headingRef={signinHeading} onSwitch={() => switchMode("signup")} />
+        <SignInForm headingRef={signinHeading} onSwitch={() => switchMode("signup")} next={next} />
       </section>
 
       <section
@@ -113,7 +119,7 @@ export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
         inert={mode !== "signup"}
         aria-label="Create an account"
       >
-        <SignUpForm headingRef={signupHeading} onSwitch={() => switchMode("signin")} />
+        <SignUpForm headingRef={signupHeading} onSwitch={() => switchMode("signin")} next={next} />
       </section>
 
       <aside className={`${styles.media} theme-dark-island`} aria-label="TUFF">
@@ -191,9 +197,11 @@ export function AuthSplit({ initialMode }: { initialMode: AuthMode }) {
 interface FormProps {
   headingRef: RefObject<HTMLHeadingElement | null>;
   onSwitch: () => void;
+  /** Validated server-side; null means "go to the normal destination". */
+  next: string | null;
 }
 
-function SignUpForm({ headingRef, onSwitch }: FormProps) {
+function SignUpForm({ headingRef, onSwitch, next }: FormProps) {
   const [state, formAction] = useActionState(signUp, INITIAL_STATE);
   const errors = state.errors ?? {};
 
@@ -205,11 +213,12 @@ function SignUpForm({ headingRef, onSwitch }: FormProps) {
         </h1>
         <p className={styles.formSub}>Start your first challenge in under a minute.</p>
       </header>
-      <SocialRow />
+      <SocialRow next={next} />
       <div className={styles.divider}>
         <span>or with email</span>
       </div>
       <form action={formAction} className={styles.form} noValidate>
+        {next && <input type="hidden" name="next" value={next} />}
         <div className={styles.nameRow}>
           <FormField
             id="signup-firstName"
@@ -288,7 +297,7 @@ function SignUpForm({ headingRef, onSwitch }: FormProps) {
   );
 }
 
-function SignInForm({ headingRef, onSwitch }: FormProps) {
+function SignInForm({ headingRef, onSwitch, next }: FormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
   const errors = state.errors ?? {};
 
@@ -300,11 +309,12 @@ function SignInForm({ headingRef, onSwitch }: FormProps) {
         </h1>
         <p className={styles.formSub}>Sign in to log today&apos;s activity.</p>
       </header>
-      <SocialRow />
+      <SocialRow next={next} />
       <div className={styles.divider}>
         <span>or with email</span>
       </div>
       <form action={formAction} className={styles.form} noValidate>
+        {next && <input type="hidden" name="next" value={next} />}
         <FormField
           id="signin-email"
           label="Email"
@@ -349,14 +359,15 @@ function SignInForm({ headingRef, onSwitch }: FormProps) {
   );
 }
 
-function SocialRow() {
+function SocialRow({ next }: { next: string | null }) {
   const [pending, setPending] = useState(false);
+  const googleHref = next ? `/auth/google?${new URLSearchParams({ next })}` : "/auth/google";
 
   // A plain <a>: next/link would prefetch the route that starts the OAuth dance.
   return (
     <div className={styles.social}>
       <a
-        href="/auth/google"
+        href={googleHref}
         className={styles.socialButton}
         aria-busy={pending || undefined}
         aria-disabled={pending || undefined}

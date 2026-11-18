@@ -2,9 +2,6 @@ require("dotenv/config");
 const express = require("express");
 const cors = require("cors");
 
-require("./jobs/challengeStatusJob");
-require("./jobs/rivalBanterJob");
-
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -24,6 +21,12 @@ require("./models/Notification");
 require("./models/RefreshToken");
 
 const app = express();
+
+// The app sits behind one reverse proxy in production. Without this, Express
+// sees the proxy's address as req.ip and the public invite limiter would count
+// every visitor as the same client. One hop is deliberate; more would need a
+// matching trust depth from the deployment.
+app.set("trust proxy", 1);
 
 // FRONTEND_ORIGIN is one origin or a comma-separated list — a custom domain
 // move needs the old and new origin to both work until DNS and OAuth have
@@ -51,6 +54,9 @@ app.use(cookieParser());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+// Public: validated code, minimal payload, per-IP rate limit (see the route).
+app.use("/api/invites", require("./routes/inviteRoutes"));
+
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/challenges", require("./routes/challengeRoutes"));
 app.use("/api/challenge-participants", require("./routes/challengeParticipantRoutes"));
@@ -61,18 +67,23 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/leaderboard", require("./routes/leaderboardRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 
-// TODO(team): mount each resource's routes here as they're built, e.g.
-//   app.use("/api/challenges", require("./routes/challengeRoutes"));
-// See backend/README.md for the suggested folder layout and the full API
-// contract.
-
 app.use(notFound);
 app.use(errorHandler); // must be last — Express finds it by its 4-arg signature
 
-const PORT = process.env.PORT || 4000;
+// Exporting the app keeps the route table importable for checks without
+// opening a DB connection or starting the cron jobs; `npm start` still runs
+// this block because it's the entry module.
+if (require.main === module) {
+  require("./jobs/challengeStatusJob");
+  require("./jobs/rivalBanterJob");
 
-connectDB()
-  .then(() => syncAchievementCatalog())
-  .then(() => {
-    app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
-  });
+  const PORT = process.env.PORT || 4000;
+
+  connectDB()
+    .then(() => syncAchievementCatalog())
+    .then(() => {
+      app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+    });
+}
+
+module.exports = app;

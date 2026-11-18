@@ -9,6 +9,7 @@ import { validateCameraSession } from "@/lib/camera-session";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
+import type { InvitePreview } from "@/lib/invite";
 import type {
   Achievement,
   Activity,
@@ -787,6 +788,40 @@ export interface CodeMatch {
 function normalizeCode(code: string) {
   return code.replace(/[^a-z0-9]/gi, "").toUpperCase();
 }
+
+/** Mirrors GET /api/invites/:code in the mock data source. */
+export const getInvitePreview = cache(async (code: string): Promise<InvitePreview | null> => {
+  const wanted = normalizeCode(code);
+  if (!wanted) return settle(null);
+  const d = await db();
+
+  const storedTeam = d.teams.find((t) => normalizeCode(t.inviteCode) === wanted);
+  if (storedTeam) {
+    const inviter =
+      storedTeam.createdBy === d.user.id
+        ? d.user
+        : d.people.find((p) => p.id === storedTeam.createdBy);
+    return settle({
+      kind: "team" as const,
+      name: storedTeam.name,
+      memberCount: memberIdsOf(d, storedTeam.id).length,
+      inviterFirstName: inviter?.firstName ?? "A teammate",
+    });
+  }
+
+  const stored = d.challenges.find((c) => c.code && normalizeCode(c.code) === wanted);
+  if (!stored) return settle(null);
+  const challenge = challengeView(d, stored);
+  return settle({
+    kind: "challenge" as const,
+    title: challenge.title,
+    goal: challenge.goal,
+    unit: challenge.unit,
+    // The mock has no challenge author; the current demo user stands in.
+    endDate: challenge.endDate,
+    inviterFirstName: d.user.firstName,
+  });
+});
 
 // TODO(backend): GET /api/challenges/getbyCode/:code, and a team lookup by code
 export const findByCode = cache(async (code: string): Promise<CodeMatch | null> => {

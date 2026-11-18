@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { suggestedChallenges } from "@/data/suggested-challenges";
-import { api, apiOptional, ApiError, isObjectId } from "@/lib/api/client";
+import { api, apiOptional, apiPublic, ApiError, isObjectId } from "@/lib/api/client";
 import { clearSessionCookies } from "@/lib/api/cookies";
 import { challengePace } from "@/lib/challenge-pace";
 import { pluralize } from "@/lib/pluralize";
@@ -37,6 +37,7 @@ import type {
   TodayStats,
   User,
 } from "@/lib/types";
+import type { InvitePreview } from "@/lib/invite";
 import type { CodeMatch, DailyStepsLogged, LoggedActivity, OnboardingAnswers, TeamMember, TeamResult } from "./mock";
 
 /**
@@ -630,6 +631,22 @@ export const getSearchIndex = cache(async (): Promise<SearchItem[]> => {
 export const getSuggestedChallenges = cache(async (): Promise<SuggestedChallenge[]> => suggestedChallenges);
 
 const normalizeCode = (code: string) => code.replace(/[^a-z0-9]/gi, "").toUpperCase();
+
+/**
+ * Public invite preview. Deliberately not `apiOptional`: that would forward
+ * session cookies and try a refresh, which is pointless for a link someone
+ * opens while signed out. A 404 is the expected "no such invite" answer.
+ */
+export const getInvitePreview = cache(async (code: string): Promise<InvitePreview | null> => {
+  const wanted = normalizeCode(code);
+  if (!wanted) return null;
+  try {
+    return await apiPublic<InvitePreview>(`/api/invites/${encodeURIComponent(wanted)}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+});
 
 export const findByCode = cache(async (code: string): Promise<CodeMatch | null> => {
   const wanted = normalizeCode(code);

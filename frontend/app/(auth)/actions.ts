@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MOCK_SESSION_COOKIE } from "@/lib/auth/get-current-user";
+import { clearNextCookie, setNextCookie } from "@/lib/auth/next-cookie";
+import { safeNext } from "@/lib/auth/safe-next";
 import { api, ApiError } from "@/lib/api/client";
 import { DATA_SOURCE } from "@/lib/api/config";
 import { PERSONA_COOKIE, startNewPersona } from "@/lib/data";
@@ -22,6 +24,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const acceptedTerms = formData.get("terms") === "on";
+  const next = safeNext(formData.get("next"));
 
   const errors: AuthState["errors"] = {};
   if (firstName.length < 1) errors.firstName = "Tell us what to call you.";
@@ -42,6 +45,10 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
       if (err.status === 409) return { errors: { email: "That email already has an account. Sign in instead." }, values };
       return { errors: err.details, message: err.details ? undefined : err.message, values };
     }
+    // New accounts still have onboarding ahead of them; the invite has to
+    // survive that extra hop in a cookie.
+    await clearNextCookie();
+    if (next) await setNextCookie(next);
     redirect("/onboarding");
   }
 
@@ -51,18 +58,26 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   jar.delete(MOCK_SESSION_COOKIE);
   startNewPersona({ firstName, lastName, email });
   jar.set(PERSONA_COOKIE, "new", { path: "/", sameSite: "lax", httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
+  await clearNextCookie();
+  if (next) await setNextCookie(next);
   redirect("/onboarding");
 }
 
 export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   const errors: AuthState["errors"] = {};
   if (!EMAIL_RE.test(email)) errors.email = "Enter the email you signed up with.";
   if (!password) errors.password = "Enter your password.";
 
   if (Object.keys(errors).length > 0) return { errors, values: { email } };
+
+  // Existing accounts have no onboarding hop, so the hidden field is enough.
+  // Clear any older cookie rather than letting it hijack a later sign-in.
+  const destination = next ?? "/dashboard";
+  await clearNextCookie();
 
   if (DATA_SOURCE === "api") {
     try {
@@ -74,14 +89,14 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
       if (err.status === 401) return { message: err.message || "Wrong email or password.", values: { email } };
       return { errors: err.details, message: err.details ? undefined : err.message, values: { email } };
     }
-    redirect("/dashboard");
+    redirect(destination);
   }
 
   // Mock: back in as the returning account (#20).
   const jar = await cookies();
   jar.delete(MOCK_SESSION_COOKIE);
   jar.delete(PERSONA_COOKIE);
-  redirect("/dashboard");
+  redirect(destination);
 }
 
 export interface ResetRequestState {

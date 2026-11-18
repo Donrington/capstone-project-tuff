@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MOCK_SESSION_COOKIE } from "@/lib/auth/get-current-user";
+import { clearNextCookie, getNextCookie } from "@/lib/auth/next-cookie";
+import { safeNext } from "@/lib/auth/safe-next";
 import { api, ApiError } from "@/lib/api/client";
 import { DATA_SOURCE } from "@/lib/api/config";
 import { clearSessionCookies } from "@/lib/api/cookies";
@@ -604,6 +606,9 @@ export async function completeOnboardingAction(
   const teamChoice = String(formData.get("teamChoice") ?? "skip");
   const teamCode = String(formData.get("teamCode") ?? "").trim();
   const teamName = String(formData.get("teamName") ?? "").trim();
+  // The hidden field is primary; the cookie covers a reload mid-flow. Both
+  // go through the same allowlist before becoming a redirect.
+  const next = safeNext(formData.get("next")) ?? (await getNextCookie());
 
   const errors: OnboardingState["errors"] = {};
   const stepGoal = stepGoalRaw && stepGoalRaw !== "later" ? Number(stepGoalRaw) : undefined;
@@ -650,5 +655,6 @@ export async function completeOnboardingAction(
   }
 
   refresh();
-  redirect("/dashboard?flash=welcome");
+  await clearNextCookie();
+  redirect(next ?? "/dashboard?flash=welcome");
 }
