@@ -10,22 +10,39 @@ import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
 import { createCounter, type Counter, type CounterState, type Exercise } from "@/lib/rep-counter/counter";
+import { createHoldTimer, MIN_SEGMENT_MS, type HoldState, type HoldTimer } from "@/lib/rep-counter/hold";
 import type { Challenge } from "@/lib/types";
-import { saveCameraSession } from "@/app/(app)/actions";
+import {
+  saveCameraHold,
+  saveCameraSession,
+  type SaveCameraSessionState,
+} from "@/app/(app)/actions";
 import { drawPose } from "./draw-pose";
 import styles from "./CameraCounter.module.css";
+
+export type TrainExercise = Exercise | "plank";
 
 type CameraStatus = "idle" | "loading-model" | "starting-camera" | "live" | "denied" | "no-camera" | "error";
 
 const MODEL_PATH = "/mediapipe/pose_landmarker_lite.task";
 const WASM_PATH = "/mediapipe/wasm";
 const FRAME_INTERVAL = 1000 / 30;
+const MIN_HOLD_MS = 5000;
 
 const INITIAL_STATE: CounterState = { reps: 0, repTimes: [], phase: "not-visible", angle: null, flags: [] };
+const INITIAL_HOLD: HoldState = {
+  heldMs: 0,
+  holding: false,
+  phase: "not-visible",
+  angle: null,
+  flags: [],
+  segments: [],
+};
 
 const OPTIONS: ChipOption[] = [
   { value: "pushups", label: "Push-ups", hint: "Tracks your elbow angle" },
   { value: "squats", label: "Squats", hint: "Tracks your knee angle" },
+  { value: "plank", label: "Plank (hold)", hint: "Times a straight-body hold" },
 ];
 
 const STATUS_COPY: Record<CameraStatus, string> = {
@@ -33,7 +50,7 @@ const STATUS_COPY: Record<CameraStatus, string> = {
   "loading-model": "Loading the pose model…",
   "starting-camera": "Starting the camera…",
   live: "",
-  denied: "Camera access was blocked — allow it in your browser settings to count reps.",
+  denied: "Camera access was blocked — allow it in your browser settings to count reps and holds.",
   "no-camera": "No camera found — connect a camera and try again.",
   error: "The camera couldn't start. Check your browser and try again.",
 };
@@ -44,19 +61,34 @@ const PHASE_LABEL: Record<CounterState["phase"], string> = {
   "not-visible": "Not visible",
 };
 
-const TITLE_HINT: Record<Exercise, RegExp> = {
-  pushups: /push[\s-]?up/i,
-  squats: /squat/i,
+const HOLD_PHASE_LABEL: Record<HoldState["phase"], string> = {
+  holding: "Holding",
+  broken: "Hold broken",
+  "not-visible": "Not visible",
 };
 
-/** The reps challenge that best matches what's being counted: the library
- *  slug when there is one, otherwise the challenge's name, otherwise the
- *  first reps challenge. */
-function bestChallenge(challenges: Challenge[], exercise: Exercise) {
+const TITLE_HINT: Record<TrainExercise, RegExp> = {
+  pushups: /push[\s-]?up/i,
+  squats: /squat/i,
+  plank: /plank/i,
+};
+
+/** m:ss, from the time the camera actually spent holding the plank. */
+function formatTimer(heldMs: number) {
+  const total = Math.floor(heldMs / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** The challenge that best matches what's being counted: the library slug
+ *  when there is one, otherwise the challenge's name, otherwise the first
+ *  challenge in the matching unit. */
+function bestChallenge(challenges: Challenge[], exercise: TrainExercise) {
+  const unit = exercise === "plank" ? "seconds" : "reps";
+  const candidates = challenges.filter((c) => c.unit === unit);
   return (
-    challenges.find((c) => c.activity === exercise) ??
-    challenges.find((c) => TITLE_HINT[exercise].test(c.title)) ??
-    challenges[0]
+    candidates.find((c) => c.activity === exercise) ??
+    candidates.find((c) => TITLE_HINT[exercise].test(c.title)) ??
+    candidates[0]
   );
 }
 
@@ -65,13 +97,14 @@ export function CameraCounter({
   initialExercise,
   challenges,
 }: {
-  initialExercise: Exercise;
+  initialExercise: TrainExercise;
   challenges: Challenge[];
 }) {
   const toast = useToast();
-  const [exercise, setExercise] = useState<Exercise>(initialExercise);
+  const [exercise, setExercise] = useState<TrainExercise>(initialExercise);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [state, setState] = useState<CounterState>(INITIAL_STATE);
+  const [hold, setHold] = useState<HoldState>(INITIAL_HOLD);
   const [challengeId, setChallengeId] = useState(() => bestChallenge(challenges, initialExercise)?.id ?? "");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -81,12 +114,21 @@ export function CameraCounter({
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<PoseLandmarkerInstance | null>(null);
   const rafRef = useRef<number | null>(null);
-  const counterRef = useRef<Counter>(createCounter(initialExercise));
+  const counterRef = useRef<Counter>(createCounter(initialExercise === "plank" ? "pushups" : initialExercise));
+  const holdTimerRef = useRef<HoldTimer>(createHoldTimer("plank"));
+  // `tick` is a stable callback, so it reads the live exercise from a ref.
+  const exerciseRef = useRef<TrainExercise>(initialExercise);
   const lastFrameRef = useRef(0);
   const mountedRef = useRef(true);
   /** performance.now() marks for the current set, used to describe its pacing. */
   const sessionStartRef = useRef<number | null>(null);
   const sessionEndRef = useRef<number | null>(null);
+
+  const isHold = exercise === "plank";
+  const seconds = Math.floor(hold.heldMs / 1000);
+  const relevantChallenges = challenges.filter((c) => c.unit === (isHold ? "seconds" : "reps"));
+  const canReset = isHold ? hold.heldMs > 0 : state.reps > 0;
+  const hasResult = isHold ? hold.heldMs >= MIN_HOLD_MS : state.reps > 0;
 
   const stop = useCallback(() => {
     if (rafRef.current !== null) {
@@ -118,9 +160,17 @@ export function CameraCounter({
 
     const timestamp = performance.now();
     const detected = landmarker.detectForVideo(video, timestamp).landmarks[0] ?? [];
-    const next = counterRef.current.update(detected, timestamp);
-    const visible = detected.length > 0 && next.phase !== "not-visible" ? detected : null;
-    setState(next);
+    let phase: string;
+    if (exerciseRef.current === "plank") {
+      const next = holdTimerRef.current.update(detected, timestamp);
+      phase = next.phase;
+      setHold(next);
+    } else {
+      const next = counterRef.current.update(detected, timestamp);
+      phase = next.phase;
+      setState(next);
+    }
+    const visible = detected.length > 0 && phase !== "not-visible" ? detected : null;
     drawPose(canvasRef.current, visible);
   }, []);
 
@@ -133,6 +183,9 @@ export function CameraCounter({
   }, [stop]);
 
   async function start() {
+    // A partial hold below the save threshold has no panel to clear it, so a
+    // new session always begins with fresh counters.
+    clearSet();
     setStatus("loading-model");
     try {
       // Loaded on click so the (large) WASM bundle never touches the server
@@ -182,7 +235,6 @@ export function CameraCounter({
       setStatus("live");
       sessionStartRef.current = performance.now();
       sessionEndRef.current = null;
-      setSaveError(null);
       lastFrameRef.current = 0;
       rafRef.current = requestAnimationFrame(tick);
     } catch (error) {
@@ -201,9 +253,11 @@ export function CameraCounter({
     }
   }
 
-  function clearSet() {
-    counterRef.current = createCounter(exercise);
+  function clearSet(next: TrainExercise = exercise) {
+    counterRef.current = createCounter(next === "plank" ? "pushups" : next);
+    holdTimerRef.current = createHoldTimer("plank");
     setState(INITIAL_STATE);
+    setHold(INITIAL_HOLD);
     setSaveError(null);
   }
 
@@ -216,15 +270,35 @@ export function CameraCounter({
   }
 
   function changeExercise(next: string | string[]) {
-    if (next !== "pushups" && next !== "squats") return;
+    if (next !== "pushups" && next !== "squats" && next !== "plank") return;
+    exerciseRef.current = next;
     setExercise(next);
-    clearSet();
+    clearSet(next);
     sessionStartRef.current = null;
     sessionEndRef.current = null;
     setChallengeId(bestChallenge(challenges, next)?.id ?? "");
   }
 
   function discard() {
+    clearSet();
+    sessionStartRef.current = null;
+    sessionEndRef.current = null;
+  }
+
+  function finishSave(result: SaveCameraSessionState, unit: "reps" | "seconds") {
+    if (result.error || !result.logged) {
+      setSaveError(result.error ?? "Couldn't save that set. Try again.");
+      return;
+    }
+    const logged = result.logged;
+    const saved = logged.current - logged.previous;
+    toast({
+      title: unit === "seconds"
+        ? `Saved ${saved} seconds.`
+        : `Saved ${formatCount(saved)} ${saved === 1 ? "rep" : "reps"}.`,
+      description: `${logged.challengeName} · Camera-counted.`,
+      tone: "success",
+    });
     clearSet();
     sessionStartRef.current = null;
     sessionEndRef.current = null;
@@ -237,42 +311,47 @@ export function CameraCounter({
       setSaveError("Count a set and stop the camera before saving.");
       return;
     }
-    const value = state.reps;
-    const repOffsetsMs = state.repTimes.map((time) => Math.round(time - startedAt));
     const durationMs = Math.round(endedAt - startedAt);
     setSaveError(null);
 
-    startSaving(async () => {
-      const result = await saveCameraSession({
-        challengeId,
-        value,
-        exercise,
-        durationMs,
-        repOffsetsMs,
-      });
-      if (result.error || !result.logged) {
-        setSaveError(result.error ?? "Couldn't save that set. Try again.");
+    if (isHold) {
+      // Round first, then derive the seconds from exactly what's sent: the
+      // server checks value === floor(sum of segments / 1000), and rounding
+      // each end separately can tip the sum across a whole second. The open
+      // segment at Stop can also be shorter than the server accepts.
+      const segmentsMs = hold.segments
+        .map(
+          (segment) =>
+            [Math.round(segment.startMs - startedAt), Math.round(segment.endMs - startedAt)] as [number, number],
+        )
+        .filter(([start, end]) => end - start >= MIN_SEGMENT_MS);
+      const heldSeconds = Math.floor(segmentsMs.reduce((total, [start, end]) => total + (end - start), 0) / 1000);
+      if (heldSeconds < 5) {
+        setSaveError("Hold at least 5 seconds before saving.");
         return;
       }
-
-      const logged = result.logged;
-      const saved = logged.current - logged.previous;
-      toast({
-        title: `Saved ${formatCount(saved)} ${saved === 1 ? "rep" : "reps"}.`,
-        description: `${logged.challengeName} · Camera-counted.`,
-        tone: "success",
+      startSaving(async () => {
+        finishSave(await saveCameraHold({ challengeId, value: heldSeconds, durationMs, segmentsMs }), "seconds");
       });
-      clearSet();
-      sessionStartRef.current = null;
-      sessionEndRef.current = null;
+      return;
+    }
+
+    const value = state.reps;
+    const repOffsetsMs = state.repTimes.map((time) => Math.round(time - startedAt));
+    startSaving(async () => {
+      finishSave(
+        await saveCameraSession({ challengeId, value, exercise, durationMs, repOffsetsMs }),
+        "reps",
+      );
     });
   }
 
-  const latestFlag = state.flags[state.flags.length - 1];
+  const latestFlag = isHold ? hold.flags[hold.flags.length - 1] : state.flags[state.flags.length - 1];
   const busy = status === "loading-model" || status === "starting-camera";
   const locked = busy || status === "live";
-  const unsaved = state.reps > 0;
-  const announcement = `${state.reps} ${state.reps === 1 ? "rep" : "reps"}. ${latestFlag?.message ?? ""}`.trim();
+  const announcement = isHold
+    ? `${formatTimer(hold.heldMs)} held. ${HOLD_PHASE_LABEL[hold.phase]}. ${latestFlag?.message ?? ""}`.trim()
+    : `${state.reps} ${state.reps === 1 ? "rep" : "reps"}. ${latestFlag?.message ?? ""}`.trim();
 
   return (
     <div className={styles.page}>
@@ -293,28 +372,39 @@ export function CameraCounter({
             <canvas ref={canvasRef} className={styles.overlay} aria-hidden="true" />
             {status !== "live" && (
               <p className={styles.placeholder} role="status">
-                {status === "idle" && unsaved ? "Set finished — save it below." : STATUS_COPY[status]}
+                {status === "idle" && hasResult
+                  ? isHold
+                    ? "Hold finished — save it below."
+                    : "Set finished — save it below."
+                  : STATUS_COPY[status]}
               </p>
             )}
           </div>
 
           <div className={styles.readout}>
-            <div>
-              <span className={styles.repNumber}>{state.reps}</span>
-              <span className={styles.repLabel}>reps</span>
-            </div>
+            {isHold ? (
+              <div>
+                <span className={styles.repNumber}>{formatTimer(hold.heldMs)}</span>
+                <span className={styles.repLabel}>held</span>
+              </div>
+            ) : (
+              <div>
+                <span className={styles.repNumber}>{state.reps}</span>
+                <span className={styles.repLabel}>reps</span>
+              </div>
+            )}
             <p className={styles.phase}>
-              Phase <strong>{PHASE_LABEL[state.phase]}</strong>
+              Phase <strong>{isHold ? HOLD_PHASE_LABEL[hold.phase] : PHASE_LABEL[state.phase]}</strong>
             </p>
           </div>
 
           {latestFlag && (
-            <p className={styles.callout}>
+            <p className={styles.callout} aria-live="polite">
               <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
               {latestFlag.message}
             </p>
           )}
-          {status === "live" && state.phase === "not-visible" && (
+          {status === "live" && (isHold ? hold.phase === "not-visible" : state.phase === "not-visible") && (
             <p className={styles.hint}>Step back so your whole body is in frame.</p>
           )}
 
@@ -325,34 +415,51 @@ export function CameraCounter({
                 Stop camera
               </Button>
             ) : (
-              <Button onClick={start} disabled={busy || unsaved} aria-busy={busy}>
+              <Button onClick={start} disabled={busy || hasResult} aria-busy={busy}>
                 <Camera size={18} strokeWidth={2.25} aria-hidden="true" />
                 Start camera
               </Button>
             )}
-            <Button variant="ghost" onClick={reset} disabled={state.reps === 0 || saving}>
+            <Button variant="ghost" onClick={reset} disabled={!canReset || saving}>
               <RotateCcw size={16} strokeWidth={2.25} aria-hidden="true" />
               Reset
             </Button>
           </div>
 
-          {unsaved && status === "live" && (
-            <p className={styles.saveHint}>Stop the camera when the set&rsquo;s done, then save it.</p>
+          {hasResult && status === "live" && (
+            <p className={styles.saveHint}>
+              {isHold ? "Stop the camera when your hold's done, then save it." : "Stop the camera when the set's done, then save it."}
+            </p>
           )}
 
-          {unsaved && status !== "live" && (
+          {hasResult && status !== "live" && (
             <div className={styles.save}>
-              <h3 className={styles.saveTitle}>Save this set</h3>
-              {challenges.length === 0 ? (
+              <h3 className={styles.saveTitle}>Save this {isHold ? "hold" : "set"}</h3>
+              {relevantChallenges.length === 0 ? (
                 <p className={styles.saveText}>
-                  {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted, but you&rsquo;re not in a
-                  reps challenge yet — <Link href="/challenges">find a reps challenge</Link> to save them to.
+                  {isHold ? (
+                    <Link href="/challenges">Join or start a seconds challenge — like Plank a Day — to save holds.</Link>
+                  ) : (
+                    <>
+                      {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted, but you&rsquo;re not in a
+                      reps challenge yet — <Link href="/challenges">find a reps challenge</Link> to save them to.
+                    </>
+                  )}
                 </p>
               ) : (
                 <>
                   <p className={styles.saveText}>
-                    {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted on your device. Saving
-                    adds them to the challenge as <strong>Camera-counted</strong>.
+                    {isHold ? (
+                      <>
+                        {seconds} seconds counted on your device. Saving adds them to the challenge as{" "}
+                        <strong>Camera-counted</strong>.
+                      </>
+                    ) : (
+                      <>
+                        {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted on your device. Saving
+                        adds them to the challenge as <strong>Camera-counted</strong>.
+                      </>
+                    )}
                   </p>
                   <Select
                     label="Challenge"
@@ -360,7 +467,7 @@ export function CameraCounter({
                     value={challengeId}
                     onChange={(event) => setChallengeId(event.target.value)}
                     disabled={saving}
-                    options={challenges.map((c) => ({ value: c.id, label: c.title }))}
+                    options={relevantChallenges.map((c) => ({ value: c.id, label: c.title }))}
                   />
                 </>
               )}
@@ -370,13 +477,15 @@ export function CameraCounter({
                 </p>
               )}
               <div className={styles.saveActions}>
-                {challenges.length > 0 && (
+                {relevantChallenges.length > 0 && (
                   <Button onClick={save} disabled={saving || !challengeId} aria-busy={saving || undefined}>
                     {saving ? (
                       <>
                         <Loader2 size={18} className={styles.spin} aria-hidden="true" />
                         Saving…
                       </>
+                    ) : isHold ? (
+                      `Save ${seconds} seconds`
                     ) : (
                       `Save ${formatCount(state.reps)} ${state.reps === 1 ? "rep" : "reps"}`
                     )}
@@ -410,7 +519,9 @@ export function CameraCounter({
             onChange={changeExercise}
           />
           <p className={styles.helper}>
-            Prop your phone side-on, about 2 m away at hip height, so the camera sees you in profile. Keep your head, hips and feet in frame.
+            {isHold
+              ? "Prop your phone side-on at floor level, about 2 m away, so it sees you from head to heels."
+              : "Prop your phone side-on, about 2 m away at hip height, so the camera sees you in profile. Keep your head, hips and feet in frame."}
           </p>
         </section>
       </div>

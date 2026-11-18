@@ -775,7 +775,12 @@ export async function addActivity(input: {
   when: "today" | "yesterday";
   note?: string;
   source?: "manual" | "camera";
-  cameraSession?: { exercise: "pushups" | "squats"; durationMs: number; repOffsetsMs: number[] };
+  cameraSession?: {
+    exercise: "pushups" | "squats" | "plank";
+    durationMs: number;
+    repOffsetsMs?: number[];
+    segmentsMs?: Array<[number, number]>;
+  };
 }): Promise<LoggedActivity | null> {
   const before = await getChallenge(input.challengeId);
   if (!before) return null;

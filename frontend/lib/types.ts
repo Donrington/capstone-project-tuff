@@ -180,7 +180,7 @@ export interface Activity {
   value: number; // steps, reps, seconds — unit is defined by the challenge
   note?: string;
   source?: ActivitySource;
-  cameraSession?: { durationMs: number; exercise: "pushups" | "squats" };
+  cameraSession?: { durationMs: number; exercise: "pushups" | "squats" | "plank" };
 }
 
 export interface Challenge {

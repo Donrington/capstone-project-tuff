@@ -34,6 +34,7 @@ import {
 } from "@/lib/data";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import { capFor, capMessage } from "@/lib/activity-limits";
+import { validateCameraSession } from "@/lib/camera-session";
 import { pluralize } from "@/lib/pluralize";
 import type { FitnessLevel, Gender, Motivation, NotificationPrefs, Persona, ProfileVisibility } from "@/lib/types";
 
@@ -184,6 +185,46 @@ export async function saveCameraSession(input: {
         durationMs: input.durationMs,
         repOffsetsMs: input.repOffsetsMs,
       },
+    });
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    return { error: err.message };
+  }
+  if (!logged) return { error: "That challenge isn't there any more." };
+
+  refresh();
+  return { ok: true, logged };
+}
+
+/**
+ * Saves the seconds the browser's hold timer credited on the user's device.
+ * Same path as a rep session, but the evidence is hold segments: they're
+ * checked here and in the data layer, then stored only as a summary.
+ */
+export async function saveCameraHold(input: {
+  challengeId: string;
+  value: number;
+  durationMs: number;
+  segmentsMs: Array<[number, number]>;
+}): Promise<SaveCameraSessionState> {
+  const challengeId = input.challengeId.trim();
+  if (!challengeId) return { error: "Pick a challenge to save to." };
+  const cameraSession = {
+    exercise: "plank" as const,
+    durationMs: input.durationMs,
+    segmentsMs: input.segmentsMs,
+  };
+  const problem = validateCameraSession({ value: input.value, unit: "seconds", session: cameraSession });
+  if (problem) return { error: problem };
+
+  let logged;
+  try {
+    logged = await addActivity({
+      challengeId,
+      value: input.value,
+      when: "today",
+      source: "camera",
+      cameraSession,
     });
   } catch (err) {
     if (!(err instanceof ApiError)) throw err;
