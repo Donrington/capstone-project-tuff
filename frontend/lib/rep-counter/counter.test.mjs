@@ -52,6 +52,18 @@ test("three clean squats count three reps", () => {
   assert.deepEqual(state.flags, []);
 });
 
+test("repTimes records one increasing timestamp per counted rep", () => {
+  const state = feed(createCounter("squats"), "squats", repeat(squatRep, 3));
+  assert.deepEqual(state.repTimes.length, 3);
+  assert.ok(state.repTimes[0] < state.repTimes[1]);
+  assert.ok(state.repTimes[1] < state.repTimes[2]);
+});
+
+test("shallow attempts add no repTimes", () => {
+  const state = feed(createCounter("squats"), "squats", repeat(shallowSquat, 2));
+  assert.deepEqual(state.repTimes, []);
+});
+
 test("jitter around the up threshold does not add reps", () => {
   const counter = createCounter("squats");
   feed(counter, "squats", repeat(squatRep, 3));

@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { PoseLandmarker as PoseLandmarkerInstance } from "@mediapipe/tasks-vision";
-import { AlertTriangle, Camera, RotateCcw, ShieldCheck, Square } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Camera, Loader2, RotateCcw, ShieldCheck, Square } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { RadioChips, type ChipOption } from "@/components/ui/RadioChips";
+import { Select } from "@/components/ui/Select";
+import { useToast } from "@/components/ui/Toast";
+import { formatCount } from "@/lib/challenge-card";
 import { createCounter, type Counter, type CounterState, type Exercise } from "@/lib/rep-counter/counter";
+import type { Challenge } from "@/lib/types";
+import { saveCameraSession } from "@/app/(app)/actions";
 import { drawPose } from "./draw-pose";
 import styles from "./CameraCounter.module.css";
 
@@ -15,7 +21,7 @@ const MODEL_PATH = "/mediapipe/pose_landmarker_lite.task";
 const WASM_PATH = "/mediapipe/wasm";
 const FRAME_INTERVAL = 1000 / 30;
 
-const INITIAL_STATE: CounterState = { reps: 0, phase: "not-visible", angle: null, flags: [] };
+const INITIAL_STATE: CounterState = { reps: 0, repTimes: [], phase: "not-visible", angle: null, flags: [] };
 
 const OPTIONS: ChipOption[] = [
   { value: "pushups", label: "Push-ups", hint: "Tracks your elbow angle" },
@@ -38,11 +44,37 @@ const PHASE_LABEL: Record<CounterState["phase"], string> = {
   "not-visible": "Not visible",
 };
 
+const TITLE_HINT: Record<Exercise, RegExp> = {
+  pushups: /push[\s-]?up/i,
+  squats: /squat/i,
+};
+
+/** The reps challenge that best matches what's being counted: the library
+ *  slug when there is one, otherwise the challenge's name, otherwise the
+ *  first reps challenge. */
+function bestChallenge(challenges: Challenge[], exercise: Exercise) {
+  return (
+    challenges.find((c) => c.activity === exercise) ??
+    challenges.find((c) => TITLE_HINT[exercise].test(c.title)) ??
+    challenges[0]
+  );
+}
+
 /** On-demand camera counting: no getUserMedia call until the button is pressed. */
-export function CameraCounter({ initialExercise }: { initialExercise: Exercise }) {
+export function CameraCounter({
+  initialExercise,
+  challenges,
+}: {
+  initialExercise: Exercise;
+  challenges: Challenge[];
+}) {
+  const toast = useToast();
   const [exercise, setExercise] = useState<Exercise>(initialExercise);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [state, setState] = useState<CounterState>(INITIAL_STATE);
+  const [challengeId, setChallengeId] = useState(() => bestChallenge(challenges, initialExercise)?.id ?? "");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -52,11 +84,19 @@ export function CameraCounter({ initialExercise }: { initialExercise: Exercise }
   const counterRef = useRef<Counter>(createCounter(initialExercise));
   const lastFrameRef = useRef(0);
   const mountedRef = useRef(true);
+  /** performance.now() marks for the current set, used to describe its pacing. */
+  const sessionStartRef = useRef<number | null>(null);
+  const sessionEndRef = useRef<number | null>(null);
 
   const stop = useCallback(() => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+    // The set ends when the camera does, so the saved duration is the span
+    // the counter was actually watching — not the time spent on this panel.
+    if (sessionStartRef.current !== null && sessionEndRef.current === null) {
+      sessionEndRef.current = performance.now();
     }
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -140,6 +180,9 @@ export function CameraCounter({ initialExercise }: { initialExercise: Exercise }
         canvas.height = video.videoHeight || 480;
       }
       setStatus("live");
+      sessionStartRef.current = performance.now();
+      sessionEndRef.current = null;
+      setSaveError(null);
       lastFrameRef.current = 0;
       rafRef.current = requestAnimationFrame(tick);
     } catch (error) {
@@ -158,21 +201,77 @@ export function CameraCounter({ initialExercise }: { initialExercise: Exercise }
     }
   }
 
-  function reset() {
+  function clearSet() {
     counterRef.current = createCounter(exercise);
     setState(INITIAL_STATE);
+    setSaveError(null);
+  }
+
+  function reset() {
+    clearSet();
+    // Resetting while the camera is live starts a fresh set from now; after a
+    // stop it drops the unsaved one.
+    sessionStartRef.current = status === "live" ? performance.now() : null;
+    sessionEndRef.current = null;
   }
 
   function changeExercise(next: string | string[]) {
     if (next !== "pushups" && next !== "squats") return;
     setExercise(next);
-    counterRef.current = createCounter(next);
-    setState(INITIAL_STATE);
+    clearSet();
+    sessionStartRef.current = null;
+    sessionEndRef.current = null;
+    setChallengeId(bestChallenge(challenges, next)?.id ?? "");
+  }
+
+  function discard() {
+    clearSet();
+    sessionStartRef.current = null;
+    sessionEndRef.current = null;
+  }
+
+  function save() {
+    const startedAt = sessionStartRef.current;
+    const endedAt = sessionEndRef.current;
+    if (startedAt === null || endedAt === null || !challengeId) {
+      setSaveError("Count a set and stop the camera before saving.");
+      return;
+    }
+    const value = state.reps;
+    const repOffsetsMs = state.repTimes.map((time) => Math.round(time - startedAt));
+    const durationMs = Math.round(endedAt - startedAt);
+    setSaveError(null);
+
+    startSaving(async () => {
+      const result = await saveCameraSession({
+        challengeId,
+        value,
+        exercise,
+        durationMs,
+        repOffsetsMs,
+      });
+      if (result.error || !result.logged) {
+        setSaveError(result.error ?? "Couldn't save that set. Try again.");
+        return;
+      }
+
+      const logged = result.logged;
+      const saved = logged.current - logged.previous;
+      toast({
+        title: `Saved ${formatCount(saved)} ${saved === 1 ? "rep" : "reps"}.`,
+        description: `${logged.challengeName} · Camera-counted.`,
+        tone: "success",
+      });
+      clearSet();
+      sessionStartRef.current = null;
+      sessionEndRef.current = null;
+    });
   }
 
   const latestFlag = state.flags[state.flags.length - 1];
   const busy = status === "loading-model" || status === "starting-camera";
   const locked = busy || status === "live";
+  const unsaved = state.reps > 0;
   const announcement = `${state.reps} ${state.reps === 1 ? "rep" : "reps"}. ${latestFlag?.message ?? ""}`.trim();
 
   return (
@@ -194,7 +293,7 @@ export function CameraCounter({ initialExercise }: { initialExercise: Exercise }
             <canvas ref={canvasRef} className={styles.overlay} aria-hidden="true" />
             {status !== "live" && (
               <p className={styles.placeholder} role="status">
-                {STATUS_COPY[status]}
+                {status === "idle" && unsaved ? "Set finished — save it below." : STATUS_COPY[status]}
               </p>
             )}
           </div>
@@ -226,16 +325,70 @@ export function CameraCounter({ initialExercise }: { initialExercise: Exercise }
                 Stop camera
               </Button>
             ) : (
-              <Button onClick={start} disabled={busy} aria-busy={busy}>
+              <Button onClick={start} disabled={busy || unsaved} aria-busy={busy}>
                 <Camera size={18} strokeWidth={2.25} aria-hidden="true" />
                 Start camera
               </Button>
             )}
-            <Button variant="ghost" onClick={reset} disabled={state.reps === 0}>
+            <Button variant="ghost" onClick={reset} disabled={state.reps === 0 || saving}>
               <RotateCcw size={16} strokeWidth={2.25} aria-hidden="true" />
               Reset
             </Button>
           </div>
+
+          {unsaved && status === "live" && (
+            <p className={styles.saveHint}>Stop the camera when the set&rsquo;s done, then save it.</p>
+          )}
+
+          {unsaved && status !== "live" && (
+            <div className={styles.save}>
+              <h3 className={styles.saveTitle}>Save this set</h3>
+              {challenges.length === 0 ? (
+                <p className={styles.saveText}>
+                  {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted, but you&rsquo;re not in a
+                  reps challenge yet — <Link href="/challenges">find a reps challenge</Link> to save them to.
+                </p>
+              ) : (
+                <>
+                  <p className={styles.saveText}>
+                    {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted on your device. Saving
+                    adds them to the challenge as <strong>Camera-counted</strong>.
+                  </p>
+                  <Select
+                    label="Challenge"
+                    name="camera-challenge"
+                    value={challengeId}
+                    onChange={(event) => setChallengeId(event.target.value)}
+                    disabled={saving}
+                    options={challenges.map((c) => ({ value: c.id, label: c.title }))}
+                  />
+                </>
+              )}
+              {saveError && (
+                <p className={styles.saveError} role="alert">
+                  {saveError}
+                </p>
+              )}
+              <div className={styles.saveActions}>
+                {challenges.length > 0 && (
+                  <Button onClick={save} disabled={saving || !challengeId} aria-busy={saving || undefined}>
+                    {saving ? (
+                      <>
+                        <Loader2 size={18} className={styles.spin} aria-hidden="true" />
+                        Saving…
+                      </>
+                    ) : (
+                      `Save ${formatCount(state.reps)} ${state.reps === 1 ? "rep" : "reps"}`
+                    )}
+                  </Button>
+                )}
+                <Button variant="ghost" onClick={discard} disabled={saving}>
+                  Discard
+                </Button>
+              </div>
+            </div>
+          )}
+
           <p className={styles.privacy}>
             <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
             Runs on your device. Video never leaves your phone.

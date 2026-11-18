@@ -427,9 +427,17 @@ export function buildActivities(now: number, challenges: ChallengeSeed[], teamma
     return new Date(Math.min(t, now - (n % 9) * 23 * 60_000 - 5 * 60_000)).toISOString();
   }
 
-  function push(userId: string, challengeId: string, dayStart: number, value: number, hour: number, minute: number) {
+  function push(
+    userId: string,
+    challengeId: string,
+    dayStart: number,
+    value: number,
+    hour: number,
+    minute: number,
+    extra?: Pick<Activity, "source" | "cameraSession">,
+  ) {
     n++;
-    out.push({ id: `act-${n}`, userId, challengeId, recordedAt: at(dayStart, hour, minute), value });
+    out.push({ id: `act-${n}`, userId, challengeId, recordedAt: at(dayStart, hour, minute), value, ...extra });
   }
 
   for (const c of challenges) {
@@ -441,7 +449,14 @@ export function buildActivities(now: number, challenges: ChallengeSeed[], teamma
       const isToday = dayStart === today;
 
       if (c.id === "10k-steps") push(CURRENT_USER_ID, c.id, dayStart, MY_STEPS[MY_STEPS.length - days + d], 19, 30);
-      if (c.id === "pushup-power-week" && d < MY_PUSHUPS.length) push(CURRENT_USER_ID, c.id, dayStart, MY_PUSHUPS[d], 12, 15);
+      if (c.id === "pushup-power-week" && d < MY_PUSHUPS.length) {
+        // These three were "counted by the camera" on the device. The made-up
+        // duration is ~1.5s a rep, so they'd pass the same plausibility check.
+        push(CURRENT_USER_ID, c.id, dayStart, MY_PUSHUPS[d], 12, 15, {
+          source: "camera",
+          cameraSession: { durationMs: MY_PUSHUPS[d] * 1_500, exercise: "pushups" },
+        });
+      }
       if (c.id === "plank-ladder" && d < MY_PLANKS.length) push(CURRENT_USER_ID, c.id, dayStart, MY_PLANKS[d], 7, 5);
 
       if (!c.teamId) continue;

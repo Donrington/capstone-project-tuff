@@ -21,6 +21,8 @@ function toActivityEntry(doc) {
     challengeName: doc.challenge ? (challenge?.title ?? "a challenge") : "",
     value: doc.value,
     unit: doc.unit,
+    // Old documents predate `source`; they were all typed in by hand.
+    source: doc.source === "camera" ? "camera" : "manual",
     recordedAt: doc.recordedAt,
   };
 }

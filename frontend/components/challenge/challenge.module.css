@@ -135,6 +135,21 @@
   font: 500 12px/1 var(--font-sans);
   color: var(--ink-tertiary);
 }
+/* A quiet label, not a checkmark: the count came from the user's device. */
+.cameraBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 2px;
+  padding: 1px 8px 1px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--volt-ink);
+  font: 600 11px/18px var(--font-sans);
+  white-space: nowrap;
+  vertical-align: 1px;
+}
 .more {
   align-self: flex-start;
   height: 40px;
@@ -198,6 +213,11 @@
 @media (max-width: 719px) {
   .panel {
     padding: var(--space-5) var(--space-4);
+  }
+  .cameraBadge {
+    gap: 3px;
+    padding: 1px 6px 1px 5px;
+    font-size: 10px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

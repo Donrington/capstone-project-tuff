@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Camera } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { LocalTime } from "@/components/ui/LocalTime";
 import type { ActivityEntry } from "@/lib/types";
@@ -76,6 +77,19 @@ export function ActivityHistory({
                         <>
                           {" "}
                           to <Link href={`/challenges/${e.challengeId}`}>{e.challengeName}</Link>
+                        </>
+                      )}
+                      {e.source === "camera" && (
+                        <>
+                          {" "}
+                          <span
+                            className={styles.cameraBadge}
+                            title="Counted by the camera on their device"
+                            aria-label="Counted by the camera on their device"
+                          >
+                            <Camera size={12} strokeWidth={2.25} aria-hidden="true" />
+                            Camera-counted
+                          </span>
                         </>
                       )}
                     </p>

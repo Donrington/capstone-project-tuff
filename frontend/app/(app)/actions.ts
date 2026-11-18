@@ -139,6 +139,62 @@ export async function logActivity(
   return { ok: true, logged };
 }
 
+export type SaveCameraSessionState = {
+  ok?: boolean;
+  error?: string;
+  logged?: LoggedActivity;
+};
+
+const CAMERA_EXERCISES = new Set(["pushups", "squats"]);
+
+/**
+ * Saves reps the browser counter tallied on the user's device. It's still a
+ * normal activity entry — labelled "Camera-counted" — and the data layer
+ * (mock or backend) rejects a session no camera could have produced. The
+ * offsets are only sent for that check; the entry stores a summary.
+ */
+export async function saveCameraSession(input: {
+  challengeId: string;
+  value: number;
+  exercise: string;
+  durationMs: number;
+  repOffsetsMs: number[];
+}): Promise<SaveCameraSessionState> {
+  const challengeId = input.challengeId.trim();
+  if (!challengeId) return { error: "Pick a challenge to save to." };
+  if (!Number.isInteger(input.value) || input.value < 1) {
+    return { error: "Count at least one rep before saving." };
+  }
+  if (!CAMERA_EXERCISES.has(input.exercise)) {
+    return { error: "Camera sessions count push-ups or squats." };
+  }
+  if (!Array.isArray(input.repOffsetsMs)) {
+    return { error: "The camera didn't record any reps to save." };
+  }
+
+  let logged;
+  try {
+    logged = await addActivity({
+      challengeId,
+      value: input.value,
+      when: "today",
+      source: "camera",
+      cameraSession: {
+        exercise: input.exercise as "pushups" | "squats",
+        durationMs: input.durationMs,
+        repOffsetsMs: input.repOffsetsMs,
+      },
+    });
+  } catch (err) {
+    if (!(err instanceof ApiError)) throw err;
+    return { error: err.message };
+  }
+  if (!logged) return { error: "That challenge isn't there any more." };
+
+  refresh();
+  return { ok: true, logged };
+}
+
 /** The log dialog's "describe it" field. Only ever fills in the amount —
  *  the entry itself still goes through logActivity above, same validation
  *  either way. */

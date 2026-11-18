@@ -167,6 +167,10 @@ export interface DayActivity {
 
 /* ---------------------------------------------------- challenges & logs --- */
 
+/** How an entry was logged. "camera" means the on-device counter filled it
+ *  in — a label, never a claim that the reps were independently checked. */
+export type ActivitySource = "manual" | "camera";
+
 export interface Activity {
   id: string;
   userId: string;
@@ -175,6 +179,8 @@ export interface Activity {
   recordedAt: string; // ISO timestamp
   value: number; // steps, reps, seconds — unit is defined by the challenge
   note?: string;
+  source?: ActivitySource;
+  cameraSession?: { durationMs: number; exercise: "pushups" | "squats" };
 }
 
 export interface Challenge {
@@ -211,6 +217,7 @@ export interface ActivityEntry {
   challengeName: string;
   value: number;
   unit: string;
+  source: ActivitySource;
   recordedAt: string; // ISO
 }
 

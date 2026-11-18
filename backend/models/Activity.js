@@ -66,6 +66,24 @@ const activitySchema = new mongoose.Schema(
             required: true,
         },
 
+        // Where the entry came from. "camera" means the on-device counter
+        // filled it in — a label for the UI, not a guarantee of accuracy.
+        source: {
+            type: String,
+            enum: ["manual", "camera"],
+            default: "manual",
+        },
+
+        // Only camera entries carry this summary. The per-rep offsets are
+        // checked when the entry is saved but never stored.
+        cameraSession: {
+            durationMs: Number,
+            exercise: {
+                type: String,
+                enum: ["pushups", "squats"],
+            },
+        },
+
         // Set deterministically at creation (utils/flagActivity.js) when a
         // single entry's value is well outside the normal range for its
         // unit — not blocked, just worth an admin's attention.

@@ -7,6 +7,9 @@ export type Phase = "up" | "down" | "not-visible";
 
 export interface CounterState {
   reps: number;
+  /** `timestampMs` of every counted rep, in order — uncounted attempts are
+   *  left out, so a saved session can describe its own pacing. */
+  repTimes: number[];
   phase: Phase;
   /** Smoothed angle in degrees; null until a usable frame arrives. */
   angle: number | null;
@@ -33,6 +36,7 @@ const LIMITS = {
 export function createCounter(exercise: Exercise): Counter {
   const limits = LIMITS[exercise];
   let reps = 0;
+  let repTimes: number[] = [];
   let posePhase: "up" | "down" = "up";
   let visible = false;
   let smoothed: number | null = null;
@@ -50,6 +54,7 @@ export function createCounter(exercise: Exercise): Counter {
   function snapshot(): CounterState {
     return {
       reps,
+      repTimes,
       phase: visible ? posePhase : "not-visible",
       angle: smoothed,
       flags,
@@ -99,7 +104,10 @@ export function createCounter(exercise: Exercise): Counter {
 
         if (smoothed > limits.up) {
           const result = evaluateRep(exercise, attemptMin);
-          if (result.counted) reps += 1;
+          if (result.counted) {
+            reps += 1;
+            repTimes = [...repTimes, timestampMs];
+          }
           addFlag(result.flag);
           attempting = false;
           attemptMin = Infinity;

@@ -6,6 +6,7 @@ const ApiError = require("../utils/ApiError");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 const { flagReasonFor } = require("../utils/flagActivity");
 const { capFor } = require("../utils/activityLimits");
+const { validateCameraSession } = require("../utils/cameraSession");
 const { notify, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
 
@@ -93,7 +94,10 @@ async function enrollTeammate(userId, challenge) {
 async function logActivity(req, res) {
   const { challengeId } = req.params;
   const userId = req.user.id;
-  const { value, recordedAt } = req.body;
+  const { value, recordedAt, source, cameraSession } = req.body;
+  // Anything that isn't the camera is a hand-typed entry. Manual logging
+  // keeps its existing validation and behaviour.
+  const entrySource = source === "camera" ? "camera" : "manual";
 
   if (typeof value !== "number" || !(value > 0)) {
     throw ApiError.badRequest("value must be a number greater than 0.");
@@ -111,6 +115,13 @@ async function logActivity(req, res) {
     throw ApiError.badRequest(`That's more than one session allows (max ${cap.toLocaleString("en-US")} ${challenge.unit}).`);
   }
 
+  // The count happened on the user's device, so this only rejects sessions
+  // that are physically implausible — it can't prove the reps happened.
+  if (entrySource === "camera") {
+    const problem = validateCameraSession({ value, unit: challenge.unit, session: cameraSession });
+    if (problem) throw ApiError.badRequest(problem);
+  }
+
   let participant = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });
   if (!participant) participant = await enrollTeammate(userId, challenge);
   if (!participant) throw ApiError.badRequest("Join this challenge before logging activity against it.");
@@ -124,6 +135,12 @@ async function logActivity(req, res) {
     value,
     unit: challenge.unit,
     recordedAt: recordedAt ? new Date(recordedAt) : new Date(),
+    source: entrySource,
+    // Summary only: the offsets were validated above and aren't kept.
+    cameraSession:
+      entrySource === "camera"
+        ? { durationMs: cameraSession.durationMs, exercise: cameraSession.exercise }
+        : undefined,
     flagged: Boolean(flagReason),
     flagReason,
   });
