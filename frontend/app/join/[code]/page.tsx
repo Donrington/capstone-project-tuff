@@ -23,11 +23,19 @@ async function loadInvite(codeParam: string) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { code: codeParam } = await params;
   const { preview } = await loadInvite(codeParam);
+  const title = preview ? `Join ${inviteTitle(preview)}` : "Invite not found";
+  const description = preview
+    ? `${preview.inviterFirstName} invited you to ${inviteTitle(preview)} on TUFF.`
+    : "Open this TUFF invite link to see what's waiting for you.";
+  // Link previews (WhatsApp, LinkedIn, X) read og:/twitter: titles, not
+  // <title> — without these they fall back to the root layout's generic site
+  // title above the invite image. The images come from the sibling
+  // opengraph-image / twitter-image files, which Next merges in.
   return {
-    title: preview ? `Join ${inviteTitle(preview)}` : "Invite not found",
-    description: preview
-      ? `${preview.inviterFirstName} invited you to ${inviteTitle(preview)} on TUFF.`
-      : "Open this TUFF invite link to see what's waiting for you.",
+    title,
+    description,
+    openGraph: { title: `${title} · TUFF`, description, type: "website" },
+    twitter: { card: "summary_large_image", title: `${title} · TUFF`, description },
   };
 }
 
