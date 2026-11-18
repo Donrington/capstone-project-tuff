@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Camera, Plus } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
@@ -30,10 +30,18 @@ export default async function ExercisePage({ params }: { params: Params }) {
         title={exercise.name}
         subtitle={exercise.summary}
         actions={
-          <ButtonLink href={`/challenges/new?activity=${exercise.slug}`}>
-            <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
-            Start a challenge with this
-          </ButtonLink>
+          <>
+            <ButtonLink href={`/challenges/new?activity=${exercise.slug}`}>
+              <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
+              Start a challenge with this
+            </ButtonLink>
+            {(slug === "pushups" || slug === "squats") && (
+              <ButtonLink href={`/train?exercise=${slug}`} variant="secondary">
+                <Camera size={18} strokeWidth={2.25} aria-hidden="true" />
+                Count with camera
+              </ButtonLink>
+            )}
+          </>
         }
       />
       <div className={styles.detail}>
