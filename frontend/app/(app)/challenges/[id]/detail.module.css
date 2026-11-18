@@ -97,6 +97,28 @@
   gap: var(--space-3);
   margin-top: var(--space-2);
 }
+/* The share button sits with the completion state, not with the next action:
+   once it's done, the useful thing to do is keep the result. */
+.completion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--accent-volt) 28%, var(--border-subtle));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--accent-volt) 6%, var(--surface));
+}
+.completionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 600 14px/20px var(--font-sans);
+  color: var(--ink);
+}
+.completionLabel svg {
+  color: var(--volt-ink);
+}
 /* Under the hero: one column, then two from 1200px — chart and breakdown
    on the left, leaderboard and history on the right. */
 .extras {

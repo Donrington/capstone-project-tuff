@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Target, UserPlus, UsersRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, CircleCheck, Target, UserPlus, UsersRound } from "lucide-react";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Badge } from "@/components/ui/Badge";
 import { Leaderboard } from "@/components/ui/Leaderboard";
@@ -12,7 +12,9 @@ import { MemberBreakdown } from "@/components/challenge/MemberBreakdown";
 import { ProgressChart } from "@/components/challenge/ProgressChart";
 import { SoloStats } from "@/components/challenge/SoloStats";
 import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
+import { ShareWinButton } from "@/components/share/ShareWinButton";
 import { challengePercent, formatCount } from "@/lib/challenge-card";
+import { challengeWinFromDetail } from "@/lib/share-card";
 import { pluralize } from "@/lib/pluralize";
 import { getChallenge, getChallengeDetail, getTeam } from "@/lib/data";
 import type { LeaderboardEntry } from "@/lib/types";
@@ -32,6 +34,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
   if (!detail) notFound();
 
   const { challenge } = detail;
+  const win = challengeWinFromDetail(detail);
   const team = challenge.teamId ? await getTeam(challenge.teamId) : undefined;
   const now = new Date().toISOString();
 
@@ -110,6 +113,20 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
               </InviteButton>
             )}
           </div>
+          {win && (
+            <div className={styles.completion}>
+              <span className={styles.completionLabel}>
+                <CircleCheck size={18} strokeWidth={2.5} aria-hidden="true" />
+                Challenge complete · {formatCount(win.total)} {challenge.unit} by you
+              </span>
+              <ShareWinButton
+                href={`/share/card?kind=challenge&id=${encodeURIComponent(challenge.id)}`}
+                filename={`tuff-${challenge.id}.png`}
+                title={`TUFF — ${challenge.title}`}
+                text={`I finished ${challenge.title} on TUFF`}
+              />
+            </div>
+          )}
         </div>
       </section>
 

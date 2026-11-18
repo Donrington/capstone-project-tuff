@@ -67,9 +67,9 @@ import type {
  * copy. That's fine for a frontend demo — see README "What's not here yet".
  */
 
-/** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
- *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 14;
+/** Bump when the seed or MockDb's shape changes, so a hot reload re-seeds
+ *  instead of serving stale demo data (or crashing on a missing field). */
+const SEED_VERSION = 15;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";

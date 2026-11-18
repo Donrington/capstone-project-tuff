@@ -16,7 +16,8 @@
     "mediapipe:assets": "node scripts/copy-mediapipe.mjs",
     "postinstall": "npm run mediapipe:assets",
     "test:e2e": "playwright test",
-    "test:reps": "tsx --test lib/rep-counter/counter.test.mjs lib/rep-counter/hold.test.mjs"
+    "test:reps": "tsx --test lib/rep-counter/counter.test.mjs lib/rep-counter/hold.test.mjs",
+    "test:unit": "tsx --test lib/share-card.test.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
