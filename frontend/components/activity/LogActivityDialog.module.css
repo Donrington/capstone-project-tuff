@@ -78,11 +78,30 @@
 }
 
 .preview {
+  min-height: 76px;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--surface-3);
   font: 400 14px/20px var(--font-sans);
   color: var(--ink-secondary);
+}
+.preview [hidden] {
+  display: none;
+}
+.dailyNote {
+  min-height: 36px;
+  margin: var(--space-2) 0 0;
+  padding: 0 var(--space-1);
+  font: 500 12px/18px var(--font-sans);
+  color: var(--ink-tertiary);
+  /* Reserved so picking daily steps doesn't push the buttons down. */
+  visibility: hidden;
+}
+.dailyNote[data-visible] {
+  visibility: visible;
+}
+.previewHint {
+  display: block;
 }
 .previewFrom {
   font-weight: 700;
@@ -97,6 +116,11 @@
   margin-top: 4px;
   font-weight: 700;
   color: var(--success-ink);
+  /* Still takes its line so revealing it doesn't resize the dialog. */
+  visibility: hidden;
+}
+.clears[data-visible] {
+  visibility: visible;
 }
 
 .actions {

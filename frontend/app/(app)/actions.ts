@@ -34,6 +34,7 @@ import {
 } from "@/lib/data";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import { capFor, capMessage } from "@/lib/activity-limits";
+import { pluralize } from "@/lib/pluralize";
 import type { FitnessLevel, Gender, Motivation, NotificationPrefs, Persona, ProfileVisibility } from "@/lib/types";
 
 /**
@@ -261,7 +262,7 @@ export async function createChallengeAction(
   try {
     challenge = await createChallenge({
       title,
-      description: description || `${goal.toLocaleString("en-US")} ${unit} in ${totalDays} days.`,
+      description: description || `${goal.toLocaleString("en-US")} ${unit} in ${totalDays} ${pluralize(totalDays, "day")}.`,
       unit,
       goal,
       totalDays,

@@ -353,6 +353,11 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
           </section>
         ))}
 
+        {/* Reserves its line so a server error never shoves the nav down. */}
+        <p className={styles.status} role="alert" aria-live="polite">
+          {state.message}
+        </p>
+
         <div className={styles.nav}>
           {step > 0 ? (
             <Button type="button" variant="ghost" onClick={back}>

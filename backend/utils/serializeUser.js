@@ -7,6 +7,9 @@
  */
 function toSafeUser(userDoc) {
   const obj = typeof userDoc.toObject === "function" ? userDoc.toObject() : { ...userDoc };
+  // Settings needs to know whether a password form makes sense, but never
+  // the hash itself — Google-only accounts have none.
+  obj.hasPassword = Boolean(obj.passwordHash);
   delete obj.passwordHash;
   delete obj.googleId;
   obj.id = obj._id.toString();

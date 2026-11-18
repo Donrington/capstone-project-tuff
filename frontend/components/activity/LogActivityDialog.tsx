@@ -11,6 +11,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { RadioChips } from "@/components/ui/RadioChips";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
+import { pluralize } from "@/lib/pluralize";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
 import { capFor, capMessage } from "@/lib/activity-limits";
 import type { Challenge } from "@/lib/types";
@@ -32,6 +33,10 @@ const QUICK_ADD: Record<string, number[]> = {
  *  PARSEABLE_UNITS (userController.js). Never a distance or a conversion
  *  between units, so it's deliberately the same set as QUICK_ADD. */
 const DESCRIBABLE = new Set(["reps", "steps", "seconds"]);
+
+/** Units arrive plural from the data layer; `pluralize` wants both forms. */
+const unitWord = (unit: string, count: number) =>
+  pluralize(count, unit.endsWith("s") ? unit.slice(0, -1) : unit, unit);
 
 interface LogActivityDialogProps {
   open: boolean;
@@ -82,7 +87,7 @@ export function LogActivityDialog({
     if (daily) {
       toast({
         title: "Steps logged.",
-        description: `${formatCount(daily.todaySteps)} steps today.`,
+        description: `${formatCount(daily.todaySteps)} ${pluralize(daily.todaySteps, "step")} today.`,
         tone: "success",
       });
       return;
@@ -95,8 +100,9 @@ export function LogActivityDialog({
     }
 
     const left = logged.target - logged.current;
+    const loggedAmount = logged.current - logged.previous;
     toast({
-      title: `Logged ${formatCount(logged.current - logged.previous)} ${logged.unit}.`,
+      title: `Logged ${formatCount(loggedAmount)} ${unitWord(logged.unit, loggedAmount)}.`,
       description: `${formatCount(left)} to go.`,
       tone: "success",
     });
@@ -175,6 +181,14 @@ export function LogActivityDialog({
             helperText={overCap ? capMessage(unit) : state.errors?.value}
             trailing={<span className={styles.unit}>{unit}</span>}
           />
+          <p
+            className={styles.dailyNote}
+            data-visible={daily ? "" : undefined}
+            aria-live="polite"
+            aria-hidden={daily ? undefined : true}
+          >
+            {"Daily steps fill your Today ring — they don't score on the leaderboard. Log against a challenge to earn points."}
+          </p>
           <div className={styles.quick}>
             {(QUICK_ADD[unit] ?? QUICK_ADD.reps).map((step) => (
               <button
@@ -242,15 +256,26 @@ export function LogActivityDialog({
           placeholder="Optional — how did it feel?"
         />
 
-        {selected && projected !== null && (
-          <p className={styles.preview} aria-live="polite">
-            <span className={styles.previewFrom}>{formatCount(selected.current)}</span>
+        {/* Kept mounted so switching between a challenge and daily steps
+            never makes the dialog jump. */}
+        <p className={styles.preview} aria-live="polite">
+          <span className={styles.projection} hidden={daily || !selected || projected === null}>
+            <span className={styles.previewFrom}>{formatCount(selected?.current ?? 0)}</span>
             <span aria-hidden="true"> → </span>
-            <span className={styles.previewTo}>{formatCount(projected)}</span>
-            {` of ${formatCount(selected.goal)} ${unit}`}
-            {clears && <span className={styles.clears}>This clears the challenge.</span>}
-          </p>
-        )}
+            <span className={styles.previewTo}>{formatCount(projected ?? 0)}</span>
+            {` of ${formatCount(selected?.goal ?? 0)} ${selected?.unit ?? ""}`}
+          </span>
+          <span className={styles.previewHint} hidden={daily || Boolean(selected && projected !== null)}>
+            Enter an amount to preview the new total.
+          </span>
+          <span
+            className={styles.clears}
+            data-visible={clears ? "" : undefined}
+            aria-hidden={clears ? undefined : true}
+          >
+            This clears the challenge.
+          </span>
+        </p>
 
         <SubmitRow amount={validAmount ? parsed : null} blocked={overCap} unit={unit} onCancel={onClose} />
       </form>
@@ -285,7 +310,7 @@ function SubmitRow({
             Logging…
           </>
         ) : (
-          `Log ${amount === null ? "activity" : `${formatCount(amount)} ${unit}`}`
+          `Log ${amount === null ? "activity" : `${formatCount(amount)} ${unitWord(unit, amount)}`}`
         )}
       </Button>
     </div>

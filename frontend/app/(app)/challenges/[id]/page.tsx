@@ -13,6 +13,7 @@ import { ProgressChart } from "@/components/challenge/ProgressChart";
 import { SoloStats } from "@/components/challenge/SoloStats";
 import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
 import { challengePercent, formatCount } from "@/lib/challenge-card";
+import { pluralize } from "@/lib/pluralize";
 import { getChallenge, getChallengeDetail, getTeam } from "@/lib/data";
 import type { LeaderboardEntry } from "@/lib/types";
 import styles from "./detail.module.css";
@@ -87,7 +88,7 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
             </li>
             <li>
               <UsersRound size={16} aria-hidden="true" />
-              {daysLeft === 0 ? "Ends today" : `Ends ${endsOn} · ${daysLeft} days left`}
+              {daysLeft === 0 ? "Ends today" : `Ends ${endsOn} · ${daysLeft} ${pluralize(daysLeft, "day")} left`}
             </li>
           </ul>
           <div className={styles.actions}>

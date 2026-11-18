@@ -2,6 +2,7 @@ import { ArrowUpRight, Flame } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
+import { pluralize } from "@/lib/pluralize";
 import type { TeamMember } from "@/lib/data";
 import type { Team } from "@/lib/types";
 import styles from "./teams.module.css";
@@ -45,7 +46,7 @@ export function TeamOverview({ team, members, totalTeams }: { team: Team; member
           <dd>{team.memberCount}</dd>
         </div>
       </dl>
-      <div className={styles.avatarRow} aria-label={`${members.length} members`}>
+      <div className={styles.avatarRow} aria-label={`${members.length} ${pluralize(members.length, "member")}`}>
         {shown.map((m) => (
           <span key={m.id} className={styles.avatarWrap}>
             <Avatar initials={m.initials} size="sm" photoUrl={m.profilePicture} />

@@ -1,4 +1,5 @@
 import { ColumnChart } from "@/components/charts/ColumnChart";
+import { pluralize } from "@/lib/pluralize";
 import type { DailyTotal } from "@/lib/types";
 import styles from "./challenge.module.css";
 
@@ -7,6 +8,7 @@ const dayLabel = (iso: string) =>
 
 /** One column per day of the challenge, against the even pace that finishes on time. */
 export function ProgressChart({ daily, pacePerDay, unit }: { daily: DailyTotal[]; pacePerDay: number; unit: string }) {
+  const singular = unit.endsWith("s") ? unit.slice(0, -1) : unit;
   return (
     <section className={styles.panel} aria-labelledby="progress-heading">
       <div className={styles.panelHead}>
@@ -14,7 +16,7 @@ export function ProgressChart({ daily, pacePerDay, unit }: { daily: DailyTotal[]
           Progress over time
         </h2>
         <p className={styles.panelNote}>
-          {pacePerDay.toLocaleString("en-US")} {unit} a day finishes on time
+          {pacePerDay.toLocaleString("en-US")} {pluralize(pacePerDay, singular, unit)} a day finishes on time
         </p>
       </div>
       <ColumnChart

@@ -1,12 +1,13 @@
 import { Flame, Footprints, Target, Trophy, Zap } from "lucide-react";
 import { formatCount } from "@/lib/challenge-card";
+import { pluralize } from "@/lib/pluralize";
 import type { ProfileStats } from "@/lib/types";
 import styles from "./StatTiles.module.css";
 
 export function StatTiles({ stats }: { stats: ProfileStats }) {
   const tiles = [
-    { icon: Flame, label: "Current streak", value: `${stats.currentStreak}`, unit: "days" },
-    { icon: Trophy, label: "Best streak", value: `${stats.bestStreak}`, unit: "days" },
+    { icon: Flame, label: "Current streak", value: `${stats.currentStreak}`, unit: pluralize(stats.currentStreak, "day") },
+    { icon: Trophy, label: "Best streak", value: `${stats.bestStreak}`, unit: pluralize(stats.bestStreak, "day") },
     { icon: Footprints, label: "Lifetime steps", value: formatCount(stats.lifetimeSteps), unit: "" },
     { icon: Zap, label: "Reps logged", value: formatCount(stats.repsLogged), unit: "" },
     { icon: Target, label: "Challenges cleared", value: `${stats.challengesCleared}`, unit: "" },

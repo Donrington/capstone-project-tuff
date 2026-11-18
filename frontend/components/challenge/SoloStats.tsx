@@ -1,4 +1,5 @@
 import { Flame, Medal } from "lucide-react";
+import { pluralize } from "@/lib/pluralize";
 import styles from "./challenge.module.css";
 
 const dayLabel = (iso: string) =>
@@ -14,6 +15,7 @@ export function SoloStats({
   bestDays: { date: string; total: number }[];
   unit: string;
 }) {
+  const singular = unit.endsWith("s") ? unit.slice(0, -1) : unit;
   return (
     <section className={styles.panel} aria-labelledby="solo-heading">
       <div className={styles.panelHead}>
@@ -34,7 +36,7 @@ export function SoloStats({
               <Medal size={16} aria-hidden="true" className={styles[`medal${i + 1}`]} />
               <span className={styles.bestDate}>{dayLabel(d.date)}</span>
               <span className={styles.bestValue}>
-                {d.total.toLocaleString("en-US")} {unit}
+                {d.total.toLocaleString("en-US")} {pluralize(d.total, singular, unit)}
               </span>
             </li>
           ))}

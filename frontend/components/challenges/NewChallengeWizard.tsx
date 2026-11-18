@@ -12,6 +12,8 @@ import { RadioChips } from "@/components/ui/RadioChips";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { StandardCard } from "@/components/ui/Card";
 import { formatCount } from "@/lib/challenge-card";
+import { challengePace } from "@/lib/challenge-pace";
+import { pluralize } from "@/lib/pluralize";
 import { exercises } from "@/data/exercises";
 import type { User } from "@/lib/types";
 import { createChallengeAction, type CreateChallengeState } from "@/app/(app)/actions";
@@ -78,6 +80,9 @@ export function NewChallengeWizard({
   const [stepError, setStepError] = useState<string | null>(null);
 
   const activity = ACTIVITIES.find((a) => a.slug === activitySlug) ?? ACTIVITIES[1];
+  // Units arrive plural from the activity list; `pluralize` wants both forms.
+  const unitFor = (count: number) =>
+    pluralize(count, activity.unit.endsWith("s") ? activity.unit.slice(0, -1) : activity.unit, activity.unit);
   const isCustomLength = days === "custom";
   const totalDays = Number(isCustomLength ? customDays : days);
   // The suggested target follows the activity and length until you type your own.
@@ -131,8 +136,7 @@ export function NewChallengeWizard({
     setStep((s) => Math.max(0, s - 1));
   }
 
-  const perDay =
-    Number.isFinite(targetNumber) && totalDays > 0 ? Math.round(targetNumber / totalDays) : 0;
+  const perDay = challengePace(targetNumber, totalDays);
 
   return (
     <div className={styles.wizard}>
@@ -219,7 +223,7 @@ export function NewChallengeWizard({
         {step === 2 && (
           <Step title="What's the goal?">
             <FormField
-              label={`Target (${activity.unit})`}
+              label={`Target (${unitFor(targetNumber)})`}
               name="target-input"
               type="number"
               min={1}
@@ -263,8 +267,8 @@ export function NewChallengeWizard({
             />
             {perDay > 0 && (
               <p className={styles.maths} aria-live="polite">
-                {formatCount(targetNumber)} {activity.unit} over {totalDays} days. About{" "}
-                {formatCount(perDay)} a day.
+                {formatCount(targetNumber)} {unitFor(targetNumber)} over {totalDays}{" "}
+                {pluralize(totalDays, "day")}. About {formatCount(perDay)} {unitFor(perDay)} a day.
               </p>
             )}
           </Step>
@@ -320,11 +324,14 @@ export function NewChallengeWizard({
               <StandardCard
                 eyebrow="Challenge"
                 title={finalName}
-                description={description || `${formatCount(targetNumber)} ${activity.unit} in ${totalDays} days.`}
+                description={
+                  description ||
+                  `${formatCount(targetNumber)} ${unitFor(targetNumber)} in ${totalDays} ${pluralize(totalDays, "day")}.`
+                }
                 progressPercent={0}
                 statLeft={
                   <>
-                    <b>0</b> / {formatCount(targetNumber)} {activity.unit}
+                    <b>0</b> / {formatCount(targetNumber)} {unitFor(targetNumber)}
                   </>
                 }
                 statRight={`Day ${start === "today" ? 1 : 0} of ${totalDays}`}
@@ -342,7 +349,7 @@ export function NewChallengeWizard({
               </div>
               <div>
                 <dt>Pace</dt>
-                <dd>About {formatCount(perDay)} {activity.unit} a day</dd>
+                <dd>About {formatCount(perDay)} {unitFor(perDay)} a day</dd>
               </div>
               <div>
                 <dt>Starts</dt>

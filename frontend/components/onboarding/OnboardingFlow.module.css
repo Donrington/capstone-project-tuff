@@ -143,6 +143,12 @@
   color: var(--volt-ink);
 }
 
+.status {
+  min-height: 20px;
+  margin: 0;
+  font: 600 13px/20px var(--font-sans);
+  color: var(--status-danger);
+}
 .nav {
   display: flex;
   flex-wrap: wrap;

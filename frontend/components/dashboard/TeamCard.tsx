@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { InviteButton } from "@/components/invite/InviteButton";
 import { JoinWithCodeButton } from "@/components/invite/JoinWithCodeButton";
 import { CreateTeamButton } from "@/components/teams/CreateTeamButton";
+import { pluralize } from "@/lib/pluralize";
 import type { TeamSummary } from "@/lib/types";
 import styles from "./TeamCard.module.css";
 
@@ -12,8 +13,10 @@ function gapLine(team: TeamSummary) {
   // No points yet this week, so there's no race to report — a nudge instead.
   if (team.weeklyPoints === null) return "Log together and invite your people in.";
   if (!team.rivalName) return "The only team so far. Invite some rivals.";
-  const n = Math.abs(team.gapToRival).toLocaleString("en-US");
-  return team.gapToRival > 0 ? `${n} points behind ${team.rivalName}.` : `${n} points ahead of ${team.rivalName}.`;
+  const gap = Math.abs(team.gapToRival);
+  const n = gap.toLocaleString("en-US");
+  const points = pluralize(gap, "point");
+  return team.gapToRival > 0 ? `${n} ${points} behind ${team.rivalName}.` : `${n} ${points} ahead of ${team.rivalName}.`;
 }
 
 export function TeamCard({ team }: { team: TeamSummary | null }) {
@@ -52,7 +55,10 @@ export function TeamCard({ team }: { team: TeamSummary | null }) {
           {team.name}
         </Link>
       </h3>
-      <div className={styles.avatars} aria-label={`${team.members.length + team.extraMembers} members`}>
+      <div
+        className={styles.avatars}
+        aria-label={`${team.members.length + team.extraMembers} ${pluralize(team.members.length + team.extraMembers, "member")}`}
+      >
         {team.members.map((m) => (
           <span key={m.id} className={styles.avatarWrap}>
             <Avatar initials={m.initials} size="sm" photoUrl={m.profilePicture} />

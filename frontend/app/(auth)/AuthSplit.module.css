@@ -385,6 +385,10 @@
 .socialButton:active {
   transform: scale(0.97);
 }
+.socialButton[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.75;
+}
 .divider {
   display: flex;
   align-items: center;
