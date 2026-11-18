@@ -14,6 +14,7 @@ const { computeStats } = require("../services/statsService");
 const { evaluateAchievements } = require("../services/achievementService");
 const { bestEffort } = require("../services/notificationService");
 const { flagReasonFor } = require("../utils/flagActivity");
+const { capFor } = require("../utils/activityLimits");
 const aiService = require("../services/aiService");
 
 // The units describing-it-in-words can fill in — the same ones the log
@@ -37,7 +38,6 @@ async function getMyActivities(req, res) {
   res.json(activities.map(toActivityEntry));
 }
 
-const MAX_STEPS_PER_ENTRY = 100_000;
 const BACKDATE_LIMIT_MS = 7 * 24 * 60 * 60 * 1000;
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
@@ -47,8 +47,9 @@ const CLOCK_SKEW_MS = 5 * 60 * 1000;
 // which only come from challenges.
 async function logDailySteps(req, res) {
   const { value, recordedAt } = req.body ?? {};
-  if (!Number.isInteger(value) || value < 1 || value > MAX_STEPS_PER_ENTRY) {
-    throw ApiError.badRequest(`value must be a whole number from 1 to ${MAX_STEPS_PER_ENTRY.toLocaleString("en-US")}.`);
+  const maxSteps = capFor("steps");
+  if (!Number.isInteger(value) || value < 1 || value > maxSteps) {
+    throw ApiError.badRequest(`value must be a whole number from 1 to ${maxSteps.toLocaleString("en-US")}.`);
   }
 
   let when = new Date();
@@ -100,15 +101,21 @@ async function parseActivityText(req, res) {
   if (!text) throw ApiError.badRequest("Describe what you did.");
   if (!aiService.isConfigured()) throw ApiError.unavailable("Describing it in words isn't available right now.");
 
-  const reply = await aiService.complete({
-    system:
-      `Extract a single whole-number total in "${unit}" from what someone typed about a workout. ` +
-      "Do simple arithmetic if they described it as sets (\"3 sets of 12\" is 36). " +
-      "Reply with ONLY the number, or the word NONE if there's no clear amount in that unit. " +
-      "Never convert between units — a distance or a time never becomes a step count, and vice versa.",
-    prompt: text,
-    maxTokens: 20,
-  });
+  let reply;
+  try {
+    reply = await aiService.complete({
+      system:
+        `Extract a single whole-number total in "${unit}" from what someone typed about a workout. ` +
+        "Do simple arithmetic if they described it as sets (\"3 sets of 12\" is 36). " +
+        "Reply with ONLY the number, or the word NONE if there's no clear amount in that unit. " +
+        "Never convert between units — a distance or a time never becomes a step count, and vice versa.",
+      prompt: text,
+      maxTokens: 20,
+    });
+  } catch (err) {
+    console.error("[parseActivityText] AI unavailable:", err.message || err);
+    throw ApiError.unavailable("Describing it in words isn't available right now — type the number below instead.");
+  }
 
   const cleaned = reply.trim();
   const value = Math.round(Number(cleaned));

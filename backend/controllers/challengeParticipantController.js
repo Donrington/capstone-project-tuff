@@ -5,6 +5,7 @@ const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
 const { flagReasonFor } = require("../utils/flagActivity");
+const { capFor } = require("../utils/activityLimits");
 const { notify, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
 
@@ -103,6 +104,11 @@ async function logActivity(req, res) {
   if (challenge.status === "cancelled") throw ApiError.badRequest("This challenge was cancelled.");
   if (!ACTIVITY_UNITS.has(challenge.unit)) {
     throw ApiError.badRequest(`Logging isn't supported yet for challenges measured in "${challenge.unit}".`);
+  }
+
+  const cap = capFor(challenge.unit);
+  if (cap !== undefined && value > cap) {
+    throw ApiError.badRequest(`That's more than one session allows (max ${cap.toLocaleString("en-US")} ${challenge.unit}).`);
   }
 
   let participant = await ChallengeParticipant.findOne({ user: userId, challenge: challengeId });

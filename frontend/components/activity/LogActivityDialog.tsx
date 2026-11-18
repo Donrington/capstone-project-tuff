@@ -12,6 +12,7 @@ import { RadioChips } from "@/components/ui/RadioChips";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
+import { capFor, capMessage } from "@/lib/activity-limits";
 import type { Challenge } from "@/lib/types";
 import type { LoggedActivity } from "@/lib/data";
 import { logActivity, parseActivityTextAction, type LogActivityState } from "@/app/(app)/actions";
@@ -105,7 +106,10 @@ export function LogActivityDialog({
   const selected = challenges.find((c) => c.id === challengeId);
   const unit = daily ? "steps" : (selected?.unit ?? "reps");
   const parsed = Number(amount);
-  const validAmount = amount !== "" && Number.isInteger(parsed) && parsed > 0;
+  const cap = capFor(unit);
+  const wholePositive = amount !== "" && Number.isInteger(parsed) && parsed > 0;
+  const overCap = wholePositive && cap !== undefined && parsed > cap;
+  const validAmount = wholePositive && !overCap;
   const projected = selected && validAmount ? selected.current + parsed : null;
   const clears = selected && projected !== null && projected >= selected.goal;
 
@@ -122,7 +126,8 @@ export function LogActivityDialog({
         setDescribeError(result.error);
         return;
       }
-      setAmount(String(result.value));
+      const capped = cap !== undefined ? Math.min(result.value, cap) : result.value;
+      setAmount(String(capped));
       setDescribeText("");
       setDescribeOpen(false);
     });
@@ -166,8 +171,8 @@ export function LogActivityDialog({
             placeholder="0"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            error={Boolean(state.errors?.value)}
-            helperText={state.errors?.value}
+            error={Boolean(state.errors?.value) || overCap}
+            helperText={overCap ? capMessage(unit) : state.errors?.value}
             trailing={<span className={styles.unit}>{unit}</span>}
           />
           <div className={styles.quick}>
@@ -247,7 +252,7 @@ export function LogActivityDialog({
           </p>
         )}
 
-        <SubmitRow amount={validAmount ? parsed : null} unit={unit} onCancel={onClose} />
+        <SubmitRow amount={validAmount ? parsed : null} blocked={overCap} unit={unit} onCancel={onClose} />
       </form>
     </Dialog>
   );
@@ -255,10 +260,14 @@ export function LogActivityDialog({
 
 function SubmitRow({
   amount,
+  blocked,
   unit,
   onCancel,
 }: {
   amount: number | null;
+  /** Over the per-entry cap: the inline hint already says why. An empty
+   *  field stays submittable so the server action can say what's missing. */
+  blocked: boolean;
   unit: string;
   onCancel: () => void;
 }) {
@@ -269,7 +278,7 @@ function SubmitRow({
       <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
         Cancel
       </Button>
-      <Button type="submit" disabled={pending} aria-busy={pending || undefined}>
+      <Button type="submit" disabled={pending || blocked} aria-busy={pending || undefined}>
         {pending ? (
           <>
             <Loader2 size={18} className={styles.spin} aria-hidden="true" />
