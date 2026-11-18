@@ -128,6 +128,7 @@ interface RawEntry {
   challengeName: string;
   value: number;
   unit: string;
+  source?: "manual" | "camera";
   recordedAt: string;
 }
 
@@ -229,6 +230,7 @@ function toEntry(raw: RawEntry, meId: string): ActivityEntry {
     challengeName: raw.challengeName,
     value: raw.value,
     unit: raw.unit,
+    source: raw.source === "camera" ? "camera" : "manual",
     recordedAt: raw.recordedAt,
   };
 }
@@ -772,6 +774,8 @@ export async function addActivity(input: {
   value: number;
   when: "today" | "yesterday";
   note?: string;
+  source?: "manual" | "camera";
+  cameraSession?: { exercise: "pushups" | "squats"; durationMs: number; repOffsetsMs: number[] };
 }): Promise<LoggedActivity | null> {
   const before = await getChallenge(input.challengeId);
   if (!before) return null;
@@ -779,7 +783,12 @@ export async function addActivity(input: {
   // TODO(backend): notes aren't stored yet — Activity has no field for them.
   const res = await api<{ newAchievements?: Achievement[] }>(`/api/challenge-participants/${input.challengeId}/activities`, {
     method: "POST",
-    body: { value: input.value, recordedAt },
+    body: {
+      value: input.value,
+      recordedAt,
+      ...(input.source ? { source: input.source } : {}),
+      ...(input.cameraSession ? { cameraSession: input.cameraSession } : {}),
+    },
   });
   const after = (await apiOptional<RawChallenge>(`/api/challenges/get/${input.challengeId}`)) ?? null;
   const current = after?.current ?? before.current + input.value;

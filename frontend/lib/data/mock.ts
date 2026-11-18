@@ -5,6 +5,7 @@ import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import { capFor, capMessage } from "@/lib/activity-limits";
 import { challengePace } from "@/lib/challenge-pace";
 import { pluralize } from "@/lib/pluralize";
+import { validateCameraSession } from "@/lib/camera-session";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
@@ -12,6 +13,7 @@ import type {
   Achievement,
   Activity,
   ActivityEntry,
+  ActivitySource,
   AdminChallenge,
   AdminFlag,
   AdminOverview,
@@ -67,7 +69,7 @@ import type {
 
 /** Bump when MockDb's shape changes, so a hot reload re-seeds instead of
  *  crashing on a field the surviving object doesn't have yet. */
-const SEED_VERSION = 13;
+const SEED_VERSION = 14;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";
@@ -289,6 +291,7 @@ function toEntry(d: MockDb, a: Activity): ActivityEntry {
     challengeName: free ? "" : (c?.title ?? "a challenge"),
     value: a.value,
     unit: free ? "steps" : (c?.unit ?? "reps"),
+    source: a.source === "camera" ? "camera" : "manual",
     recordedAt: a.recordedAt,
   };
 }
@@ -998,6 +1001,9 @@ export async function addActivity(input: {
   value: number;
   when: "today" | "yesterday";
   note?: string;
+  /** "camera" means the on-device counter filled the number in. */
+  source?: ActivitySource;
+  cameraSession?: { exercise: "pushups" | "squats"; durationMs: number; repOffsetsMs: number[] };
 }): Promise<LoggedActivity | null> {
   const d = await db();
   const stored = d.challenges.find((c) => c.id === input.challengeId);
@@ -1006,6 +1012,14 @@ export async function addActivity(input: {
   const cap = capFor(stored.unit);
   if (cap !== undefined && input.value > cap) {
     throw new ApiError(400, capMessage(stored.unit));
+  }
+
+  // Same plausibility rules as the backend — see lib/camera-session.ts. The
+  // device did the counting, so this can only reject an impossible session.
+  const source: ActivitySource = input.source === "camera" ? "camera" : "manual";
+  if (source === "camera") {
+    const problem = validateCameraSession({ value: input.value, unit: stored.unit, session: input.cameraSession });
+    if (problem) throw new ApiError(400, problem);
   }
 
   const before = challengeView(d, stored);
@@ -1018,6 +1032,12 @@ export async function addActivity(input: {
     recordedAt: recordedAt.toISOString(),
     value: input.value,
     note: input.note,
+    source,
+    // Summary only: the offsets were validated above and aren't kept.
+    cameraSession:
+      source === "camera" && input.cameraSession
+        ? { durationMs: input.cameraSession.durationMs, exercise: input.cameraSession.exercise }
+        : undefined,
   });
   const after = challengeView(d, stored);
   const completed = before.current < after.goal && after.current >= after.goal;
