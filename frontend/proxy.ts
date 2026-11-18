@@ -30,6 +30,7 @@ const APP_PREFIXES = [
   "/dashboard",
   "/challenges",
   "/exercises",
+  "/train",
   "/leaderboard",
   "/teams",
   "/profile",
@@ -121,16 +122,17 @@ function nonce() {
   return btoa(String.fromCharCode(...bytes));
 }
 
-/** Only what the app actually loads: self-hosted fonts and scripts, Cloudinary
- *  for profile photos, data: URLs for the client-side photo preview before
- *  upload. No inline/remote script or style host needs listing beyond that —
- *  see the proxy.ts audit in git history for how this was checked. */
+/** Only what the app actually loads: self-hosted fonts, scripts and MediaPipe's
+ *  WASM/model, Cloudinary for profile photos, data: URLs for the client-side
+ *  photo preview before upload. 'wasm-unsafe-eval' is required to compile the
+ *  self-hosted pose runtime; it is not JS eval(), and production still never
+ *  gets 'unsafe-eval' (only dev's HMR client needs that). connect-src stays
+ *  'self' because no camera frame or model request leaves the origin. */
 function csp(nonceValue: string) {
-  // Next's dev-mode HMR client eval()s its patches; production never does.
   const dev = process.env.NODE_ENV !== "production";
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonceValue}' 'strict-dynamic' https:${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonceValue}' 'strict-dynamic' 'wasm-unsafe-eval' https:${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://res.cloudinary.com",
     "font-src 'self' data:",
@@ -148,7 +150,7 @@ function withSecurityHeaders(response: NextResponse, nonceValue: string) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  response.headers.set("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=(), usb=()");
   if (process.env.NODE_ENV === "production") {
     response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
