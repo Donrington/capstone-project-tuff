@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { CameraCounter } from "@/components/train/CameraCounter";
+import { CameraCounter, type TrainExercise } from "@/components/train/CameraCounter";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getActiveChallenges } from "@/lib/data";
-import type { Exercise } from "@/lib/rep-counter/counter";
 
 export const metadata: Metadata = { title: "Camera counter" };
 
@@ -13,16 +12,18 @@ export default async function TrainPage({
 }) {
   const { exercise } = await searchParams;
   const requested = Array.isArray(exercise) ? exercise[0] : exercise;
-  const initialExercise: Exercise = requested === "squats" ? "squats" : "pushups";
-  // A camera set is reps, so only reps challenges can take the save.
-  const challenges = (await getActiveChallenges()).filter((c) => c.unit === "reps");
+  const initialExercise: TrainExercise =
+    requested === "squats" ? "squats" : requested === "plank" ? "plank" : "pushups";
+  // Both counters live here: reps challenges take sets, seconds challenges
+  // take holds. The picker narrows the list again once an exercise is chosen.
+  const challenges = (await getActiveChallenges()).filter((c) => c.unit === "reps" || c.unit === "seconds");
 
   return (
     <div>
       <PageHeader
         kicker="Train"
         title="Camera counter"
-        subtitle="Live rep counting and form feedback, right in your browser."
+        subtitle="Live counting, timing and form feedback, right in your browser."
       />
       <CameraCounter initialExercise={initialExercise} challenges={challenges} />
     </div>

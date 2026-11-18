@@ -35,7 +35,7 @@ export default async function ExercisePage({ params }: { params: Params }) {
               <Plus size={18} strokeWidth={2.25} aria-hidden="true" />
               Start a challenge with this
             </ButtonLink>
-            {(slug === "pushups" || slug === "squats") && (
+            {(slug === "pushups" || slug === "squats" || slug === "plank") && (
               <ButtonLink href={`/train?exercise=${slug}`} variant="secondary">
                 <Camera size={18} strokeWidth={2.25} aria-hidden="true" />
                 Count with camera

@@ -1003,7 +1003,12 @@ export async function addActivity(input: {
   note?: string;
   /** "camera" means the on-device counter filled the number in. */
   source?: ActivitySource;
-  cameraSession?: { exercise: "pushups" | "squats"; durationMs: number; repOffsetsMs: number[] };
+  cameraSession?: {
+    exercise: "pushups" | "squats" | "plank";
+    durationMs: number;
+    repOffsetsMs?: number[];
+    segmentsMs?: Array<[number, number]>;
+  };
 }): Promise<LoggedActivity | null> {
   const d = await db();
   const stored = d.challenges.find((c) => c.id === input.challengeId);
@@ -1033,7 +1038,7 @@ export async function addActivity(input: {
     value: input.value,
     note: input.note,
     source,
-    // Summary only: the offsets were validated above and aren't kept.
+    // Summary only: rep offsets and hold segments were validated above and aren't kept.
     cameraSession:
       source === "camera" && input.cameraSession
         ? { durationMs: input.cameraSession.durationMs, exercise: input.cameraSession.exercise }

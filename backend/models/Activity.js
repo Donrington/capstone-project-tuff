@@ -74,13 +74,13 @@ const activitySchema = new mongoose.Schema(
             default: "manual",
         },
 
-        // Only camera entries carry this summary. The per-rep offsets are
-        // checked when the entry is saved but never stored.
+        // Only camera entries carry this summary. The per-rep offsets and
+        // hold segments are checked when the entry is saved but never stored.
         cameraSession: {
             durationMs: Number,
             exercise: {
                 type: String,
-                enum: ["pushups", "squats"],
+                enum: ["pushups", "squats", "plank"],
             },
         },
 
