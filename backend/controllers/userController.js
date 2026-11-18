@@ -130,9 +130,10 @@ async function parseActivityText(req, res) {
 const PHOTO_DATA_URL_RE = /^data:image\/(jpeg|png|webp|gif);base64,/;
 const MAX_PHOTO_DATA_URL_LENGTH = 2_800_000;
 
-async function findMe(req, select) {
-  const query = User.findById(req.user.id);
-  if (select) query.select(select);
+// The hash is selected only so toSafeUser can report hasPassword; it is
+// stripped again before any response goes out.
+async function findMe(req, select = "+passwordHash") {
+  const query = User.findById(req.user.id).select(select);
   const user = await query;
   if (!user) throw ApiError.notFound();
   return user;

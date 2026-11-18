@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { pluralize } from "@/lib/pluralize";
 import type { Team } from "@/lib/types";
 import styles from "./teams.module.css";
 
@@ -33,14 +34,15 @@ export function HeadToHead({ team, rival, daysLeft }: { team: Team; rival: Team;
       <div
         className={styles.split}
         role="img"
-        aria-label={`${team.name} ${mine.toLocaleString("en-US")} points, ${rival.name} ${theirs.toLocaleString("en-US")} points`}
+        aria-label={`${team.name} ${mine.toLocaleString("en-US")} ${pluralize(mine, "point")}, ${rival.name} ${theirs.toLocaleString("en-US")} ${pluralize(theirs, "point")}`}
       >
         <span className={styles.splitMine} style={{ "--w": `${(mine / total) * 100}%` } as CSSProperties} />
         <span className={styles.splitTheirs} />
       </div>
       <p className={styles.h2hLine}>
         <strong>
-          {Math.abs(gap).toLocaleString("en-US")} points {ahead ? "ahead of" : "behind"} {rival.name}.
+          {Math.abs(gap).toLocaleString("en-US")} {pluralize(gap, "point")} {ahead ? "ahead of" : "behind"}{" "}
+          {rival.name}.
         </strong>{" "}
         {left}
       </p>

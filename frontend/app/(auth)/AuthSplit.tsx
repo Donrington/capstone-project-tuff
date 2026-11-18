@@ -26,8 +26,8 @@ export type AuthMode = "signup" | "signin";
 const INITIAL_STATE: AuthState = {};
 const MODES: AuthMode[] = ["signup", "signin"];
 
-// Placeholder marketing copy for the video panel — swap the numbers for
-// live stats once the backend exists.
+// Honest, number-free copy for the video panel: no usage stats to claim yet,
+// so the chips say what TUFF does instead of how many people do it.
 const STORY: Record<
   AuthMode,
   { lines: string[]; sub: string; chips: string[]; switchHint: string; switchAction: string }
@@ -35,14 +35,14 @@ const STORY: Record<
   signup: {
     lines: ["Every rep counts.", "Together."],
     sub: "Join team challenges, climb the leaderboard, and keep your streak alive.",
-    chips: ["12,408 training this week", "340 team challenges live"],
+    chips: ["Strength, steps and Pilates", "Train solo or with friends"],
     switchHint: "Have an account?",
     switchAction: "Sign in",
   },
   signin: {
     lines: ["Welcome back.", "Pick up the pace."],
-    sub: "Your team is 340 steps back — today's set closes the gap.",
-    chips: ["9-day streak waiting", "Team Ironclad · #2"],
+    sub: "Your next set is waiting — log today's activity and keep the streak going.",
+    chips: ["Pick up where you left off"],
     switchHint: "New here?",
     switchAction: "Join TUFF",
   },
@@ -350,12 +350,24 @@ function SignInForm({ headingRef, onSwitch }: FormProps) {
 }
 
 function SocialRow() {
+  const [pending, setPending] = useState(false);
+
   // A plain <a>: next/link would prefetch the route that starts the OAuth dance.
   return (
     <div className={styles.social}>
-      <a href="/auth/google" className={styles.socialButton}>
+      <a
+        href="/auth/google"
+        className={styles.socialButton}
+        aria-busy={pending || undefined}
+        aria-disabled={pending || undefined}
+        onClick={(event) => {
+          if (pending) event.preventDefault();
+          else setPending(true);
+        }}
+      >
         <GoogleMark />
-        Continue with Google
+        {pending ? "Signing you in…" : "Continue with Google"}
+        {pending && <Loader2 size={17} className={styles.spin} aria-hidden="true" />}
       </a>
     </div>
   );

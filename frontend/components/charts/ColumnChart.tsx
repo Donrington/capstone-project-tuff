@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { pluralize } from "@/lib/pluralize";
 import styles from "./ColumnChart.module.css";
 
 export interface ColumnDatum {
@@ -25,6 +26,8 @@ interface ColumnChartProps {
 }
 
 const fmt = (n: number) => n.toLocaleString("en-US");
+const unitFor = (count: number, unit: string) =>
+  pluralize(count, unit.endsWith("s") ? unit.slice(0, -1) : unit, unit);
 
 /**
  * Single-series column chart: one bar per column, today highlighted in
@@ -70,7 +73,7 @@ export function ColumnChart({
               key={d.key}
               className={`${styles.col} ${d.state === "today" ? styles.today : ""} ${future ? styles.future : ""}`}
               tabIndex={future ? undefined : 0}
-              aria-label={future ? undefined : `${d.fullLabel}: ${fmt(d.value)} ${unit}`}
+              aria-label={future ? undefined : `${d.fullLabel}: ${fmt(d.value)} ${unitFor(d.value, unit)}`}
               aria-hidden={future || undefined}
               style={{ "--h": `${heightPct}%`, "--i": i } as CSSProperties}
             >

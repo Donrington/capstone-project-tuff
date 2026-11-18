@@ -6,6 +6,7 @@ import type {
   PersonalBest,
   User,
 } from "@/lib/types";
+import { pluralize } from "@/lib/pluralize";
 
 /**
  * Seed data for the in-memory mock DB in lib/data.ts, which is the only file
@@ -77,6 +78,7 @@ export function returningUser(now: number): User {
     displayName: "Kelechi",
     // example.com is reserved for documentation, so this can never reach a real inbox.
     email: "kelechi.obi@example.com",
+    hasPassword: true,
     initials: "KO",
     teamId: "ironclad",
     teamName: "Team Ironclad",
@@ -101,6 +103,7 @@ export function newUser(now: number, input: { firstName: string; lastName: strin
     lastName: input.lastName,
     displayName: input.firstName,
     email: input.email,
+    hasPassword: true,
     initials: initialsOf(input.firstName || "N", input.lastName || "U"),
     teamId: null,
     teamName: "",
@@ -482,7 +485,7 @@ export function returningNotifications(
     {
       id: "notif-3",
       type: "challenge",
-      title: `Push-Up Power Week ends in ${facts.pushupDaysLeft} days`,
+      title: `Push-Up Power Week ends in ${facts.pushupDaysLeft} ${pluralize(facts.pushupDaysLeft, "day")}`,
       message: `Your team is at ${facts.pushupPct}%. Keep the sets coming.`,
       read: false,
       createdAt: ago(9 * 3_600_000),

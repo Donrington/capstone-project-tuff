@@ -9,7 +9,7 @@ import styles from "./settings.module.css";
 
 const INITIAL: UpdatePasswordState = {};
 
-export function AccountSection({ email }: { email: string }) {
+export function AccountSection({ email, hasPassword }: { email: string; hasPassword: boolean }) {
   const [state, formAction] = useActionState(updatePasswordAction, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
   useSavedToast(state);
@@ -20,7 +20,7 @@ export function AccountSection({ email }: { email: string }) {
   }, [state]);
 
   return (
-    <SettingsSection id="account" title="Account" sub="Your sign-in email and password.">
+    <SettingsSection id="account" title="Account" sub={hasPassword ? "Your sign-in email and password." : "Your sign-in email."}>
       <div className={styles.form}>
         <FormField
           label="Email"
@@ -32,34 +32,38 @@ export function AccountSection({ email }: { email: string }) {
         />
       </div>
 
-      <form ref={formRef} action={formAction} className={`${styles.form} ${styles.split}`}>
-        <h3 className={styles.subheading}>Change password</h3>
-        <PasswordField
-          label="Current password"
-          name="currentPassword"
-          autoComplete="current-password"
-          error={Boolean(state.errors?.currentPassword)}
-          helperText={state.errors?.currentPassword}
-        />
-        <PasswordField
-          label="New password"
-          name="newPassword"
-          autoComplete="new-password"
-          error={Boolean(state.errors?.newPassword)}
-          helperText={state.errors?.newPassword ?? "At least 8 characters."}
-        />
-        <PasswordField
-          label="Confirm new password"
-          name="confirmPassword"
-          autoComplete="new-password"
-          error={Boolean(state.errors?.confirmPassword)}
-          helperText={state.errors?.confirmPassword}
-        />
-        <p className={styles.note}>Changing it signs you out everywhere else.</p>
-        <div className={styles.actions}>
-          <SaveButton label="Change password" pendingLabel="Changing…" />
-        </div>
-      </form>
+      {hasPassword ? (
+        <form ref={formRef} action={formAction} className={`${styles.form} ${styles.split}`}>
+          <h3 className={styles.subheading}>Change password</h3>
+          <PasswordField
+            label="Current password"
+            name="currentPassword"
+            autoComplete="current-password"
+            error={Boolean(state.errors?.currentPassword)}
+            helperText={state.errors?.currentPassword}
+          />
+          <PasswordField
+            label="New password"
+            name="newPassword"
+            autoComplete="new-password"
+            error={Boolean(state.errors?.newPassword)}
+            helperText={state.errors?.newPassword ?? "At least 8 characters."}
+          />
+          <PasswordField
+            label="Confirm new password"
+            name="confirmPassword"
+            autoComplete="new-password"
+            error={Boolean(state.errors?.confirmPassword)}
+            helperText={state.errors?.confirmPassword}
+          />
+          <p className={styles.note}>Changing it signs you out everywhere else.</p>
+          <div className={styles.actions}>
+            <SaveButton label="Change password" pendingLabel="Changing…" />
+          </div>
+        </form>
+      ) : (
+        <p className={styles.note}>You sign in with Google, so there&apos;s no password to change.</p>
+      )}
     </SettingsSection>
   );
 }

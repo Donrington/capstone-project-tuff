@@ -1,4 +1,5 @@
 import { Dumbbell, Flag, Flame, Footprints, Lock, Trophy, UsersRound, type LucideIcon } from "lucide-react";
+import { pluralize } from "@/lib/pluralize";
 import type { Achievement } from "@/lib/types";
 import styles from "./AchievementsGrid.module.css";
 
@@ -25,7 +26,7 @@ const UNITS: Record<string, [string, string]> = {
 function progressLabel(a: Achievement) {
   if (!a.progress) return "Locked";
   const [one, many] = UNITS[a.requirement.split(":")[0]] ?? ["", ""];
-  const unit = a.progress.target === 1 ? one : many;
+  const unit = pluralize(a.progress.target, one, many);
   return `Locked · ${a.progress.current.toLocaleString("en-US")} of ${a.progress.target.toLocaleString("en-US")} ${unit}`.trim();
 }
 

@@ -48,6 +48,8 @@ export interface User {
   /** Shown around the app instead of the full name — e.g. in the nav and on cards. */
   displayName: string;
   email: string;
+  /** False for accounts that only sign in with Google — no password to change. */
+  hasPassword: boolean;
   initials: string;
   teamId: string | null;
   /** Empty when there's no team. */

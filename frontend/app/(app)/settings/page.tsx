@@ -26,7 +26,7 @@ export default async function SettingsPage() {
         <SettingsNav />
         <div className={styles.content}>
           <ProfileSection user={user} />
-          <AccountSection email={user.email} />
+          <AccountSection email={user.email} hasPassword={user.hasPassword} />
           <GoalsSection stepGoal={user.stepGoal} workoutDaysPerWeek={user.workoutDaysPerWeek} />
           <NotificationsSection prefs={user.notificationPrefs} />
           <AppearanceSection />

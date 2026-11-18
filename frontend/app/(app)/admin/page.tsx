@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SignupsChart } from "@/components/admin/SignupsChart";
 import { getAdminOverview } from "@/lib/data";
+import { pluralize } from "@/lib/pluralize";
 import styles from "@/components/admin/admin.module.css";
 
 const n = (value: number) => value.toLocaleString("en-US");
@@ -15,7 +16,7 @@ export default async function AdminOverviewPage() {
     {
       label: "Active this week",
       value: o.users.activeLast7Days,
-      note: `of ${n(o.users.total)} members logged something`,
+      note: `of ${n(o.users.total)} ${pluralize(o.users.total, "member")} logged something`,
     },
     {
       label: "Suspended",

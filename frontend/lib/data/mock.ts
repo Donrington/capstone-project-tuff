@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { ApiError } from "@/lib/api/client";
 import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import { capFor, capMessage } from "@/lib/activity-limits";
+import { challengePace } from "@/lib/challenge-pace";
+import { pluralize } from "@/lib/pluralize";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
@@ -597,7 +599,7 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
   return settle({
     challenge,
     daily,
-    pacePerDay: Math.ceil(challenge.goal / challenge.totalDays),
+    pacePerDay: challengePace(challenge.goal, challenge.totalDays),
     contributions,
     activities: [...logs].sort(newestFirst).map((a) => toEntry(d, a)),
     bestDays,
@@ -746,7 +748,7 @@ export const getSearchIndex = cache(async (): Promise<SearchItem[]> => {
     id: `team-${t.id}`,
     kind: "team",
     label: t.name,
-    sublabel: `#${t.rank} of ${teams.length} · ${t.memberIds.length} members`,
+    sublabel: `#${t.rank} of ${teams.length} · ${t.memberIds.length} ${pluralize(t.memberIds.length, "member")}`,
     href: `/teams/${t.id}`,
     keywords: [t.inviteCode],
   }));
@@ -797,7 +799,7 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
       name: team.name,
       code: team.inviteCode,
       href: `/teams/${team.id}`,
-      detail: `#${team.rank} of ${teams.length} · ${team.memberIds.length} members`,
+      detail: `#${team.rank} of ${teams.length} · ${team.memberIds.length} ${pluralize(team.memberIds.length, "member")}`,
     });
   }
 

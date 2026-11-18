@@ -2,6 +2,8 @@ import { cache } from "react";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { api, apiOptional, ApiError, isObjectId } from "@/lib/api/client";
 import { clearSessionCookies } from "@/lib/api/cookies";
+import { challengePace } from "@/lib/challenge-pace";
+import { pluralize } from "@/lib/pluralize";
 import type {
   Achievement,
   ActivityEntry,
@@ -59,6 +61,8 @@ interface RawUser {
   bio?: string;
   teamId: string | null;
   email: string;
+  /** Older backend responses may omit it; email accounts are the safe default. */
+  hasPassword?: boolean;
   profilePicture: string | null;
   role: "member" | "admin";
   createdAt: string;
@@ -168,6 +172,7 @@ function toUser(raw: RawUser, teamName: string): User {
     lastName: raw.lastName,
     displayName: raw.displayName || raw.firstName,
     email: raw.email,
+    hasPassword: raw.hasPassword ?? true,
     initials: initials(raw.firstName, raw.lastName),
     teamId: raw.teamId ?? null,
     teamName,
@@ -492,7 +497,7 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
   return {
     challenge,
     daily,
-    pacePerDay: Math.ceil(challenge.goal / challenge.totalDays),
+    pacePerDay: challengePace(challenge.goal, challenge.totalDays),
     contributions,
     activities: entries,
     bestDays: challenge.teamId
@@ -548,14 +553,14 @@ function personalBestsFrom(stats: RawStats): PersonalBest[] {
   const out: PersonalBest[] = [];
   const { mostStepsInADay, mostRepsInADay, longestHoldSeconds } = stats.personalBests;
   if (mostRepsInADay) {
-    out.push({ id: "pb-reps", label: "Most reps in a day", value: `${mostRepsInADay.value.toLocaleString("en-US")} reps`, achievedAt: mostRepsInADay.date });
+    out.push({ id: "pb-reps", label: "Most reps in a day", value: `${mostRepsInADay.value.toLocaleString("en-US")} ${pluralize(mostRepsInADay.value, "rep", "reps")}`, achievedAt: mostRepsInADay.date });
   }
   if (longestHoldSeconds) {
     const s = longestHoldSeconds.value;
     out.push({ id: "pb-hold", label: "Longest hold", value: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`, achievedAt: longestHoldSeconds.date });
   }
   if (mostStepsInADay) {
-    out.push({ id: "pb-steps", label: "Most steps in a day", value: `${mostStepsInADay.value.toLocaleString("en-US")} steps`, achievedAt: mostStepsInADay.date });
+    out.push({ id: "pb-steps", label: "Most steps in a day", value: `${mostStepsInADay.value.toLocaleString("en-US")} ${pluralize(mostStepsInADay.value, "step")}`, achievedAt: mostStepsInADay.date });
   }
   return out;
 }
@@ -603,7 +608,7 @@ export const getSearchIndex = cache(async (): Promise<SearchItem[]> => {
       id: `team-${t.id}`,
       kind: "team",
       label: t.name,
-      sublabel: `${t.rank ? `#${t.rank} of ${teams.length} · ` : ""}${t.memberCount} ${t.memberCount === 1 ? "member" : "members"}`,
+      sublabel: `${t.rank ? `#${t.rank} of ${teams.length} · ` : ""}${t.memberCount} ${pluralize(t.memberCount, "member")}`,
       href: `/teams/${t.id}`,
       keywords: [t.inviteCode],
     })),
@@ -637,7 +642,7 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
       name: team.name,
       code: team.inviteCode,
       href: `/teams/${team.id}`,
-      detail: `${team.memberCount} ${team.memberCount === 1 ? "member" : "members"}`,
+      detail: `${team.memberCount} ${pluralize(team.memberCount, "member")}`,
     };
   }
 

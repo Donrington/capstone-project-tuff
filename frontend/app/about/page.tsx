@@ -39,11 +39,8 @@ const STEPS = [
   },
 ];
 
-// Placeholder marketing numbers, the same ones the auth page shows — swap for
-// live stats once the backend exists. The last two are product facts.
+// Product facts only: no invented usage numbers (this isn't a live-stat page).
 const STATS = [
-  { value: "12,408", label: "people training this week" },
-  { value: "340", label: "team challenges live" },
   { value: "3", label: "ways to log: reps, steps, seconds" },
   { value: "3–90", label: "days per challenge, your call" },
 ];
@@ -127,11 +124,11 @@ export default async function AboutPage({
             <ul className={styles.heroChips}>
               <li className={styles.chip}>
                 <span className={styles.liveDot} aria-hidden="true" />
-                12,408 training this week
+                Log reps, steps or seconds
               </li>
               <li className={styles.chip}>
                 <span className={styles.liveDot} aria-hidden="true" />
-                340 team challenges live
+                Strength, steps and Pilates
               </li>
             </ul>
           </div>
@@ -242,11 +239,11 @@ export default async function AboutPage({
             <div className={styles.scrim} aria-hidden="true" />
             <span className={styles.teamPill} aria-hidden="true">
               <span className={styles.liveDot} />
-              Team Ironclad · #2 of 14
+              Team Ironclad · Training together
             </span>
             <div className={styles.rivalCard} aria-hidden="true">
               <span className={styles.rivalLine}>
-                <b>340 steps</b> behind Team Voltage
+                <b>Every rep</b> moves the team forward
               </span>
               <span className={styles.split}>
                 <span className={styles.splitUs} />

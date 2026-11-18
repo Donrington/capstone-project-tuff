@@ -146,7 +146,7 @@ async function refresh(req, res) {
 
 // GET /api/auth/me — frontend: lib/auth/get-current-user.ts (the session seam)
 async function getMe(req, res) {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).select("+passwordHash");
   if (!user) throw ApiError.notFound();
   // A suspended person's access token lives on for up to 15 minutes; this is
   // what the frontend asks on every page, so it sees them as signed out at once.
