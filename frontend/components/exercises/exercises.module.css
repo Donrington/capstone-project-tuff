@@ -1,29 +1,55 @@
 .filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
   margin-bottom: var(--space-6);
 }
-.filter {
-  height: 40px;
-  padding: 0 16px;
+
+/* Pilates gets the first row. It scrolls as a strip on a phone so the
+   sequence stays in order without turning into a very tall page. */
+.featured {
+  margin-bottom: var(--space-10);
+  padding: var(--space-6);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-2xl);
   background: var(--surface);
-  color: var(--ink-secondary);
-  font: 600 14px/1 var(--font-sans);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
 }
-.filter:hover {
+.featuredHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.featuredKicker {
+  font: 700 11px/16px var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--volt-ink);
+}
+.featuredTitle {
+  margin-top: var(--space-2);
+  font: 800 32px/1.05 var(--font-heading);
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
-.filter[aria-pressed="true"] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--canvas);
+.featuredIntro {
+  max-width: 440px;
+  font: 400 15px/22px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.featuredRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 78vw);
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0 0 var(--space-3);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.featuredRow > li {
+  scroll-snap-align: start;
 }
 
 .grid {
@@ -99,6 +125,33 @@
     radial-gradient(60% 80% at 15% 20%, color-mix(in srgb, var(--accent-volt) 30%, transparent), transparent 70%),
     radial-gradient(55% 70% at 90% 85%, color-mix(in srgb, var(--accent-surge) 32%, transparent), transparent 70%),
     linear-gradient(160deg, var(--surface-3), var(--surface));
+}
+
+/* --------------------------------------------------- the mat sequence nav */
+.sequenceLabel {
+  display: block;
+  font-weight: 700;
+  color: var(--volt-ink);
+}
+.sequenceSummary {
+  display: block;
+  margin-top: var(--space-2);
+}
+.sequenceNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* "Next" stays on the right even when a phone wraps the two onto two rows,
+   so the direction still reads at a glance. */
+.sequenceNav > :last-child {
+  margin-left: auto;
 }
 
 /* ------------------------------------------------------------- the detail */
@@ -182,6 +235,16 @@
   font: 800 11px/1 var(--font-sans);
 }
 
+@media (min-width: 720px) {
+  .featuredRow {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-auto-columns: auto;
+    padding-bottom: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+}
 @media (min-width: 1100px) {
   .detail {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
@@ -189,6 +252,9 @@
   }
 }
 @media (max-width: 719px) {
+  .featured {
+    padding: var(--space-5) var(--space-4);
+  }
   .panel {
     padding: var(--space-5) var(--space-4);
   }

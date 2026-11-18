@@ -223,6 +223,27 @@ export default async function AboutPage({
           </ol>
         </section>
 
+        {/* ---------------------------------------------------------- pilates */}
+        <section className={`${styles.container} ${styles.section}`} aria-labelledby="pilates-title">
+          <div className={styles.sectionHead}>
+            <p className={`${styles.kicker} ${styles.reveal}`}>Pilates</p>
+            <h2 id="pilates-title" className={`${styles.sectionTitle} ${styles.reveal}`}>
+              The mat sequence, move by move.
+            </h2>
+          </div>
+          <p className={`${styles.body} ${styles.pilatesBody} ${styles.reveal}`}>
+            The library covers all 13 classical mat moves, from The Hundred to Teaser, in the order
+            they belong. Each one has form cues and the common mistakes to watch for, so you can
+            practise on the floor at home — no reformer needed.
+          </p>
+          <div className={styles.pilatesCta}>
+            <ButtonLink href="/exercises?category=pilates" variant="secondary" size="lg">
+              Browse the mat sequence
+              <ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" />
+            </ButtonLink>
+          </div>
+        </section>
+
         {/* ------------------------------------------------------- community */}
         <section
           id="community"

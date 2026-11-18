@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Camera, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Plus } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ExerciseMedia } from "@/components/exercises/ExerciseMedia";
-import { exercises, getExercise } from "@/data/exercises";
+import { exercises, getExercise, pilatesExercises } from "@/data/exercises";
 import styles from "@/components/exercises/exercises.module.css";
 
 type Params = Promise<{ slug: string }>;
@@ -23,12 +23,28 @@ export default async function ExercisePage({ params }: { params: Params }) {
   const exercise = getExercise(slug);
   if (!exercise) notFound();
 
+  const sequenceIndex = pilatesExercises.findIndex((p) => p.slug === slug);
+  const inSequence = sequenceIndex >= 0;
+  const previous = sequenceIndex > 0 ? pilatesExercises[sequenceIndex - 1] : undefined;
+  const next = inSequence ? pilatesExercises[sequenceIndex + 1] : undefined;
+
   return (
     <div>
       <PageHeader
         kicker={exercise.category}
         title={exercise.name}
-        subtitle={exercise.summary}
+        subtitle={
+          inSequence ? (
+            <>
+              <span className={styles.sequenceLabel}>
+                Pilates · Move {sequenceIndex + 1} of {pilatesExercises.length} in the mat sequence
+              </span>
+              <span className={styles.sequenceSummary}>{exercise.summary}</span>
+            </>
+          ) : (
+            exercise.summary
+          )
+        }
         actions={
           <>
             <ButtonLink href={`/challenges/new?activity=${exercise.slug}`}>
@@ -81,6 +97,28 @@ export default async function ExercisePage({ params }: { params: Params }) {
           </section>
         </div>
       </div>
+      {/* At the end, where you'd go next after reading the move — and quiet,
+          so it never competes with "Start a challenge with this". */}
+      {inSequence && (
+        <nav className={styles.sequenceNav} aria-label="Pilates mat sequence">
+          {previous ? (
+            <ButtonLink href={`/exercises/${previous.slug}`} variant="ghost">
+              <ArrowLeft size={18} strokeWidth={2.25} aria-hidden="true" />
+              {previous.name}
+            </ButtonLink>
+          ) : (
+            <span />
+          )}
+          {next ? (
+            <ButtonLink href={`/exercises/${next.slug}`} variant="ghost">
+              {next.name}
+              <ArrowRight size={18} strokeWidth={2.25} aria-hidden="true" />
+            </ButtonLink>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
     </div>
   );
 }

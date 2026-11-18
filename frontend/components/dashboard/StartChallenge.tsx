@@ -1,6 +1,7 @@
 import { Dumbbell, Footprints, Timer, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { joinSuggestedChallengeAction } from "@/app/(app)/actions";
+import { getExercise } from "@/data/exercises";
 import type { SuggestedChallenge } from "@/lib/types";
 import styles from "./StartChallenge.module.css";
 
@@ -8,6 +9,16 @@ const ICON: Record<string, LucideIcon> = { steps: Footprints, reps: Dumbbell, se
 
 /** The featured slot on a brand-new dashboard: three ready-made challenges. */
 export function StartChallenge({ suggestions }: { suggestions: SuggestedChallenge[] }) {
+  const pilates = suggestions.filter((s) => getExercise(s.activity)?.category === "Pilates");
+  const other = suggestions.filter((s) => getExercise(s.activity)?.category !== "Pilates");
+  // Three rows fit the tile. Keep one Pilates starter in view when there are
+  // more suggestions than rows, without hard-coding a template id here.
+  const shown = [...other.slice(0, 2), ...pilates.slice(0, 1)].slice(0, 3);
+  for (const s of suggestions) {
+    if (shown.length >= 3) break;
+    if (!shown.includes(s)) shown.push(s);
+  }
+
   return (
     <section className={styles.wrap} aria-labelledby="start-heading">
       <p className={styles.kicker}>Get going</p>
@@ -15,7 +26,7 @@ export function StartChallenge({ suggestions }: { suggestions: SuggestedChalleng
         Start your first challenge
       </h2>
       <ul className={styles.list}>
-        {suggestions.map((s) => {
+        {shown.map((s) => {
           const Icon = ICON[s.unit] ?? Dumbbell;
           return (
             <li key={s.id} className={styles.item}>

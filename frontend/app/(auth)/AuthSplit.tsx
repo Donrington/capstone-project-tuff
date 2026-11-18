@@ -34,7 +34,7 @@ const STORY: Record<
 > = {
   signup: {
     lines: ["Every rep counts.", "Together."],
-    sub: "Join team challenges, climb the leaderboard, and keep your streak alive.",
+    sub: "Log strength, steps or Pilates, join a challenge with friends, and keep your streak alive.",
     chips: ["Strength, steps and Pilates", "Train solo or with friends"],
     switchHint: "Have an account?",
     switchAction: "Sign in",

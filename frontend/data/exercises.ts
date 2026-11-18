@@ -33,6 +33,20 @@ export const EXERCISE_CATEGORIES: ExerciseCategory[] = [
   "Pilates",
 ];
 
+function categorySlug(category: ExerciseCategory): string {
+  return category.toLowerCase().replace(/\s+/g, "-");
+}
+
+/** Chips for the exercises page. Pilates leads because it is a featured pillar. */
+export const CATEGORY_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pilates", label: "Pilates" },
+  ...EXERCISE_CATEGORIES.filter((c) => c !== "Pilates").map((c) => ({
+    value: categorySlug(c),
+    label: c,
+  })),
+];
+
 export const exercises: Exercise[] = [
   {
     slug: "pushups",
@@ -370,7 +384,7 @@ export const exercises: Exercise[] = [
     category: "Pilates",
     muscles: ["Upper back", "Glutes", "Shoulders"],
     unit: "reps",
-    summary: "The antidote to a day at a desk. Everything on the front opens while your back learns to lift.",
+    summary: "A back opener for when sitting has left you stiff. The front opens while your back learns to lift.",
     cues: [
       "Lie face down, hands under your shoulders, elbows close to your ribs.",
       "Draw your shoulders down away from your ears before you lift anything.",
@@ -446,6 +460,14 @@ export const exercises: Exercise[] = [
     video: { src: "/media/exercises/teaser.mp4", poster: "/media/exercises/teaser.jpg" },
   },
 ];
+
+/** The classical mat order is the order the moves appear in the list above. */
+export const pilatesExercises = exercises.filter((e) => e.category === "Pilates");
+
+export function exercisesForFilter(active: string): Exercise[] {
+  if (active === "all") return exercises;
+  return exercises.filter((e) => categorySlug(e.category) === active);
+}
 
 export function getExercise(slug: string) {
   return exercises.find((e) => e.slug === slug);
