@@ -361,6 +361,9 @@ export function buildChallenges(now: number): ChallengeSeed[] {
   const steps = startFor(now, 9);
   const pushups = startFor(now, 4);
   const plank = startFor(now, 9);
+  // A finished solo challenge, so the share-card buttons and image route have
+  // a real completed win in mock mode without disturbing the live challenges.
+  const squats = startFor(now, 5);
   return [
     {
       id: "10k-steps",
@@ -401,6 +404,18 @@ export function buildChallenges(now: number): ChallengeSeed[] {
       teamId: null,
       activity: "plank",
     },
+    {
+      id: "squats-power-week",
+      title: "Squats Power Week",
+      description: "Seven days, four hundred squats. One rep at a time.",
+      unit: "reps",
+      goal: 400,
+      startDate: isoDay(squats),
+      endDate: isoDay(squats + 6 * DAY_MS),
+      totalDays: 7,
+      teamId: null,
+      activity: "squats",
+    },
   ];
 }
 
@@ -410,6 +425,8 @@ const MY_STEPS = [9020, 7780, 8420, 10240, 6310, 11870, 9150, 12400, 7502];
 const MY_PUSHUPS = [60, 55, 70];
 /** Plank Ladder holds, days 1–8 (20s, then +10 a day). Today's isn't logged. */
 const MY_PLANKS = [20, 30, 40, 50, 60, 70, 80, 90];
+/** Squats Power Week is already finished: five sessions, 400 reps in all. */
+const MY_SQUATS = [80, 80, 80, 80, 80];
 
 /**
  * Every logged entry, for everyone. Team challenges get an entry most days
@@ -458,6 +475,12 @@ export function buildActivities(now: number, challenges: ChallengeSeed[], teamma
         });
       }
       if (c.id === "plank-ladder" && d < MY_PLANKS.length) push(CURRENT_USER_ID, c.id, dayStart, MY_PLANKS[d], 7, 5);
+      if (c.id === "squats-power-week" && d < MY_SQUATS.length) {
+        // One session was counted on-device, so the card's camera line has
+        // real data behind it in mock mode too.
+        push(CURRENT_USER_ID, c.id, dayStart, MY_SQUATS[d], 18, 20,
+          d === 2 ? { source: "camera", cameraSession: { durationMs: MY_SQUATS[d] * 1_500, exercise: "squats" } } : undefined);
+      }
 
       if (!c.teamId) continue;
       for (const mate of teammateIds) {

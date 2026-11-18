@@ -47,3 +47,8 @@
   font: 400 13px/18px var(--font-sans);
   color: var(--ink-secondary);
 }
+.share {
+  display: block;
+  margin-top: auto;
+  padding-top: var(--space-1);
+}

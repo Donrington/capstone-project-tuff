@@ -36,6 +36,9 @@ const APP_PREFIXES = [
   "/profile",
   "/settings",
   "/search",
+  // Personal share images live here too — unauthenticated requests get the
+  // same sign-in redirect as the rest of the app before the route's own 401.
+  "/share",
   "/join",
   "/onboarding",
   "/admin",

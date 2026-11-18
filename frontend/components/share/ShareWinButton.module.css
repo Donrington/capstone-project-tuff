@@ -1,0 +1,23 @@
+/* Doubling the class keeps the compact button smaller than Button's own .btn
+   without having to reach into that module or use !important. */
+.small.small {
+  height: 34px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
