@@ -94,7 +94,7 @@ async function updateChallenge(req, res) {
   res.json(challenge);
 }
 
-// GET /api/challenges/getbyCode/:code — public, used by the join-preview page before sign-in
+// GET /api/challenges/getbyCode/:code — authenticated; the full challenge record
 async function getChallengeByInviteCode(req, res) {
   const { code } = req.params;
   const challenge = await Challenge.findOne({ inviteCode: code.toUpperCase() });

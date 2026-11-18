@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { api, ApiError } from "@/lib/api/client";
 import { GOOGLE_OAUTH_COOKIE, GOOGLE_OAUTH_PATH, googleRedirectUri } from "@/lib/auth/google";
+import { clearNextCookie, getNextCookie, setNextCookie } from "@/lib/auth/next-cookie";
 
 interface CallbackQuery {
   code?: string;
@@ -54,5 +55,17 @@ export async function completeGoogleSignIn(query: CallbackQuery): Promise<void> 
     fail();
   }
 
-  redirect(result.isNew ? "/onboarding" : "/dashboard");
+  // Only the cookie set by the start route counts: Google's redirect never
+  // carries our query string, so a `next` on this URL could only be crafted.
+  const next = await getNextCookie();
+
+  if (result.isNew) {
+    // Keep the invite for onboarding's final redirect.
+    if (next) await setNextCookie(next);
+    redirect("/onboarding");
+  }
+
+  // Existing member: nothing left to carry, so don't leave the cookie behind.
+  await clearNextCookie();
+  redirect(next ?? "/dashboard");
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { AuthSplit, type AuthMode } from "./AuthSplit";
+import { safeNext } from "@/lib/auth/safe-next";
 import { siteConfig } from "@/lib/site-config";
 import { siteUrl } from "@/lib/site-url";
 
@@ -34,10 +35,13 @@ const STRUCTURED_DATA = {
 export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; next?: string }>;
 }) {
-  const { mode } = await searchParams;
+  const { mode, next: requestedNext } = await searchParams;
   const initialMode: AuthMode = mode === "signin" ? "signin" : "signup";
+  // Validate here, at the trust boundary: the client only ever receives a
+  // canonical /join/CODE path, never an arbitrary query value to reflect.
+  const next = safeNext(requestedNext);
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <>
@@ -47,7 +51,7 @@ export default async function AuthPage({
         // Static, built here from our own config, so nothing user-supplied reaches the markup.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA).replace(/</g, "\\u003c") }}
       />
-      <AuthSplit initialMode={initialMode} />
+      <AuthSplit initialMode={initialMode} next={next} />
     </>
   );
 }

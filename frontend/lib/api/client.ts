@@ -94,6 +94,28 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return (await res.json()) as T;
 }
 
+/**
+ * Calls a deliberately public backend route. No cookie header and no refresh
+ * attempt: an invite preview must work for someone who has never signed in,
+ * and must never echo their session to an endpoint that doesn't need it.
+ */
+export async function apiPublic<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+  if (!res.ok) {
+    let message = "Something went wrong.";
+    try {
+      const body = await res.json();
+      // The public invite endpoint sends `{ message }`; the standard error
+      // handler sends `{ error: { message } }`. Accept either.
+      message = body?.message ?? body?.error?.message ?? message;
+    } catch {
+      // not JSON — keep the generic message
+    }
+    throw new ApiError(res.status, message);
+  }
+  return (await res.json()) as T;
+}
+
 /** Like `api`, but a 404 (an endpoint or record that isn't there yet)
  *  comes back as `null` rather than an error. */
 export async function apiOptional<T>(path: string): Promise<T | null> {

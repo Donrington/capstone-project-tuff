@@ -48,6 +48,7 @@ export const {
   getSearchIndex,
   getSuggestedChallenges,
   findByCode,
+  getInvitePreview,
   startNewPersona,
   updateProfile,
   updateProfilePhoto,

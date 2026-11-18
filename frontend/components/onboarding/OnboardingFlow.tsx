@@ -66,7 +66,16 @@ const GOALS = [
   { value: "12000", hint: "You are chasing something." },
 ];
 
-export function OnboardingFlow({ firstName, suggestions }: { firstName: string; suggestions: SuggestedChallenge[] }) {
+export function OnboardingFlow({
+  firstName,
+  suggestions,
+  next,
+}: {
+  firstName: string;
+  suggestions: SuggestedChallenge[];
+  /** Validated invite destination carried from sign-up or Google. */
+  next: string | null;
+}) {
   const [state, formAction] = useActionState(completeOnboardingAction, INITIAL);
   const [step, setStep] = useState(0);
   const headingRefs = useRef<(HTMLHeadingElement | null)[]>([]);
@@ -101,7 +110,8 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
   }, [state]);
 
   const last = STEPS.length - 1;
-  const next = () => setStep((s) => Math.min(last, s + 1));
+  // Renamed from `next` because the prop of the same name is the invite destination.
+  const advance = () => setStep((s) => Math.min(last, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   /** "Skip for now" clears that step's answers, then moves on. */
@@ -117,7 +127,7 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
     if (step === 2) setStepGoal("later");
     if (step === 3) setChallengeIds([]);
     if (step === 4) setTeamChoice("skip");
-    next();
+    advance();
   }
 
   const chosen = suggestions.filter((s) => challengeIds.includes(s.id));
@@ -153,11 +163,12 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
         onKeyDown={(event) => {
           if (event.key === "Enter" && step < last && (event.target as HTMLElement).tagName === "INPUT") {
             event.preventDefault();
-            next();
+            advance();
           }
         }}
       >
         {/* Everything travels with the one submit at the end. */}
+        {next && <input type="hidden" name="next" value={next} />}
         <input type="hidden" name="stepGoal" value={stepGoal} />
         <input type="hidden" name="teamChoice" value={teamChoice} />
         {challengeIds.map((id) => (
@@ -373,7 +384,7 @@ export function OnboardingFlow({ firstName, suggestions }: { firstName: string; 
                 <button type="button" className={styles.skip} onClick={skip}>
                   Skip for now
                 </button>
-                <Button type="button" onClick={next}>
+                <Button type="button" onClick={advance}>
                   Continue
                   <ArrowRight size={18} aria-hidden="true" />
                 </Button>
