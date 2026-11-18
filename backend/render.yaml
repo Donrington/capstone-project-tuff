@@ -31,3 +31,5 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false # "describe it" logging, rival banter, admin flag notes — all skip quietly without it

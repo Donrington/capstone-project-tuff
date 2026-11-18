@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { ApiError } from "@/lib/api/client";
 import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
+import { capFor, capMessage } from "@/lib/activity-limits";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
@@ -999,6 +1001,11 @@ export async function addActivity(input: {
   const stored = d.challenges.find((c) => c.id === input.challengeId);
   if (!stored) return null;
 
+  const cap = capFor(stored.unit);
+  if (cap !== undefined && input.value > cap) {
+    throw new ApiError(400, capMessage(stored.unit));
+  }
+
   const before = challengeView(d, stored);
   const recordedAt = new Date();
   if (input.when === "yesterday") recordedAt.setUTCDate(recordedAt.getUTCDate() - 1);
@@ -1044,6 +1051,10 @@ export interface DailyStepsLogged {
 // TODO(backend): POST /api/users/me/activities
 export async function addDailySteps(input: { value: number; when: "today" | "yesterday" }): Promise<DailyStepsLogged> {
   const d = await db();
+  const cap = capFor("steps");
+  if (cap !== undefined && input.value > cap) {
+    throw new ApiError(400, capMessage("steps"));
+  }
   const recordedAt = new Date();
   if (input.when === "yesterday") recordedAt.setUTCDate(recordedAt.getUTCDate() - 1);
   d.activities.push({
@@ -1063,10 +1074,12 @@ export async function addDailySteps(input: { value: number; when: "today" | "yes
 // calls Claude; the mock (offline, deterministic, no API key for e2e) just
 // handles "N sets of M" and a bare number, which is all the e2e spec needs.
 export async function parseActivityText(input: { text: string; unit: string }): Promise<{ value: number } | { error: string }> {
+  const cap = capFor(input.unit);
+  const clamp = (value: number) => (cap !== undefined ? Math.min(value, cap) : value);
   const sets = input.text.match(/(\d+)\s*(?:sets?|x)\D{0,6}(\d+)/i);
-  if (sets) return { value: Number(sets[1]) * Number(sets[2]) };
+  if (sets) return { value: clamp(Number(sets[1]) * Number(sets[2])) };
   const bare = input.text.match(/\d+/);
-  if (bare) return { value: Number(bare[0]) };
+  if (bare) return { value: clamp(Number(bare[0])) };
   return { error: `Couldn't find a number of ${input.unit} in that — try the field below instead.` };
 }
 

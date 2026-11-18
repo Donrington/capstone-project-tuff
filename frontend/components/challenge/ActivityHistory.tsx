@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
+import { LocalTime } from "@/components/ui/LocalTime";
 import type { ActivityEntry } from "@/lib/types";
 import styles from "./challenge.module.css";
 
@@ -18,9 +19,6 @@ function dayHeading(iso: string, nowIso: string) {
   if (day === today - DAY_MS) return "Yesterday";
   return new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 }
-
-const timeOf = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
 interface ActivityHistoryProps {
   entries: ActivityEntry[];
@@ -81,9 +79,7 @@ export function ActivityHistory({
                         </>
                       )}
                     </p>
-                    <time className={styles.entryTime} dateTime={e.recordedAt}>
-                      {timeOf(e.recordedAt)}
-                    </time>
+                    <LocalTime className={styles.entryTime} iso={e.recordedAt} />
                   </li>
                 ))}
               </ul>

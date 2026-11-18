@@ -33,6 +33,7 @@ import {
   type LoggedActivity,
 } from "@/lib/data";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
+import { capFor, capMessage } from "@/lib/activity-limits";
 import type { FitnessLevel, Gender, Motivation, NotificationPrefs, Persona, ProfileVisibility } from "@/lib/types";
 
 /**
@@ -77,9 +78,6 @@ export type LogActivityState = ActionState<"challengeId" | "value"> & {
   daily?: DailyStepsLogged;
 };
 
-/** One entry can only hold so much before it's probably a typo. */
-const CAPS: Record<string, number> = { reps: 1000, steps: 100000, seconds: 3600 };
-
 const EMPTY_MESSAGE: Record<string, string> = {
   reps: "Enter how many reps you did.",
   steps: "Enter how many steps you took.",
@@ -100,13 +98,14 @@ export async function logActivity(
   if (!challengeId) errors.challengeId = "Pick a challenge to log against.";
   const daily = challengeId === DAILY_STEPS_ID;
 
+  const cap = capFor(unit);
   const value = Number(raw);
   if (!raw) {
     errors.value = EMPTY_MESSAGE[unit] ?? "Enter how much you did.";
   } else if (!Number.isInteger(value) || value <= 0) {
     errors.value = "Use a whole number above zero.";
-  } else if (value > (CAPS[unit] ?? 1000)) {
-    errors.value = "That's more than one entry can hold. Split it into two.";
+  } else if (cap !== undefined && value > cap) {
+    errors.value = capMessage(unit);
   }
 
   if (Object.keys(errors).length > 0) {
