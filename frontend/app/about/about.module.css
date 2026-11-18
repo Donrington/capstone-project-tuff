@@ -87,6 +87,14 @@
   color: var(--ink-secondary);
   text-wrap: pretty;
 }
+.pilatesBody {
+  max-width: 620px;
+  margin-top: var(--space-5);
+}
+.pilatesCta {
+  display: flex;
+  margin-top: var(--space-6);
+}
 .volt {
   color: var(--volt-ink);
 }
