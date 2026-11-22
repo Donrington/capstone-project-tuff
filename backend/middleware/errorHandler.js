@@ -26,6 +26,13 @@ function errorHandler(err, req, res, next) {
     return;
   }
 
+  // body-parser rejects an oversized JSON body before any route runs. Its
+  // error carries a status, but the default 500 branch would hide that.
+  if (err.status === 413 || err.type === "entity.too.large") {
+    res.status(413).json({ error: { message: "That request is too large. Try a smaller image." } });
+    return;
+  }
+
   // Mongoose's duplicate-key error (a `unique: true` field, e.g. email).
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern || {})[0] || "field";

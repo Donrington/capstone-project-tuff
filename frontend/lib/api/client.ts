@@ -1,7 +1,18 @@
 import { redirect } from "next/navigation";
 import { ACCESS_COOKIE, API_URL, REFRESH_COOKIE } from "./config";
 import { applySessionCookies, parseSetCookie, sessionCookieHeader } from "./cookies";
-import { cookies } from "next/headers";
+import { cookies, headers as requestHeaders } from "next/headers";
+import { edgeHeadersFrom } from "./edge";
+
+/** The visitor's IP for the API's rate limits; empty outside a request. */
+async function edge(): Promise<Record<string, string>> {
+  try {
+    const h = await requestHeaders();
+    return edgeHeadersFrom((name) => h.get(name));
+  } catch {
+    return {};
+  }
+}
 
 /** A non-2xx answer from the backend, shaped like its errorHandler output. */
 export class ApiError extends Error {
@@ -31,7 +42,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refresh) return null;
   const res = await fetch(`${API_URL}/api/auth/refresh`, {
     method: "POST",
-    headers: { cookie: `${REFRESH_COOKIE}=${encodeURIComponent(refresh)}` },
+    headers: { cookie: `${REFRESH_COOKIE}=${encodeURIComponent(refresh)}`, ...(await edge()) },
     cache: "no-store",
   });
   if (!res.ok) return null;
@@ -46,6 +57,7 @@ async function refreshAccessToken(): Promise<string | null> {
 async function send(path: string, options: RequestOptions, accessOverride?: string) {
   const headers: Record<string, string> = {
     cookie: await sessionCookieHeader(accessOverride ? { [ACCESS_COOKIE]: accessOverride } : {}),
+    ...(await edge()),
   };
   if (options.body !== undefined) headers["content-type"] = "application/json";
   return fetch(`${API_URL}${path}`, {

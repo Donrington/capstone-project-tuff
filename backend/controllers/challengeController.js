@@ -1,7 +1,10 @@
+const mongoose = require("mongoose");
 const Challenge = require("../models/Challenge");
 const ChallengeParticipant = require("../models/ChallengeParticipant");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
+const { canViewChallenge } = require("../utils/challengeAccess");
+const { challengeCreateFields, challengeUpdateFields } = require("../utils/challengeInput");
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -29,30 +32,17 @@ async function withComputedProgress(challenge) {
 
 // POST /api/challenges/create
 async function createChallenge(req, res) {
-  const { title, description, type, goal, unit, pointsPerUnit, startDate, endDate, maxParticipants, status, teamId, featured } =
-    req.body;
-
-  if (!title || !description || !type || goal === undefined || !unit || pointsPerUnit === undefined || !startDate || !endDate) {
-    throw ApiError.badRequest("Please provide all required challenge fields.");
-  }
-  if (new Date(endDate) <= new Date(startDate)) {
-    throw ApiError.badRequest("End date must be after start date.");
-  }
+  // The creator's team comes from the database, never from the request.
+  const creator = await User.findById(req.user.id).select("teamId role");
+  if (!creator) throw ApiError.unauthorized();
+  const fields = challengeCreateFields(req.body, {
+    teamId: creator.teamId ? String(creator.teamId) : null,
+    isAdmin: creator.role === "admin",
+  });
 
   const challenge = await Challenge.create({
-    title,
-    description,
-    type,
-    goal,
-    unit,
-    pointsPerUnit,
-    startDate,
-    endDate,
-    maxParticipants,
-    status,
-    teamId,
+    ...fields,
     inviteCode: generateInviteCode(),
-    featured,
     createdBy: req.user.id,
   });
 
@@ -70,26 +60,7 @@ async function updateChallenge(req, res) {
     throw ApiError.forbidden("You cannot update a challenge you didn't create.");
   }
 
-  const { title, description, type, goal, unit, pointsPerUnit, startDate, endDate, maxParticipants, status, teamId, featured } =
-    req.body;
-
-  if (title !== undefined) challenge.title = title;
-  if (description !== undefined) challenge.description = description;
-  if (type !== undefined) challenge.type = type;
-  if (goal !== undefined) challenge.goal = goal;
-  if (unit !== undefined) challenge.unit = unit;
-  if (pointsPerUnit !== undefined) challenge.pointsPerUnit = pointsPerUnit;
-  if (startDate !== undefined) challenge.startDate = startDate;
-  if (endDate !== undefined) challenge.endDate = endDate;
-  if (maxParticipants !== undefined) challenge.maxParticipants = maxParticipants;
-  if (status !== undefined) challenge.status = status;
-  if (teamId !== undefined) challenge.teamId = teamId;
-  if (featured !== undefined) challenge.featured = featured;
-
-  if (new Date(challenge.endDate) <= new Date(challenge.startDate)) {
-    throw ApiError.badRequest("End date must be after start date.");
-  }
-
+  Object.assign(challenge, challengeUpdateFields(req.body, challenge, { isAdmin: req.user.role === "admin" }));
   await challenge.save();
   res.json(challenge);
 }
@@ -105,7 +76,7 @@ async function getChallengeByInviteCode(req, res) {
 // GET /api/challenges/get/:id
 async function getChallenge(req, res) {
   const challenge = await Challenge.findById(req.params.id);
-  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (!(await canViewChallenge(challenge, req.user))) throw ApiError.notFound("Challenge not found.");
   res.json(await withComputedProgress(challenge));
 }
 
@@ -117,9 +88,9 @@ async function listMyChallenges(req, res) {
     ChallengeParticipant.find({ user: req.user.id }).select("challenge"),
     User.findById(req.user.id).select("teamId"),
   ]);
-  const yours = [{ _id: { $in: mine.map((p) => p.challenge) } }];
+  const yours = [{ _id: mongoose.trusted({ $in: mine.map((p) => p.challenge) }) }];
   if (me?.teamId) yours.push({ teamId: me.teamId });
-  const challenges = await Challenge.find({ $or: yours, status: { $ne: "cancelled" } }).sort({
+  const challenges = await Challenge.find({ $or: yours, status: mongoose.trusted({ $ne: "cancelled" }) }).sort({
     featured: -1,
     startDate: -1,
   });

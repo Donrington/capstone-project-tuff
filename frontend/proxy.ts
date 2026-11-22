@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { edgeHeadersFrom } from "@/lib/api/edge";
 
 /**
  * Runs before every page (Next 16's "proxy", formerly middleware). With the
@@ -55,11 +56,11 @@ function toSignIn(request: NextRequest) {
   return response;
 }
 
-async function refreshAccess(refresh: string): Promise<{ value: string; maxAge: number } | null> {
+async function refreshAccess(refresh: string, request: NextRequest): Promise<{ value: string; maxAge: number } | null> {
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
-      headers: { cookie: `${REFRESH_COOKIE}=${encodeURIComponent(refresh)}` },
+      headers: { cookie: `${REFRESH_COOKIE}=${encodeURIComponent(refresh)}`, ...edgeHeadersFrom((name) => request.headers.get(name)) },
       cache: "no-store",
     });
     if (!res.ok) return null;
@@ -101,7 +102,7 @@ export async function proxy(request: NextRequest) {
 
   if (!refresh) return done(onAuthPage ? next() : toSignIn(request));
 
-  const fresh = await refreshAccess(refresh);
+  const fresh = await refreshAccess(refresh, request);
   if (!fresh) return done(onAuthPage ? next() : toSignIn(request));
 
   if (onAuthPage) {

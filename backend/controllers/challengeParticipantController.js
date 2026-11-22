@@ -7,6 +7,7 @@ const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require(".
 const { flagReasonFor } = require("../utils/flagActivity");
 const { capFor } = require("../utils/activityLimits");
 const { validateCameraSession } = require("../utils/cameraSession");
+const { canViewChallenge, canJoinChallenge } = require("../utils/challengeAccess");
 const { notify, bestEffort } = require("../services/notificationService");
 const { evaluateAchievements } = require("../services/achievementService");
 
@@ -26,7 +27,11 @@ async function joinChallenge(req, res) {
   const userId = req.user.id;
 
   const challenge = await Challenge.findById(challengeId);
-  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  // A bare id isn't an invitation: a stranger must get the same answer as a
+  // missing id, or this endpoint would confirm which challenges exist.
+  if (!(await canJoinChallenge(challenge, req.user, req.body?.inviteCode))) {
+    throw ApiError.notFound("Challenge not found.");
+  }
   if (challenge.status === "completed" || challenge.status === "cancelled") {
     throw ApiError.badRequest("You cannot join this challenge.");
   }
@@ -46,6 +51,9 @@ async function joinChallenge(req, res) {
 // GET /api/challenge-participants/:challengeId/me
 async function getMyParticipation(req, res) {
   const { challengeId } = req.params;
+  const challenge = await Challenge.findById(challengeId);
+  if (!(await canViewChallenge(challenge, req.user))) throw ApiError.notFound("Challenge not found.");
+
   const participant = await ChallengeParticipant.findOne({ user: req.user.id, challenge: challengeId })
     .populate("user", "firstName lastName email")
     .populate("challenge", "title type goal unit startDate endDate");
@@ -57,7 +65,7 @@ async function getMyParticipation(req, res) {
 async function getChallengeParticipants(req, res) {
   const { challengeId } = req.params;
   const challenge = await Challenge.findById(challengeId);
-  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (!(await canViewChallenge(challenge, req.user))) throw ApiError.notFound("Challenge not found.");
 
   const participants = await ChallengeParticipant.find({ challenge: challengeId })
     .populate("user", "firstName lastName profilePicture")
@@ -175,7 +183,7 @@ async function logActivity(req, res) {
 async function getChallengeActivities(req, res) {
   const { challengeId } = req.params;
   const challenge = await Challenge.findById(challengeId);
-  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (!(await canViewChallenge(challenge, req.user))) throw ApiError.notFound("Challenge not found.");
 
   const activities = await Activity.find({ challenge: challengeId })
     .sort({ recordedAt: -1 })

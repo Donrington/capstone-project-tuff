@@ -227,7 +227,7 @@ async function updatePassword(req, res) {
   const ok = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!ok) throw ApiError.badRequest("Check the form and try again.", { currentPassword: "That's not your current password." });
 
-  user.passwordHash = await bcrypt.hash(newPassword, 10);
+  user.passwordHash = await bcrypt.hash(newPassword, 12);
   await user.save();
 
   await RefreshToken.deleteMany({ user: user._id });

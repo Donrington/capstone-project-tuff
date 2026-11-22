@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Team = require("../models/Team");
 const Challenge = require("../models/Challenge");
 const User = require("../models/User");
@@ -31,7 +32,7 @@ async function getInvitePreview(req, res) {
   const [team, challenge] = await Promise.all([
     Team.findOne({ inviteCode: code, status: "active" }).lean(),
     // A cancelled challenge can't be joined, so it gets the same 404 as no match.
-    Challenge.findOne({ inviteCode: code, status: { $ne: "cancelled" } }).lean(),
+    Challenge.findOne({ inviteCode: code, status: mongoose.trusted({ $ne: "cancelled" }) }).lean(),
   ]);
 
   const invite = team || challenge;

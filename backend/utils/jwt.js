@@ -20,13 +20,22 @@ const refreshCookieOptions = { ...baseCookieOptions, maxAge: REFRESH_TOKEN_TTL_M
 /** @param {{ sub: string, role: "member" | "admin" }} payload */
 function signAccessToken(payload) {
   if (!process.env.JWT_ACCESS_SECRET) throw new Error("JWT_ACCESS_SECRET is not set — check .env");
-  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: ACCESS_TOKEN_TTL });
+  return jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { algorithm: "HS256", expiresIn: ACCESS_TOKEN_TTL });
 }
 
 /** Throws if missing/expired/invalid — callers should try/catch. */
 function verifyAccessToken(token) {
   if (!process.env.JWT_ACCESS_SECRET) throw new Error("JWT_ACCESS_SECRET is not set — check .env");
-  return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  return jwt.verify(token, process.env.JWT_ACCESS_SECRET, { algorithms: ["HS256"] });
+}
+
+/** Called by server.js before it connects or listens — never print the secret. */
+function assertProductionJwtSecret() {
+  if (process.env.NODE_ENV !== "production") return;
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_ACCESS_SECRET must be set to at least 32 characters when NODE_ENV=production.");
+  }
 }
 
 /**
@@ -52,6 +61,7 @@ module.exports = {
   refreshCookieOptions,
   signAccessToken,
   verifyAccessToken,
+  assertProductionJwtSecret,
   generateRefreshToken,
   hashRefreshToken,
 };
