@@ -119,3 +119,22 @@ test("a hold that breaks straight after starting is dropped, not saved short", (
   }
   assert.equal(state.segments.length, 1);
 });
+
+test("the plank body line follows the 2D image, not world landmarks (benchmarked choice)", () => {
+  // Counting and holds are 2D-only (see USE_WORLD_FOR_ANGLES): world points
+  // that disagree with a straight, supported 2D plank must not break it.
+  const timer = createHoldTimer("plank");
+  const world = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 1 }));
+  const radians = (120 * Math.PI) / 180;
+  for (const shoulder of [11, 12]) world[shoulder] = { x: 0.4, y: 0, z: 0, visibility: 1 };
+  for (const hip of [23, 24]) world[hip] = { x: 0, y: 0, z: 0, visibility: 1 };
+  for (const ankle of [27, 28]) {
+    world[ankle] = { x: 0.4 + 0.4 * Math.cos(radians), y: 0.4 * Math.sin(radians), z: 0, visibility: 1 };
+  }
+  let state;
+  for (let index = 0; index < 200; index++) {
+    state = timer.update(plankFrame(), (index + 1) * FRAME_MS, world);
+  }
+  assert.equal(state.holding, true);
+  assert.ok(state.heldMs > 5_000, `heldMs was ${state.heldMs}`);
+});

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CameraCounter, type TrainExercise } from "@/components/train/CameraCounter";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { getActiveChallenges } from "@/lib/data";
+import styles from "./train-page.module.css";
 
 export const metadata: Metadata = { title: "Camera counter" };
 
@@ -19,12 +20,14 @@ export default async function TrainPage({
   const challenges = (await getActiveChallenges()).filter((c) => c.unit === "reps" || c.unit === "seconds");
 
   return (
-    <div>
-      <PageHeader
-        kicker="Train"
-        title="Camera counter"
-        subtitle="Live counting, timing and form feedback, right in your browser."
-      />
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <PageHeader
+          kicker="Train"
+          title="Camera counter"
+          subtitle="Live counting, timing and form feedback, right in your browser."
+        />
+      </div>
       <CameraCounter initialExercise={initialExercise} challenges={challenges} />
     </div>
   );

@@ -16,8 +16,8 @@
     "mediapipe:assets": "node scripts/copy-mediapipe.mjs",
     "postinstall": "npm run mediapipe:assets",
     "test:e2e": "playwright test",
-    "test:reps": "tsx --test lib/rep-counter/counter.test.mjs lib/rep-counter/hold.test.mjs",
-    "test:unit": "tsx --test lib/share-card.test.mjs lib/auth/safe-next.test.mjs data/demo-crew.test.mjs"
+    "test:reps": "tsx --test lib/rep-counter/counter.test.mjs lib/rep-counter/hold.test.mjs lib/rep-counter/counter-advanced.test.mjs lib/rep-counter/filters.test.mjs lib/rep-counter/geometry.test.mjs lib/pose/engine.test.mjs",
+    "test:unit": "tsx --test lib/share-card.test.mjs lib/auth/safe-next.test.mjs data/demo-crew.test.mjs lib/train-ui/cover.test.mjs lib/train-ui/depth.test.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
