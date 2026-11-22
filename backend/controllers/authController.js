@@ -11,7 +11,7 @@ const {
   hashRefreshToken,
   generateRefreshToken,
 } = require("../utils/jwt");
-const { toSafeUser } = require("../utils/serializeUser");
+const { toSafeUser, toSelfUser } = require("../utils/serializeUser");
 const { issueSession, clearSession } = require("../utils/session");
 const googleAuth = require("../services/googleAuth");
 
@@ -199,7 +199,8 @@ async function getMe(req, res) {
   // A suspended person's access token lives on for up to 15 minutes; this is
   // what the frontend asks on every page, so it sees them as signed out at once.
   if (user.status === "suspended") throw ApiError.unauthorized("This account has been suspended.");
-  res.json(toSafeUser(user));
+  // The owner's /me response carries the private timezone preference.
+  res.json(toSelfUser(user));
 }
 
 module.exports = { signUp, signIn, googleSignIn, signOut, refresh, getMe };

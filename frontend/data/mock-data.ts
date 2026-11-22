@@ -25,7 +25,7 @@ import { pluralize } from "@/lib/pluralize";
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** "YYYY-MM-DD" in UTC. */
-export function isoDay(date: Date | number): string {
+export function isoDay(date: Date | number | string): string {
   return new Date(date).toISOString().slice(0, 10);
 }
 
@@ -58,6 +58,10 @@ function initialsOf(first: string, last: string) {
 /* -------------------------------------------------------------- people --- */
 
 export const CURRENT_USER_ID = "u4";
+
+/** Deliberately includes the stray spaces a browser paste/copy can produce:
+ *  every day helper trims and validates it with Intl, just like the backend. */
+export const MOCK_USER_TIMEZONE = " Africa/Lagos ";
 
 const DEFAULT_PREFS: User["notificationPrefs"] = {
   streakReminders: true,
@@ -92,6 +96,7 @@ export function returningUser(now: number): User {
     motivations: ["build_muscle", "team"],
     fitnessLevel: "intermediate",
     onboardingCompletedAt: new Date(now - 213 * DAY_MS).toISOString(),
+    timezone: MOCK_USER_TIMEZONE,
   };
 }
 
@@ -116,6 +121,7 @@ export function newUser(now: number, input: { firstName: string; lastName: strin
     privacy: { ...DEFAULT_PRIVACY },
     motivations: [],
     onboardingCompletedAt: null,
+    timezone: "UTC",
   };
 }
 

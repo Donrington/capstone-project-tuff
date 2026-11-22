@@ -68,7 +68,7 @@ export default async function JoinPage({ params }: { params: Params }) {
                 Join {inviteTitle(preview)}
               </h1>
               <p className={styles.inviter}>{preview.inviterFirstName} invited you.</p>
-              <p className={styles.detail}>{inviteDetail(preview)}</p>
+              <p className={styles.detail}>{inviteDetail(preview, user?.timezone)}</p>
               {code && <p className={styles.code}>{code}</p>}
 
               {user ? (

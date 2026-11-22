@@ -77,6 +77,9 @@ export interface User {
   fitnessLevel?: FitnessLevel;
   /** ISO timestamp, or null until onboarding is finished or skipped. */
   onboardingCompletedAt: string | null;
+  /** IANA zone from the session (browser-detected once, then stored server-side).
+   *  Older backend responses may omit it, hence the "UTC" fallback in mappers. */
+  timezone: string;
 }
 
 /** Someone else, as the UI shows them — a display projection, never edited. */

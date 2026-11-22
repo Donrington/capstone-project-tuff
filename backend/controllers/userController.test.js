@@ -8,6 +8,35 @@ const { response, queryResult, withMocks } = require("../testHelpers");
 
 const SECRET = "a-test-access-secret-that-is-definitely-long-enough";
 
+test("timezone updates validate with Intl and answer 400 before saving", async () => {
+  let saved = false;
+  const existing = {
+    _id: { toString: () => "user-1" },
+    email: "ada@example.com",
+    role: "member",
+    timezone: "UTC",
+    save: async () => { saved = true; },
+  };
+
+  await withMocks(
+    { findById: { object: User, method: "findById", value: () => queryResult(existing) } },
+    async () => {
+      const res = response();
+      await assert.rejects(
+        () => controller.updateTimezone({ user: { id: "user-1" }, body: { timezone: "Mars/Olympus" } }, res),
+        (err) => err.status === 400 && /IANA/i.test(err.message),
+      );
+      assert.equal(saved, false);
+      assert.equal(existing.timezone, "UTC");
+
+      await controller.updateTimezone({ user: { id: "user-1" }, body: { timezone: " Africa/Lagos " } }, res);
+      assert.equal(saved, true);
+      assert.equal(existing.timezone, "Africa/Lagos");
+      assert.equal(res.body.timezone, "Africa/Lagos");
+    },
+  );
+});
+
 test("changing a password stores a cost-12 hash and revokes other sessions", async () => {
   const existing = {
     _id: { toString: () => "user-1" },

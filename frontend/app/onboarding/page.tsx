@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { getNextCookie } from "@/lib/auth/next-cookie";
+import { dayKey } from "@/lib/dates";
 import { getCurrentUser, getSuggestedChallenges } from "@/lib/data";
 import { noIndex } from "@/lib/seo";
 import styles from "./onboarding.module.css";
@@ -26,7 +27,12 @@ export default async function OnboardingPage() {
         </Link>
       </header>
       <main className={styles.main}>
-        <OnboardingFlow firstName={user.firstName} suggestions={suggestions} next={next} />
+        <OnboardingFlow
+          firstName={user.firstName}
+          suggestions={suggestions}
+          next={next}
+          today={dayKey(new Date(), user.timezone)}
+        />
       </main>
     </div>
   );

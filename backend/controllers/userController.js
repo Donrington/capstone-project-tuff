@@ -6,7 +6,7 @@ const Activity = require("../models/Activity");
 const UserAchievement = require("../models/UserAchievement");
 const Notification = require("../models/Notification");
 const ApiError = require("../utils/ApiError");
-const { toSafeUser } = require("../utils/serializeUser");
+const { toSafeUser, toSelfUser } = require("../utils/serializeUser");
 const { issueSession, clearSession } = require("../utils/session");
 const { cloudinary, isCloudinaryConfigured, avatarPublicId } = require("../utils/cloudinary");
 const { toActivityEntry, USER_FIELDS, CHALLENGE_FIELDS, limitFrom } = require("../utils/serializeActivity");
@@ -15,6 +15,7 @@ const { evaluateAchievements } = require("../services/achievementService");
 const { bestEffort } = require("../services/notificationService");
 const { flagReasonFor } = require("../utils/flagActivity");
 const { capFor } = require("../utils/activityLimits");
+const { dayKey, addDays, isValidTimeZone } = require("../utils/zonedTime");
 const aiService = require("../services/aiService");
 
 // The units describing-it-in-words can fill in — the same ones the log
@@ -38,7 +39,10 @@ async function getMyActivities(req, res) {
   res.json(activities.map(toActivityEntry));
 }
 
-const BACKDATE_LIMIT_MS = 7 * 24 * 60 * 60 * 1000;
+// Seven *local* days, not seven 24-hour periods: a DST day is 23 or 25 hours,
+// and a client just after midnight in its own zone must be able to backdate
+// into the previous local day.
+const BACKDATE_DAYS = 7;
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 // POST /api/users/me/activities — log steps toward your daily goal without
@@ -52,11 +56,20 @@ async function logDailySteps(req, res) {
     throw ApiError.badRequest(`value must be a whole number from 1 to ${maxSteps.toLocaleString("en-US")}.`);
   }
 
-  let when = new Date();
+  const user = await User.findById(req.user.id).select("timezone").lean();
+  const timeZone = user?.timezone || "UTC";
+  const now = new Date();
+
+  let when = now;
   if (recordedAt !== undefined) {
     when = new Date(recordedAt);
-    const age = Date.now() - when.getTime();
-    if (Number.isNaN(when.getTime()) || age < -CLOCK_SKEW_MS || age > BACKDATE_LIMIT_MS) {
+    const age = now.getTime() - when.getTime();
+    // A little future tolerance covers clock skew, including just across
+    // local midnight; everything else is bounded by calendar day keys.
+    const latestKey = dayKey(new Date(now.getTime() + CLOCK_SKEW_MS), timeZone);
+    const earliestKey = dayKey(addDays(now, timeZone, -(BACKDATE_DAYS - 1)), timeZone);
+    const whenKey = Number.isNaN(when.getTime()) ? null : dayKey(when, timeZone);
+    if (whenKey === null || age < -CLOCK_SKEW_MS || whenKey < earliestKey || whenKey > latestKey) {
       throw ApiError.badRequest("recordedAt must be a date within the last 7 days.");
     }
   }
@@ -331,6 +344,22 @@ async function deleteAccount(req, res) {
   res.status(204).end();
 }
 
+/** PATCH /api/users/me/timezone — saves the IANA zone the browser reported
+ *  (or the user chose). Intl is the validator: rejecting a zone it doesn't
+ *  know keeps the day-boundary helpers from silently falling back to UTC. */
+async function updateTimezone(req, res) {
+  const raw = req.body?.timezone;
+  const timezone = typeof raw === "string" ? raw.trim() : raw;
+  if (!isValidTimeZone(timezone)) {
+    throw new ApiError(400, "timezone must be a valid IANA time zone");
+  }
+
+  const user = await findMe(req);
+  user.timezone = timezone;
+  await user.save();
+  res.json(toSelfUser(user));
+}
+
 module.exports = {
   getMyStats,
   getMyActivities,
@@ -342,6 +371,7 @@ module.exports = {
   updateGoals,
   updateNotificationPrefs,
   updatePrivacy,
+  updateTimezone,
   completeOnboarding,
   deleteAccount,
 };

@@ -97,6 +97,9 @@ export function InviteCard({
 }) {
   const headline = preview ? `Join ${inviteTitle(preview)}` : "You've been invited";
   const firstLine = preview ? `${preview.inviterFirstName} invited you to TUFF.` : "A team or challenge is waiting for you.";
+  // Share images have no signed-in viewer, so inviteDetail falls back to UTC
+  // and labels the stored calendar day as-is. The live join page, when a user
+  // is signed in, passes their IANA zone instead.
   const secondLine = preview ? inviteDetail(preview) : "Open the link to see who's calling you in.";
 
   return (

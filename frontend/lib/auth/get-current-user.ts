@@ -14,6 +14,8 @@ export interface SessionUser {
   email: string;
   avatarUrl: string | null;
   role: SessionRole;
+  /** IANA zone, so public-facing pages rendered for a signed-in viewer can use it. */
+  timezone: string;
 }
 
 /** Mock only: set by sign-out, cleared by sign-in and sign-up. */
@@ -29,6 +31,7 @@ interface MeResponse {
   email: string;
   profilePicture: string | null;
   role: SessionRole;
+  timezone?: string;
 }
 
 /**
@@ -57,6 +60,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       email: me.email,
       avatarUrl: me.profilePicture ?? null,
       role: me.role,
+      timezone: me.timezone ?? "UTC",
     };
   }
 
@@ -73,5 +77,6 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     email: user.email,
     avatarUrl: user.profilePicture ?? null,
     role: jar.get(MOCK_ROLE_COOKIE)?.value === "admin" ? "admin" : "member",
+    timezone: user.timezone,
   };
 });

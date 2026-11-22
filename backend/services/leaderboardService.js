@@ -9,7 +9,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const BOARD_SIZE = 50;
 const STREAK_LOOKBACK_DAYS = 90;
 
-/** Monday 00:00 UTC of the week holding `now` — the week the frontend's demo data uses too. */
+/** Monday 00:00 UTC of the week holding `now`. DELIBERATELY UTC: a shared
+ *  leaderboard needs one window for everyone; using each viewer's zone would
+ *  rank the same effort differently depending on who is looking. User-facing
+ *  personal days/streaks use the viewer's zone instead. */
 function weekStart(now = Date.now()) {
   const d = new Date(now);
   const midnight = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
@@ -130,7 +133,9 @@ async function individualBoard(period, viewerId, now = Date.now()) {
   });
 }
 
-/** Days in a row, back from today, on which every member logged something. */
+/** Days in a row, back from today, on which every member logged something.
+ *  DELIBERATELY UTC: a team spans members in different zones, so there is no
+ *  single "today" to use. This shared aggregate keeps one UTC calendar. */
 function teamStreak(memberIds, daysByUser, now) {
   if (memberIds.length === 0) return 0;
   const [first, ...rest] = memberIds.map((id) => daysByUser.get(id) ?? new Set());

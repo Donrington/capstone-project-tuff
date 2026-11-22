@@ -1,16 +1,9 @@
 import { Pencil } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
+import { formatDay } from "@/lib/dates";
 import type { User } from "@/lib/types";
 import styles from "./ProfileHero.module.css";
-
-function memberSinceLabel(iso: string) {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export function ProfileHero({ user }: { user: User }) {
   return (
@@ -21,7 +14,8 @@ export function ProfileHero({ user }: { user: User }) {
           {user.firstName} {user.lastName}
         </h1>
         <p className={styles.meta}>
-          {user.teamName || "No team yet"} · Member since {memberSinceLabel(user.memberSince)}
+          {user.teamName || "No team yet"} · Member since{" "}
+          {formatDay(user.memberSince, user.timezone, { month: "long", year: "numeric" })}
         </p>
       </div>
       <ButtonLink href="/settings#profile" variant="ghost">

@@ -41,7 +41,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div>
-      <PageHeader kicker="Admin" title="Overview" subtitle="How TUFF is doing, and where to look." />
+      <PageHeader kicker="Admin" title="Overview" subtitle="How TUFF is doing, and where to look. Dates are UTC." />
       <AdminNav />
 
       <ul className={styles.tiles}>

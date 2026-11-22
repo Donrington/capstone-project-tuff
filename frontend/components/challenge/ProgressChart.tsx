@@ -1,13 +1,21 @@
 import { ColumnChart } from "@/components/charts/ColumnChart";
+import { formatDay } from "@/lib/dates";
 import { pluralize } from "@/lib/pluralize";
 import type { DailyTotal } from "@/lib/types";
 import styles from "./challenge.module.css";
 
-const dayLabel = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-
 /** One column per day of the challenge, against the even pace that finishes on time. */
-export function ProgressChart({ daily, pacePerDay, unit }: { daily: DailyTotal[]; pacePerDay: number; unit: string }) {
+export function ProgressChart({
+  daily,
+  pacePerDay,
+  unit,
+  timeZone,
+}: {
+  daily: DailyTotal[];
+  pacePerDay: number;
+  unit: string;
+  timeZone: string;
+}) {
   const singular = unit.endsWith("s") ? unit.slice(0, -1) : unit;
   return (
     <section className={styles.panel} aria-labelledby="progress-heading">
@@ -23,7 +31,7 @@ export function ProgressChart({ daily, pacePerDay, unit }: { daily: DailyTotal[]
         data={daily.map((d) => ({
           key: d.date,
           label: String(d.dayIndex),
-          fullLabel: `Day ${d.dayIndex}, ${dayLabel(d.date)}`,
+          fullLabel: `Day ${d.dayIndex}, ${formatDay(d.date, timeZone, { weekday: "short", day: "numeric", month: "short" })}`,
           value: d.total,
           state: d.state,
         }))}

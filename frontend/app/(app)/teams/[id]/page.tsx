@@ -102,7 +102,7 @@ export default async function TeamPage({ params }: { params: Params }) {
             <p className={styles.membersOnly}>The roster and activity are visible to members of {team.name}.</p>
           )}
           {/* Results come from the leaderboard; nothing to show until it ranks teams. */}
-          {team.rank !== null && <HeadToHeadResults results={team.headToHead} />}
+          {team.rank !== null && <HeadToHeadResults results={team.headToHead} timeZone={user.timezone} />}
         </div>
         <div className={styles.column}>
           {isMine && teamChallenges.length > 0 && (
@@ -127,6 +127,7 @@ export default async function TeamPage({ params }: { params: Params }) {
           <ActivityHistory
             entries={activity}
             now={now}
+            timeZone={user.timezone}
             title="Team activity"
             showChallenge
             headingId="team-activity-heading"

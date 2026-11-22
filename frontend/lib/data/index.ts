@@ -56,6 +56,7 @@ export const {
   updateGoals,
   updateNotificationPrefs,
   updatePrivacy,
+  updateTimezone,
   completeOnboarding,
   createChallenge,
   joinSuggestedChallenge,

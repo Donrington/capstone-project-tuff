@@ -5,25 +5,26 @@ import Link from "next/link";
 import { Camera } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { LocalTime } from "@/components/ui/LocalTime";
+import { dayKey, dayNumber, formatDay } from "@/lib/dates";
 import type { ActivityEntry } from "@/lib/types";
 import styles from "./challenge.module.css";
 
 const PAGE = 10;
-const DAY_MS = 86_400_000;
 
-/** "Today", "Yesterday", or "Mon 21 Sep" — relative to the page's `now`
- *  snapshot, never Date.now(), so server and client agree. */
-function dayHeading(iso: string, nowIso: string) {
-  const day = Date.parse(iso.slice(0, 10));
-  const today = Date.parse(nowIso.slice(0, 10));
-  if (day === today) return "Today";
-  if (day === today - DAY_MS) return "Yesterday";
-  return new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+/** "Today", "Yesterday", or "Mon, Sep 21" — computed from calendar day keys in
+ *  the viewer's zone and relative to the page's `now` snapshot, never Date.now(),
+ *  so server and client agree. */
+function dayHeading(day: string, today: string, timeZone: string) {
+  const distance = dayNumber(today) - dayNumber(day);
+  if (distance === 0) return "Today";
+  if (distance === 1) return "Yesterday";
+  return formatDay(day, timeZone, { weekday: "short", day: "numeric", month: "short" });
 }
 
 interface ActivityHistoryProps {
   entries: ActivityEntry[];
   now: string;
+  timeZone: string;
   title?: string;
   /** Show which challenge each entry was for (team feed, profile). */
   showChallenge?: boolean;
@@ -35,6 +36,7 @@ interface ActivityHistoryProps {
 export function ActivityHistory({
   entries,
   now,
+  timeZone,
   title = "Activity",
   showChallenge,
   emptyText = "No activity yet. Be first.",
@@ -43,9 +45,10 @@ export function ActivityHistory({
   const [shown, setShown] = useState(PAGE);
   const visible = entries.slice(0, shown);
 
+  const todayKey = dayKey(now, timeZone);
   const groups: { heading: string; items: ActivityEntry[] }[] = [];
   for (const entry of visible) {
-    const heading = dayHeading(entry.recordedAt, now);
+    const heading = dayHeading(dayKey(entry.recordedAt, timeZone), todayKey, timeZone);
     const last = groups[groups.length - 1];
     if (last?.heading === heading) last.items.push(entry);
     else groups.push({ heading, items: [entry] });
@@ -93,7 +96,7 @@ export function ActivityHistory({
                         </>
                       )}
                     </p>
-                    <LocalTime className={styles.entryTime} iso={e.recordedAt} />
+                    <LocalTime className={styles.entryTime} iso={e.recordedAt} timeZone={timeZone} />
                   </li>
                 ))}
               </ul>

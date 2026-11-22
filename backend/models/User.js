@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { isValidTimeZone } = require("../utils/zonedTime");
 
 const userSchema = new mongoose.Schema(
     {
@@ -30,6 +31,20 @@ const userSchema = new mongoose.Schema(
             required: false,
             trim: true,
             maxlength: 160,
+        },
+
+        // The IANA zone whose midnight defines this person's "day" everywhere
+        // in their own views (stats, streaks, charts, challenge day numbers).
+        // Routes validate with Intl and answer 400 before saving; this second
+        // check keeps a bad value out of the database from any other caller.
+        timezone: {
+            type: String,
+            default: "UTC",
+            trim: true,
+            validate: {
+                validator: isValidTimeZone,
+                message: "timezone must be a valid IANA time zone",
+            },
         },
 
         teamId: {

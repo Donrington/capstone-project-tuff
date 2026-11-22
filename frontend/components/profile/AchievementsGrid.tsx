@@ -1,4 +1,5 @@
 import { Dumbbell, Flag, Flame, Footprints, Lock, Trophy, UsersRound, type LucideIcon } from "lucide-react";
+import { formatDay } from "@/lib/dates";
 import { pluralize } from "@/lib/pluralize";
 import type { Achievement } from "@/lib/types";
 import styles from "./AchievementsGrid.module.css";
@@ -30,16 +31,13 @@ function progressLabel(a: Achievement) {
   return `Locked · ${a.progress.current.toLocaleString("en-US")} of ${a.progress.target.toLocaleString("en-US")} ${unit}`.trim();
 }
 
-function earnedLabel(iso: string) {
-  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-export function AchievementsGrid({ achievements }: { achievements: Achievement[] }) {
+export function AchievementsGrid({
+  achievements,
+  timeZone,
+}: {
+  achievements: Achievement[];
+  timeZone: string;
+}) {
   const earnedCount = achievements.filter((a) => a.earnedAt).length;
   return (
     <section id="achievements" className={styles.section} aria-labelledby="achievements-heading">
@@ -65,7 +63,11 @@ export function AchievementsGrid({ achievements }: { achievements: Achievement[]
               <div className={styles.text}>
                 <p className={styles.name}>{a.name}</p>
                 <p className={styles.rule}>{a.description}</p>
-                <p className={styles.status}>{earned ? `Earned ${earnedLabel(a.earnedAt!)}` : progressLabel(a)}</p>
+                <p className={styles.status}>
+                  {earned
+                    ? `Earned ${formatDay(a.earnedAt!.slice(0, 10), timeZone, { month: "short", day: "numeric", year: "numeric" })}`
+                    : progressLabel(a)}
+                </p>
               </div>
             </div>
           );

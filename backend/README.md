@@ -179,7 +179,10 @@ double award impossible even when requests race. Each award also creates an
 `POST /api/challenge-participants/:id/activities` now also returns
 `newAchievements` (same shape) so the frontend can celebrate immediately.
 
-Streaks are counted in UTC days for now (`TODO(timezones)`).
+Streaks, personal stats, achievements and challenge day numbers use each
+user's IANA `timezone` (default `UTC`, set by the browser once per session via
+`PATCH /api/users/me/timezone`). Shared leaderboard weeks and team streaks stay
+on UTC on purpose — see the comments in `services/leaderboardService.js`.
 
 ## Notifications — built
 
@@ -218,7 +221,7 @@ and every cross-user access answering `404`. All passed.
 | `GET /api/users/me/activities?limit=` | `200` + your entries, newest first | Default 20, max 200 |
 | `GET /api/teams/:id/activity?limit=` | `200` + the team's entries, newest first | Members only (`403` otherwise), like the roster |
 | `GET /api/teams/code/:code` | `200` + `{ id, name, description, inviteCode, memberCount, maxMembers }` | For the join preview. Dashes and case ignored |
-| `GET /api/users/me/stats` | `200` + `{ today: { steps, activeMinutes, calories }, streakDays, bestStreak, week: [{ date, steps }] ×7, weeklyDeltaPct, lifetime: { steps, reps }, challengesCompleted, personalBests: { mostStepsInADay, mostRepsInADay, longestHoldSeconds } }` | All computed from activity. Days are UTC for now. `weeklyDeltaPct` is `null` with no previous week; each personal best is `{ value, date }` or `null` |
+| `GET /api/users/me/stats` | `200` + `{ today: { steps, activeMinutes, calories }, streakDays, bestStreak, week: [{ date, steps }] ×7, weeklyDeltaPct, lifetime: { steps, reps }, challengesCompleted, personalBests: { mostStepsInADay, mostRepsInADay, longestHoldSeconds } }` | All computed from activity. Days are calendar days in the user's `timezone`. `weeklyDeltaPct` is `null` with no previous week; each personal best is `{ value, date }` or `null` |
 
 An activity entry is `{ id, person: { id, name, initials, profilePicture }, challengeId, challengeName, value, unit, recordedAt }`.
 

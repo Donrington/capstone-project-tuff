@@ -3,6 +3,15 @@ import { suggestedChallenges } from "@/data/suggested-challenges";
 import { api, apiOptional, apiPublic, ApiError, isObjectId } from "@/lib/api/client";
 import { clearSessionCookies } from "@/lib/api/cookies";
 import { challengePace } from "@/lib/challenge-pace";
+import {
+  addDays,
+  dayKey,
+  dayKeyFromNumber,
+  dayNumber,
+  formatDay,
+  isValidTimeZone,
+  normalizeTimeZone,
+} from "@/lib/dates";
 import { pluralize } from "@/lib/pluralize";
 import type {
   Achievement,
@@ -78,6 +87,8 @@ interface RawUser {
   weight?: number;
   fitnessLevel?: FitnessLevel;
   onboardingCompletedAt?: string | null;
+  /** Older backends omit it; "UTC" keeps their day logic unchanged. */
+  timezone?: string;
 }
 
 interface RawChallenge {
@@ -157,12 +168,6 @@ interface RawTeamStanding {
 
 /* -------------------------------------------------------------- helpers --- */
 
-const DAY_MS = 86_400_000;
-const utcDay = (date: string | number | Date) => {
-  const d = new Date(date);
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
-const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const initials = (first: string, last: string) => `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
 const fullName = (p: { firstName: string; lastName: string }) => `${p.firstName} ${p.lastName}`.trim();
 const idOf = (ref: string | { _id: string } | null) => (ref === null ? "" : typeof ref === "string" ? ref : ref._id);
@@ -193,12 +198,14 @@ function toUser(raw: RawUser, teamName: string): User {
     weight: raw.weight,
     fitnessLevel: raw.fitnessLevel,
     onboardingCompletedAt: raw.onboardingCompletedAt ?? null,
+    timezone: normalizeTimeZone(raw.timezone),
   };
 }
 
 /** Backend end dates are exclusive (midnight after the last day); the UI
  *  shows the last day itself. */
-function toChallenge(raw: RawChallenge): Challenge {
+function toChallenge(raw: RawChallenge, timeZone = "UTC"): Challenge {
+  const zone = normalizeTimeZone(timeZone);
   return {
     id: raw._id,
     title: raw.title,
@@ -206,8 +213,10 @@ function toChallenge(raw: RawChallenge): Challenge {
     unit: raw.unit,
     goal: raw.goal,
     current: raw.current ?? 0,
-    startDate: raw.startDate.slice(0, 10),
-    endDate: isoDay(Date.parse(raw.endDate) - 1),
+    // The backend stores instants; display dates are calendar days in the
+    // viewer's zone. endDate is exclusive, so the last day is one day earlier.
+    startDate: dayKey(raw.startDate, zone),
+    endDate: dayKey(addDays(raw.endDate, zone, -1), zone),
     dayIndex: raw.dayIndex ?? 0,
     totalDays: raw.totalDays ?? 1,
     teamId: raw.teamId ?? null,
@@ -265,9 +274,11 @@ export const getTodayStats = cache(async (): Promise<TodayStats> => {
 });
 
 export const getWeeklyActivity = cache(async (): Promise<{ days: DayActivity[]; deltaPct: number }> => {
-  const stats = await getStats();
+  const [stats, user] = await Promise.all([getStats(), getCurrentUser()]);
   const days = stats.week.map((d, i) => ({
-    day: new Date(`${d.date}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+    // d.date is already a local day key from the backend; formatDay treats
+    // date-only strings as calendar labels and won't shift them by zone.
+    day: formatDay(d.date, user.timezone, { weekday: "short" }),
     steps: d.steps,
     today: i === stats.week.length - 1 || undefined,
   }));
@@ -375,8 +386,10 @@ export const getTeamMembers = cache(async (teamId: string): Promise<TeamMember[]
     getTeamActivity(teamId, 200),
     getTeamStandings(),
   ]);
-  const today = utcDay(Date.now());
-  const activeToday = new Set(recent.filter((e) => utcDay(e.recordedAt) === today).map((e) => e.person.id));
+  const today = dayKey(Date.now(), me.timezone);
+  const activeToday = new Set(
+    recent.filter((e) => dayKey(e.recordedAt, me.timezone) === today).map((e) => e.person.id),
+  );
   const points = new Map((standings.find((s) => s.id === teamId)?.members ?? []).map((m) => [m.id, m.points]));
 
   return members
@@ -424,31 +437,40 @@ const getRawChallengeActivities = cache((id: string) =>
 const isActive = (raw: RawChallenge) =>
   raw.status !== "completed" && raw.status !== "cancelled" && (raw.current ?? 0) < raw.goal;
 
-export const getChallenges = cache(async (): Promise<Challenge[]> => (await getRawChallenges()).map(toChallenge));
+export const getChallenges = cache(async (): Promise<Challenge[]> => {
+  const [raw, user] = await Promise.all([getRawChallenges(), getCurrentUser()]);
+  return raw.map((c) => toChallenge(c, user.timezone));
+});
 
 export const getChallenge = cache(async (id: string): Promise<Challenge | undefined> => {
   if (!isObjectId(id)) return undefined;
-  const raw = await apiOptional<RawChallenge>(`/api/challenges/get/${id}`);
-  return raw ? toChallenge(raw) : undefined;
+  const [raw, user] = await Promise.all([
+    apiOptional<RawChallenge>(`/api/challenges/get/${id}`),
+    getCurrentUser(),
+  ]);
+  return raw ? toChallenge(raw, user.timezone) : undefined;
 });
 
 export const getFeaturedChallenge = cache(async (): Promise<Challenge | undefined> => {
-  const raw = (await getRawChallenges()).filter(isActive);
-  const pick = raw.find((c) => c.featured) ?? raw[0];
-  return pick ? toChallenge(pick) : undefined;
+  const [raw, user] = await Promise.all([getRawChallenges(), getCurrentUser()]);
+  const active = raw.filter(isActive);
+  const pick = active.find((c) => c.featured) ?? active[0];
+  return pick ? toChallenge(pick, user.timezone) : undefined;
 });
 
 export const getStepChallenge = cache(async (): Promise<Challenge | undefined> => {
   const featured = await getFeaturedChallenge();
-  const pick = (await getRawChallenges()).filter(isActive).find((c) => c.unit === "steps" && c._id !== featured?.id);
-  return pick ? toChallenge(pick) : undefined;
+  const [raw, user] = await Promise.all([getRawChallenges(), getCurrentUser()]);
+  const pick = raw.filter(isActive).find((c) => c.unit === "steps" && c._id !== featured?.id);
+  return pick ? toChallenge(pick, user.timezone) : undefined;
 });
 
 export const getTodayOnChallenge = cache(async (challengeId: string): Promise<number> => {
   if (!isObjectId(challengeId)) return 0;
-  const today = utcDay(Date.now());
-  return (await getRawChallengeActivities(challengeId))
-    .filter((e) => utcDay(e.recordedAt) === today)
+  const [user, raw] = await Promise.all([getCurrentUser(), getRawChallengeActivities(challengeId)]);
+  const today = dayKey(Date.now(), user.timezone);
+  return raw
+    .filter((e) => dayKey(e.recordedAt, user.timezone) === today)
     .reduce((sum, e) => sum + e.value, 0);
 });
 
@@ -461,15 +483,23 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
     getCurrentUser(),
   ]);
   const entries = rawEntries.map((e) => toEntry(e, me.id));
+  const zone = me.timezone;
 
-  const start = utcDay(`${challenge.startDate}T00:00:00Z`);
-  const today = utcDay(Date.now());
-  const byDay = new Map<number, number>();
-  for (const e of entries) byDay.set(utcDay(e.recordedAt), (byDay.get(utcDay(e.recordedAt)) ?? 0) + e.value);
+  // Everything below works on local day keys, so a 23/25-hour DST day is one
+  // column in the chart and one step in the streak.
+  const todayKey = dayKey(Date.now(), zone);
+  const todayNumber = dayNumber(todayKey);
+  const startNumber = dayNumber(challenge.startDate); // already a local day key
+  const byDay = new Map<string, number>();
+  for (const e of entries) {
+    const key = dayKey(e.recordedAt, zone);
+    byDay.set(key, (byDay.get(key) ?? 0) + e.value);
+  }
   const daily = Array.from({ length: challenge.totalDays }, (_, i) => {
-    const day = start + i * DAY_MS;
-    const state: "past" | "today" | "future" = day < today ? "past" : day === today ? "today" : "future";
-    return { dayIndex: i + 1, date: isoDay(day), total: byDay.get(day) ?? 0, state };
+    const number = startNumber + i;
+    const date = dayKeyFromNumber(number);
+    const state: "past" | "today" | "future" = number < todayNumber ? "past" : number === todayNumber ? "today" : "future";
+    return { dayIndex: i + 1, date, total: byDay.get(date) ?? 0, state };
   });
 
   const contributions: MemberContribution[] = challenge.teamId
@@ -489,12 +519,12 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
         .sort((a, b) => b.total - a.total)
     : [];
 
-  const mine = new Set(entries.filter((e) => e.isCurrentUser).map((e) => utcDay(e.recordedAt)));
-  let cursor = mine.has(today) ? today : today - DAY_MS;
+  const mine = new Set(entries.filter((e) => e.isCurrentUser).map((e) => dayKey(e.recordedAt, zone)));
+  let cursor = dayNumber(mine.has(todayKey) ? todayKey : dayKeyFromNumber(todayNumber - 1));
   let streak = 0;
-  while (mine.has(cursor)) {
+  while (mine.has(dayKeyFromNumber(cursor))) {
     streak++;
-    cursor -= DAY_MS;
+    cursor -= 1;
   }
 
   return {
@@ -514,9 +544,10 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
   };
 });
 
-export const getActiveChallenges = cache(async (): Promise<Challenge[]> =>
-  (await getRawChallenges()).filter(isActive).map(toChallenge),
-);
+export const getActiveChallenges = cache(async (): Promise<Challenge[]> => {
+  const [raw, user] = await Promise.all([getRawChallenges(), getCurrentUser()]);
+  return raw.filter(isActive).map((c) => toChallenge(c, user.timezone));
+});
 
 /* leaderboard */
 
@@ -665,15 +696,18 @@ export const findByCode = cache(async (code: string): Promise<CodeMatch | null> 
     };
   }
 
-  const raw = await apiOptional<RawChallenge>(`/api/challenges/getbyCode/${wanted}`);
+  const [raw, user] = await Promise.all([
+    apiOptional<RawChallenge>(`/api/challenges/getbyCode/${wanted}`),
+    getCurrentUser(),
+  ]);
   if (!raw) return null;
-  const c = toChallenge(raw);
+  const c = toChallenge(raw, user.timezone);
   return {
     kind: "challenge",
     name: c.title,
     code: raw.inviteCode ?? wanted,
     href: `/challenges/${c.id}`,
-    detail: `${c.goal.toLocaleString("en-US")} ${c.unit} · ends ${new Date(`${c.endDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`,
+    detail: `${c.goal.toLocaleString("en-US")} ${c.unit} · ends ${formatDay(c.endDate, user.timezone)}`,
   };
 });
 
@@ -720,6 +754,14 @@ export async function updatePrivacy(privacy: PrivacySettings) {
   return userAfter(await api<RawUser>("/api/users/me/privacy", { method: "PATCH", body: privacy }));
 }
 
+/** Called once per session by the timezone reporter. Deliberately tiny and
+ *  fire-and-forget from the UI's point of view — a slow save never blocks a page. */
+export async function updateTimezone(timezone: string) {
+  const name = normalizeTimeZone(timezone);
+  if (!isValidTimeZone(name)) return null;
+  return userAfter(await api<RawUser>("/api/users/me/timezone", { method: "PATCH", body: { timezone: name } }));
+}
+
 export async function completeOnboarding(answers: OnboardingAnswers) {
   const { challengeIds, ...about } = answers;
   const raw = await api<RawUser>("/api/users/me/onboarding", { method: "POST", body: about });
@@ -750,7 +792,9 @@ export async function createChallenge(input: {
   activity: string;
 }): Promise<Challenge> {
   const me = await getCurrentUser();
-  const start = utcDay(Date.now()) + (input.startsTomorrow ? DAY_MS : 0);
+  // Local midnight in the viewer's zone, so "today"/"tomorrow" mean the same
+  // calendar days the rest of their UI shows.
+  const start = addDays(new Date(), me.timezone, input.startsTomorrow ? 1 : 0);
   const raw = await api<RawChallenge>("/api/challenges/create", {
     method: "POST",
     body: {
@@ -760,15 +804,15 @@ export async function createChallenge(input: {
       goal: input.goal,
       unit: input.unit,
       pointsPerUnit: POINTS_PER_UNIT[input.unit] ?? 1,
-      startDate: new Date(start).toISOString(),
-      // Exclusive: midnight after the last day.
-      endDate: new Date(start + input.totalDays * DAY_MS).toISOString(),
+      startDate: start.toISOString(),
+      // Exclusive: local midnight after the last day.
+      endDate: addDays(start, me.timezone, input.totalDays).toISOString(),
       teamId: input.isTeam && me.teamId ? me.teamId : undefined,
     },
   });
   // Making a challenge means doing it — join it straight away.
   await api(`/api/challenge-participants/${raw._id}/join`, { method: "POST" });
-  return (await getChallenge(raw._id)) ?? toChallenge(raw);
+  return (await getChallenge(raw._id)) ?? toChallenge(raw, me.timezone);
 }
 
 export async function joinSuggestedChallenge(suggestedId: string): Promise<Challenge | null> {
@@ -799,9 +843,12 @@ export async function addActivity(input: {
     segmentsMs?: Array<[number, number]>;
   };
 }): Promise<LoggedActivity | null> {
-  const before = await getChallenge(input.challengeId);
+  const [before, me] = await Promise.all([getChallenge(input.challengeId), getCurrentUser()]);
   if (!before) return null;
-  const recordedAt = new Date(Date.now() - (input.when === "yesterday" ? DAY_MS : 0)).toISOString();
+  const now = new Date();
+  const recordedAt = (
+    input.when === "yesterday" ? addDays(now, me.timezone, -1) : now
+  ).toISOString();
   // TODO(backend): notes aren't stored yet — Activity has no field for them.
   const res = await api<{ newAchievements?: Achievement[] }>(`/api/challenge-participants/${input.challengeId}/activities`, {
     method: "POST",
@@ -830,7 +877,11 @@ export async function addActivity(input: {
 }
 
 export async function addDailySteps(input: { value: number; when: "today" | "yesterday" }): Promise<DailyStepsLogged> {
-  const recordedAt = new Date(Date.now() - (input.when === "yesterday" ? DAY_MS : 0)).toISOString();
+  const me = await getCurrentUser();
+  const now = new Date();
+  const recordedAt = (
+    input.when === "yesterday" ? addDays(now, me.timezone, -1) : now
+  ).toISOString();
   const res = await api<{ todaySteps: number; newAchievements?: Achievement[] }>("/api/users/me/activities", {
     method: "POST",
     body: { value: input.value, recordedAt },
