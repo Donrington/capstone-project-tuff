@@ -21,6 +21,7 @@ require("./models/Achievement");
 require("./models/UserAchievement");
 require("./models/Notification");
 require("./models/RefreshToken");
+require("./models/MatchupReaction");
 
 const app = express();
 

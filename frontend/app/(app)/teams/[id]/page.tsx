@@ -8,11 +8,21 @@ import { InviteButton } from "@/components/invite/InviteButton";
 import { JoinWithCodeButton } from "@/components/invite/JoinWithCodeButton";
 import { ActivityHistory } from "@/components/challenge/ActivityHistory";
 import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
+import { HeadToHead } from "@/components/teams/HeadToHead";
 import { HeadToHeadResults } from "@/components/teams/HeadToHeadResults";
 import { LeaveTeamButton } from "@/components/teams/LeaveTeamButton";
 import { Roster } from "@/components/teams/Roster";
 import { challengeCardCopy, challengePercent, formatCount } from "@/lib/challenge-card";
-import { getChallenges, getCurrentUser, getTeam, getTeamActivity, getTeamMembers, getTeams } from "@/lib/data";
+import {
+  getChallenges,
+  getCurrentUser,
+  getMatchup,
+  getMatchupResults,
+  getTeam,
+  getTeamActivity,
+  getTeamMembers,
+  getTeams,
+} from "@/lib/data";
 import styles from "./team.module.css";
 
 type Params = Promise<{ id: string }>;
@@ -36,6 +46,10 @@ export default async function TeamPage({ params }: { params: Params }) {
     getCurrentUser(),
   ]);
   const isMine = user.teamId === team.id;
+  // The matchup and its history are members-only on the backend. Admins can
+  // still read them through the API, but this page keeps the member view simple.
+  const matchup = isMine ? await getMatchup(id) : null;
+  const results = isMine ? await getMatchupResults(id, 6) : [];
   const teamChallenges = challenges.filter((c) => c.teamId === team.id && c.current < c.goal);
   const now = new Date().toISOString();
 
@@ -101,8 +115,15 @@ export default async function TeamPage({ params }: { params: Params }) {
           ) : (
             <p className={styles.membersOnly}>The roster and activity are visible to members of {team.name}.</p>
           )}
-          {/* Results come from the leaderboard; nothing to show until it ranks teams. */}
-          {team.rank !== null && <HeadToHeadResults results={team.headToHead} timeZone={user.timezone} />}
+          {isMine && matchup && (
+            <HeadToHead
+              initialMatchup={matchup}
+              teamId={team.id}
+              timeZone={user.timezone}
+              canReact
+            />
+          )}
+          {isMine && <HeadToHeadResults results={results} timeZone={user.timezone} />}
         </div>
         <div className={styles.column}>
           {isMine && teamChallenges.length > 0 && (

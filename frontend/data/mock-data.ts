@@ -314,7 +314,7 @@ export function buildPeople(now: number): PeopleSeed {
 
   // Head-to-head: the last four weeks, against a neighbour in the standings.
   const monday = startOfUtcDay(now) - ((new Date(now).getUTCDay() + 6) % 7) * DAY_MS;
-  const ironcladResults: ("won" | "lost")[] = ["won", "lost", "won", "won"];
+  const ironcladResults: HeadToHeadResult["outcome"][] = ["won", "lost", "drew", "won"];
   const ironcladOpponents = ["harmattan", "voltage", "jollof-runners", "eko-express"];
   for (const team of teams) {
     const rand = rng(`h2h-${team.id}`);
@@ -332,7 +332,7 @@ export function buildPeople(now: number): PeopleSeed {
         opponentName: teams.find((t) => t.id === opponentId)?.name ?? "Another team",
         outcome,
         points,
-        opponentPoints: outcome === "won" ? points - margin : points + margin,
+        opponentPoints: outcome === "drew" ? points : outcome === "won" ? points - margin : points + margin,
       };
     });
   }

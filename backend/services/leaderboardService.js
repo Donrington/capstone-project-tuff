@@ -25,6 +25,13 @@ function windowFor(period, now = Date.now()) {
   return { from: weekStart(now), to: null };
 }
 
+/** The Monday-to-Monday bounds of the week containing `now`. The live matchup
+ *  shows an end date, but only the shared UTC start drives any scoring. */
+function weekBounds(now = Date.now()) {
+  const start = weekStart(now);
+  return { start, end: start + 7 * DAY_MS };
+}
+
 /**
  * Points per user from activity recorded in [from, to): each entry's value ×
  * its challenge's pointsPerUnit. Both periods come from Activity so a week's
@@ -209,16 +216,16 @@ function ymd(ms) {
 }
 
 /**
- * Every team's weekly rank, points and rival — no viewer, no per-member
- * breakdown, just enough for the rival banter job to run over every team
- * at once. Same rival rule as teamStandings/the frontend's own copy of it
- * (lib/data/api.ts getTeams): the team just above is who you're chasing;
- * #1 watches #2 instead.
+ * Every team's rank, points and rival for one [from, to) window — no viewer,
+ * no per-member breakdown. The rival rule is shared with the weekly job and
+ * the matchup: the team just above is who you're chasing; #1 watches #2.
+ * `points` can be passed by a caller that already ran pointsByUser for the
+ * same window (the matchup also uses it for its contributor lists).
  */
-async function weeklyTeamRanks(now = Date.now()) {
+async function teamRanksForWindow(window, pointsOverride = null) {
   const [teams, points] = await Promise.all([
     Team.find({ status: mongoose.trusted({ $ne: "inactive" }) }).select("name").lean(),
-    pointsByUser(windowFor("week", now)),
+    pointsOverride ?? pointsByUser(window),
   ]);
   const members = await User.find({ teamId: mongoose.trusted({ $in: teams.map((t) => t._id) }) })
     .select("teamId")
@@ -249,4 +256,19 @@ async function weeklyTeamRanks(now = Date.now()) {
   }));
 }
 
-module.exports = { individualBoard, teamStandings, weekStart, weeklyTeamRanks };
+/** The weekly banter job and the live matchup both start from this exact
+ *  open-ended window, so a team can't be "chasing" a different rival on one
+ *  screen than it is on the other. */
+async function weeklyTeamRanks(now = Date.now()) {
+  return teamRanksForWindow(windowFor("week", now));
+}
+
+module.exports = {
+  individualBoard,
+  teamStandings,
+  weekStart,
+  weekBounds,
+  pointsByUser,
+  teamRanksForWindow,
+  weeklyTeamRanks,
+};
