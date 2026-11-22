@@ -1,5 +1,7 @@
 import styles from "./admin.module.css";
 
+// Admin aggregates are deliberately shared across staff in different zones,
+// so these buckets stay UTC and the chart says so in its caption.
 const dayLabel = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -11,7 +13,7 @@ export function SignupsChart({ data }: { data: { date: string; count: number }[]
   return (
     <figure className={styles.chart}>
       <figcaption className={styles.chartCaption}>
-        <strong>{total.toLocaleString("en-US")}</strong> new {total === 1 ? "member" : "members"} in the last {data.length} days
+        <strong>{total.toLocaleString("en-US")}</strong> new {total === 1 ? "member" : "members"} in the last {data.length} days (UTC)
       </figcaption>
       <ol className={styles.bars}>
         {data.map((d) => (

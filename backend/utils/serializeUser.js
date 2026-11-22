@@ -19,4 +19,13 @@ function toSafeUser(userDoc) {
   return obj;
 }
 
-module.exports = { toSafeUser };
+/** The self-only view. A timezone is a private preference, so it is added
+ *  here instead of toSafeUser (public profiles and leaderboards must not
+ *  leak it). Older documents without the field read as UTC. */
+function toSelfUser(userDoc) {
+  const user = toSafeUser(userDoc);
+  user.timezone = userDoc.timezone || "UTC";
+  return user;
+}
+
+module.exports = { toSafeUser, toSelfUser };

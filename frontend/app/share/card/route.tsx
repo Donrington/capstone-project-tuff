@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
     if (!id) return error(404, "Not found.");
     const detail = await getChallengeDetail(id);
-    const win = detail ? challengeWinFromDetail(detail) : null;
+    const win = detail ? challengeWinFromDetail(detail, profile.timezone) : null;
     if (!detail || !win) return error(404, "Not found.");
 
     const copy = challengeCardCopy({

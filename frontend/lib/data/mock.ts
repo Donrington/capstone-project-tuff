@@ -4,6 +4,14 @@ import { ApiError } from "@/lib/api/client";
 import { MOCK_ROLE_COOKIE } from "@/lib/api/config";
 import { capFor, capMessage } from "@/lib/activity-limits";
 import { challengePace } from "@/lib/challenge-pace";
+import {
+  addDays,
+  dayKey,
+  dayKeyFromNumber,
+  dayNumber,
+  formatDay,
+  normalizeTimeZone,
+} from "@/lib/dates";
 import { pluralize } from "@/lib/pluralize";
 import { validateCameraSession } from "@/lib/camera-session";
 import * as seed from "@/data/mock-data";
@@ -70,7 +78,7 @@ import type {
 
 /** Bump when the seed or MockDb's shape changes, so a hot reload re-seeds
  *  instead of serving stale demo data (or crashing on a missing field). */
-const SEED_VERSION = 15;
+const SEED_VERSION = 16;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";
@@ -222,13 +230,16 @@ async function settle<T>(value: T): Promise<T> {
 
 /* ------------------------------------------------------ derived values --- */
 
-const today = () => seed.startOfUtcDay(Date.now());
-const dayOf = (iso: string) => seed.startOfUtcDay(Date.parse(iso));
+const zoneOf = (d: MockDb) => normalizeTimeZone(d.user.timezone);
+const today = (d: MockDb) => dayKey(Date.now(), zoneOf(d));
+const dayOf = (iso: string, d: MockDb) => dayKey(iso, zoneOf(d));
 const fullName = (p: { firstName: string; lastName: string }) => `${p.firstName} ${p.lastName}`.trim();
 
 function challengeView(d: MockDb, c: seed.ChallengeSeed): Challenge {
-  const start = Date.parse(`${c.startDate}T00:00:00Z`);
-  const raw = Math.floor((today() - start) / seed.DAY_MS) + 1;
+  // Seeded start dates and stored day keys use the same calendar as the
+  // current user's zone (Africa/Lagos by default), so this is one day step
+  // even across a DST change.
+  const raw = dayNumber(today(d)) - dayNumber(c.startDate) + 1;
   return {
     ...c,
     current: d.activities.filter((a) => a.challengeId === c.id).reduce((sum, a) => sum + a.value, 0),
@@ -240,14 +251,14 @@ function myActivities(d: MockDb) {
   return d.activities.filter((a) => a.userId === d.user.id);
 }
 
-/** Your total per UTC day for one unit, e.g. steps. */
-function myDailyTotals(d: MockDb, unit: string): Map<number, number> {
+/** Your total per local day for one unit, e.g. steps. */
+function myDailyTotals(d: MockDb, unit: string): Map<string, number> {
   const units = new Map<string, string>(d.challenges.map((c) => [c.id, c.unit]));
   units.set(DAILY_STEPS_ID, "steps");
-  const out = new Map<number, number>();
+  const out = new Map<string, number>();
   for (const a of myActivities(d)) {
     if (units.get(a.challengeId) !== unit) continue;
-    const day = dayOf(a.recordedAt);
+    const day = dayOf(a.recordedAt, d);
     out.set(day, (out.get(day) ?? 0) + a.value);
   }
   return out;
@@ -256,19 +267,19 @@ function myDailyTotals(d: MockDb, unit: string): Map<number, number> {
 /** Days in a row with anything logged, counting back from today — or from
  *  yesterday if nothing's in yet today, since the streak isn't broken until
  *  today ends. Same rule as backend/services/achievementService.js. */
-function streakFrom(days: Set<number>) {
-  let cursor = today();
-  if (!days.has(cursor)) cursor -= seed.DAY_MS;
+function streakFrom(days: Set<string>, d: MockDb) {
+  let cursor = dayNumber(today(d));
+  if (!days.has(dayKeyFromNumber(cursor))) cursor -= 1;
   let streak = 0;
-  while (days.has(cursor)) {
+  while (days.has(dayKeyFromNumber(cursor))) {
     streak++;
-    cursor -= seed.DAY_MS;
+    cursor -= 1;
   }
   return streak;
 }
 
 function streakOf(d: MockDb) {
-  return streakFrom(new Set(myActivities(d).map((a) => dayOf(a.recordedAt))));
+  return streakFrom(new Set(myActivities(d).map((a) => dayOf(a.recordedAt, d))), d);
 }
 
 function personFor(d: MockDb, id: string) {
@@ -301,8 +312,8 @@ const newestFirst = (a: { recordedAt: string }, b: { recordedAt: string }) =>
   Date.parse(b.recordedAt) - Date.parse(a.recordedAt);
 
 function activeToday(d: MockDb, personId: string) {
-  const t = today();
-  return d.activities.some((a) => a.userId === personId && dayOf(a.recordedAt) === t);
+  const t = today(d);
+  return d.activities.some((a) => a.userId === personId && dayOf(a.recordedAt, d) === t);
 }
 
 function memberIdsOf(d: MockDb, teamId: string) {
@@ -412,7 +423,7 @@ export const getCurrentUser = cache(async (): Promise<User> => settle((await db(
 export const getTodayStats = cache(async (): Promise<TodayStats> => {
   const d = await db();
   return settle({
-    steps: myDailyTotals(d, "steps").get(today()) ?? 0,
+    steps: myDailyTotals(d, "steps").get(today(d)) ?? 0,
     stepGoal: d.user.stepGoal,
     activeMinutes: d.history.activeMinutesToday,
     calories: d.history.caloriesToday,
@@ -425,11 +436,12 @@ export const getWeeklyActivity = cache(
   async (): Promise<{ days: DayActivity[]; deltaPct: number }> => {
     const d = await db();
     const steps = myDailyTotals(d, "steps");
-    const t = today();
+    const t = today(d);
+    const todayNumber = dayNumber(t);
     const days = Array.from({ length: 7 }, (_, i) => {
-      const day = t - (6 - i) * seed.DAY_MS;
+      const day = dayKeyFromNumber(todayNumber - (6 - i));
       return {
-        day: new Date(day).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+        day: formatDay(day, d.user.timezone, { weekday: "short" }),
         steps: steps.get(day) ?? 0,
         today: day === t || undefined,
       };
@@ -549,10 +561,10 @@ export const getStepChallenge = cache(async (): Promise<Challenge | undefined> =
 /** Your total today on a challenge — the featured card's "+N today". */
 export const getTodayOnChallenge = cache(async (challengeId: string): Promise<number> => {
   const d = await db();
-  const t = today();
+  const t = today(d);
   return settle(
     d.activities
-      .filter((a) => a.challengeId === challengeId && dayOf(a.recordedAt) === t)
+      .filter((a) => a.challengeId === challengeId && dayOf(a.recordedAt, d) === t)
       .reduce((sum, a) => sum + a.value, 0),
   );
 });
@@ -565,16 +577,21 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
   if (!stored) return settle(undefined);
   const challenge = challengeView(d, stored);
   const logs = d.activities.filter((a) => a.challengeId === id);
-  const start = Date.parse(`${challenge.startDate}T00:00:00Z`);
-  const t = today();
+  const t = today(d);
+  const todayNumber = dayNumber(t);
+  const startNumber = dayNumber(challenge.startDate);
 
-  const byDay = new Map<number, number>();
-  for (const a of logs) byDay.set(dayOf(a.recordedAt), (byDay.get(dayOf(a.recordedAt)) ?? 0) + a.value);
+  const byDay = new Map<string, number>();
+  for (const a of logs) {
+    const day = dayOf(a.recordedAt, d);
+    byDay.set(day, (byDay.get(day) ?? 0) + a.value);
+  }
 
   const daily = Array.from({ length: challenge.totalDays }, (_, i) => {
-    const day = start + i * seed.DAY_MS;
-    const state: "past" | "today" | "future" = day < t ? "past" : day === t ? "today" : "future";
-    return { dayIndex: i + 1, date: seed.isoDay(day), total: byDay.get(day) ?? 0, state };
+    const number = startNumber + i;
+    const day = dayKeyFromNumber(number);
+    const state: "past" | "today" | "future" = number < todayNumber ? "past" : number === todayNumber ? "today" : "future";
+    return { dayIndex: i + 1, date: day, total: byDay.get(day) ?? 0, state };
   });
 
   let contributions: MemberContribution[] = [];
@@ -607,7 +624,7 @@ export const getChallengeDetail = cache(async (id: string): Promise<ChallengeDet
     contributions,
     activities: [...logs].sort(newestFirst).map((a) => toEntry(d, a)),
     bestDays,
-    streak: challenge.teamId ? 0 : streakFrom(new Set(logs.map((a) => dayOf(a.recordedAt)))),
+    streak: challenge.teamId ? 0 : streakFrom(new Set(logs.map((a) => dayOf(a.recordedAt, d))), d),
   });
 });
 
@@ -910,6 +927,21 @@ export async function updatePrivacy(privacy: PrivacySettings) {
   return d.user;
 }
 
+// TODO(backend): PATCH /api/users/me/timezone
+export async function updateTimezone(timezone: string): Promise<User | null> {
+  const name = normalizeTimeZone(timezone);
+  try {
+    // Reuse the same Intl validation as the helpers, so an invalid browser
+    // report leaves the demo user on their current zone.
+    dayKey(Date.now(), name);
+  } catch {
+    return null;
+  }
+  const d = await db();
+  d.user.timezone = name;
+  return d.user;
+}
+
 export interface OnboardingAnswers {
   motivations: Motivation[];
   stepGoal?: number;
@@ -971,15 +1003,15 @@ export async function createChallenge(input: {
   activity: string;
 }): Promise<Challenge> {
   const d = await db();
-  const start = today() + (input.startsTomorrow ? seed.DAY_MS : 0);
+  const start = dayKeyFromNumber(dayNumber(today(d)) + (input.startsTomorrow ? 1 : 0));
   const stored: seed.ChallengeSeed = {
     id: slugify(input.title, d.challenges.map((c) => c.id)),
     title: input.title,
     description: input.description,
     unit: input.unit,
     goal: input.goal,
-    startDate: seed.isoDay(start),
-    endDate: seed.isoDay(start + (input.totalDays - 1) * seed.DAY_MS),
+    startDate: start,
+    endDate: dayKeyFromNumber(dayNumber(start) + input.totalDays - 1),
     totalDays: input.totalDays,
     teamId: input.isTeam ? d.user.teamId : null,
     activity: input.activity,
@@ -997,15 +1029,15 @@ export async function joinSuggestedChallenge(suggestedId: string): Promise<Chall
   if (!s) return null;
   const existing = d.challenges.find((c) => c.id === s.id);
   if (existing) return challengeView(d, existing);
-  const start = today();
+  const start = today(d);
   const stored: seed.ChallengeSeed = {
     id: s.id,
     title: s.title,
     description: s.description,
     unit: s.unit,
     goal: s.goal,
-    startDate: seed.isoDay(start),
-    endDate: seed.isoDay(start + (s.totalDays - 1) * seed.DAY_MS),
+    startDate: start,
+    endDate: dayKeyFromNumber(dayNumber(start) + s.totalDays - 1),
     totalDays: s.totalDays,
     teamId: null,
     activity: s.activity,
@@ -1063,8 +1095,8 @@ export async function addActivity(input: {
   }
 
   const before = challengeView(d, stored);
-  const recordedAt = new Date();
-  if (input.when === "yesterday") recordedAt.setUTCDate(recordedAt.getUTCDate() - 1);
+  const now = new Date();
+  const recordedAt = input.when === "yesterday" ? addDays(now, d.user.timezone, -1) : now;
   d.activities.push({
     id: `act-${d.nextId++}`,
     userId: d.user.id,
@@ -1117,8 +1149,8 @@ export async function addDailySteps(input: { value: number; when: "today" | "yes
   if (cap !== undefined && input.value > cap) {
     throw new ApiError(400, capMessage("steps"));
   }
-  const recordedAt = new Date();
-  if (input.when === "yesterday") recordedAt.setUTCDate(recordedAt.getUTCDate() - 1);
+  const now = new Date();
+  const recordedAt = input.when === "yesterday" ? addDays(now, d.user.timezone, -1) : now;
   d.activities.push({
     id: `act-${d.nextId++}`,
     userId: d.user.id,
@@ -1127,7 +1159,7 @@ export async function addDailySteps(input: { value: number; when: "today" | "yes
     value: input.value,
   });
   return {
-    todaySteps: myDailyTotals(d, "steps").get(today()) ?? 0,
+    todaySteps: myDailyTotals(d, "steps").get(today(d)) ?? 0,
     newAchievements: evaluateAchievements(d),
   };
 }
@@ -1272,10 +1304,13 @@ export const getAdminOverview = cache(async (): Promise<AdminOverview> => {
   const byStatus: Record<string, number> = { draft: 0, upcoming: 0, active: 0, completed: 0, cancelled: 0 };
   for (const c of d.challenges) byStatus[adminChallengeStatus(d, c)]++;
 
+  // Admin charts are deliberately UTC (see backend/adminController.js), so
+  // they are labelled UTC in the UI and don't follow d.user.timezone.
   const firstDay = seed.startOfUtcDay(now) - 13 * seed.DAY_MS;
   const signups = Array.from({ length: 14 }, (_, i) => {
     const day = firstDay + i * seed.DAY_MS;
-    return { date: new Date(day).toISOString().slice(0, 10), count: users.filter((u) => dayOf(u.createdAt) === day).length };
+    const label = seed.isoDay(day);
+    return { date: label, count: users.filter((u) => seed.isoDay(u.createdAt) === label).length };
   });
 
   return settle({

@@ -1,3 +1,5 @@
+import { addDays, dayKey, formatDay, normalizeTimeZone } from "./dates";
+
 /**
  * The tiny, public shape shared by the invite API, the join page and the
  * generated share images. Deliberately no ids, email addresses, rosters or
@@ -41,13 +43,26 @@ export function inviteKicker(preview: InvitePreview): string {
   return preview.kind === "team" ? "Team invite" : "Challenge invite";
 }
 
-export function inviteDetail(preview: InvitePreview): string {
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * `timeZone` is the signed-in viewer's zone when one is available. Public share
+ * images have no viewer, so they fall back to UTC and render the challenge's
+ * stored calendar day as a label — never a browser-locale guess at build time.
+ */
+export function inviteDetail(preview: InvitePreview, timeZone = "UTC"): string {
   if (preview.kind === "team") {
     return `${preview.memberCount.toLocaleString("en-US")} ${preview.memberCount === 1 ? "member" : "members"}`;
   }
-  const end = new Date(preview.endDate);
-  const when = Number.isNaN(end.getTime())
-    ? ""
-    : ` · ends ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
+  const zone = normalizeTimeZone(timeZone);
+  if (Number.isNaN(Date.parse(preview.endDate))) {
+    return `${preview.goal.toLocaleString("en-US")} ${preview.unit}`;
+  }
+  // The API's endDate is an exclusive instant; the mock's is already an
+  // inclusive day key. Only the instant needs a one-day step back.
+  const lastDay = DAY_KEY.test(preview.endDate)
+    ? preview.endDate
+    : dayKey(addDays(preview.endDate, zone, -1), zone);
+  const when = ` · ends ${formatDay(lastDay, zone, { month: "short", day: "numeric" })}`;
   return `${preview.goal.toLocaleString("en-US")} ${preview.unit}${when}`;
 }

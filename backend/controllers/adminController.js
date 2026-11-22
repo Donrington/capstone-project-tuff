@@ -52,6 +52,8 @@ function toAdminUser(user, extra = {}) {
 }
 
 // GET /api/admin/overview — the numbers at the top of the dashboard.
+// DELIBERATELY UTC: this is a cross-user operations view, not anyone's personal
+// day. Buckets stay on one UTC calendar and the admin UI labels them "UTC".
 async function getOverview(req, res) {
   const now = Date.now();
   const weekAgo = new Date(now - 7 * DAY_MS);

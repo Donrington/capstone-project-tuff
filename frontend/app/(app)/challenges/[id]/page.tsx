@@ -14,9 +14,10 @@ import { SoloStats } from "@/components/challenge/SoloStats";
 import { HeaderUtilities } from "@/components/shell/HeaderUtilities";
 import { ShareWinButton } from "@/components/share/ShareWinButton";
 import { challengePercent, formatCount } from "@/lib/challenge-card";
+import { formatDay } from "@/lib/dates";
 import { challengeWinFromDetail } from "@/lib/share-card";
 import { pluralize } from "@/lib/pluralize";
-import { getChallenge, getChallengeDetail, getTeam } from "@/lib/data";
+import { getChallenge, getChallengeDetail, getCurrentUser, getTeam } from "@/lib/data";
 import type { LeaderboardEntry } from "@/lib/types";
 import styles from "./detail.module.css";
 
@@ -30,19 +31,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ChallengeDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const detail = await getChallengeDetail(id);
+  const [detail, user] = await Promise.all([getChallengeDetail(id), getCurrentUser()]);
   if (!detail) notFound();
 
   const { challenge } = detail;
-  const win = challengeWinFromDetail(detail);
+  const win = challengeWinFromDetail(detail, user.timezone);
   const team = challenge.teamId ? await getTeam(challenge.teamId) : undefined;
   const now = new Date().toISOString();
 
-  const endsOn = new Date(`${challenge.endDate}T00:00:00Z`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  // endDate is already the inclusive calendar day in the viewer's zone.
+  const endsOn = formatDay(challenge.endDate, user.timezone, { month: "short", day: "numeric" });
   const daysLeft = challenge.totalDays - challenge.dayIndex;
   const notStarted = challenge.dayIndex === 0;
 
@@ -132,11 +130,21 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
 
       <div className={styles.extras}>
         <div className={styles.column}>
-          <ProgressChart daily={detail.daily} pacePerDay={detail.pacePerDay} unit={challenge.unit} />
+          <ProgressChart
+            daily={detail.daily}
+            pacePerDay={detail.pacePerDay}
+            unit={challenge.unit}
+            timeZone={user.timezone}
+          />
           {challenge.teamId ? (
             <MemberBreakdown contributions={detail.contributions} unit={challenge.unit} />
           ) : (
-            <SoloStats streak={detail.streak} bestDays={detail.bestDays} unit={challenge.unit} />
+            <SoloStats
+              streak={detail.streak}
+              bestDays={detail.bestDays}
+              unit={challenge.unit}
+              timeZone={user.timezone}
+            />
           )}
         </div>
         <div className={styles.column}>
@@ -148,7 +156,12 @@ export default async function ChallengeDetailPage({ params }: { params: Params }
               <Leaderboard entries={board} variant="bare" />
             </section>
           )}
-          <ActivityHistory entries={detail.activities} now={now} title="Activity history" />
+          <ActivityHistory
+            entries={detail.activities}
+            now={now}
+            timeZone={user.timezone}
+            title="Activity history"
+          />
         </div>
       </div>
     </div>

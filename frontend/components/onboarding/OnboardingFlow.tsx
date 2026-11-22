@@ -70,11 +70,14 @@ export function OnboardingFlow({
   firstName,
   suggestions,
   next,
+  today,
 }: {
   firstName: string;
   suggestions: SuggestedChallenge[];
   /** Validated invite destination carried from sign-up or Google. */
   next: string | null;
+  /** "YYYY-MM-DD" in the user's zone, from the server. */
+  today: string;
 }) {
   const [state, formAction] = useActionState(completeOnboardingAction, INITIAL);
   const [step, setStep] = useState(0);
@@ -209,7 +212,7 @@ export function OnboardingFlow({
                   label="Date of birth"
                   name="dateOfBirth"
                   type="date"
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={today}
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
                   error={Boolean(state.errors?.dateOfBirth)}

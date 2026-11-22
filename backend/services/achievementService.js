@@ -6,6 +6,7 @@ const ChallengeParticipant = require("../models/ChallengeParticipant");
 const User = require("../models/User");
 const catalog = require("../data/achievements");
 const { notify } = require("./notificationService");
+const { dayKey, dayKeyFromNumber, dayNumber, isValidTimeZone } = require("../utils/zonedTime");
 
 /** Upserts data/achievements.js into the collection by name. Runs on boot. */
 async function syncAchievementCatalog() {
@@ -25,31 +26,37 @@ function parseRequirement(requirement) {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** "YYYY-MM-DD" in UTC. Streaks are counted in UTC days for now —
- *  TODO(timezones): store the user's timezone and count local days. */
-function utcDay(date) {
-  return new Date(date).toISOString().slice(0, 10);
-}
+// A stored zone should always be valid, but an old document or a bad import
+// must never make Mongo's $dateToString throw.
+const safeZone = (timeZone) => {
+  const name = typeof timeZone === "string" ? timeZone.trim() : "";
+  return isValidTimeZone(name) ? name : "UTC";
+};
 
 /** Consecutive days with any activity, counting back from today — or from
  *  yesterday if nothing's logged yet today, since the streak isn't broken
- *  until today ends. */
-function currentStreak(daysWithActivity, now = new Date()) {
+ *  until today ends. `daysWithActivity` holds local day keys in `timeZone`. */
+function currentStreak(daysWithActivity, now = new Date(), timeZone = "UTC") {
   const days = new Set(daysWithActivity);
-  let cursor = now.getTime();
-  if (!days.has(utcDay(cursor))) cursor -= DAY_MS;
+  let cursor = dayNumber(dayKey(now, timeZone));
+  if (!days.has(dayKeyFromNumber(cursor))) cursor -= 1;
   let streak = 0;
-  while (days.has(utcDay(cursor))) {
+  while (days.has(dayKeyFromNumber(cursor))) {
     streak++;
-    cursor -= DAY_MS;
+    cursor -= 1;
   }
   return streak;
 }
 
-async function maxInOneDay(userObjectId, unit) {
+async function maxInOneDay(userObjectId, unit, timeZone) {
   const [row] = await Activity.aggregate([
     { $match: { user: userObjectId, unit } },
-    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$recordedAt" } }, total: { $sum: "$value" } } },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$recordedAt", timezone: safeZone(timeZone) } },
+        total: { $sum: "$value" },
+      },
+    },
     { $sort: { total: -1 } },
     { $limit: 1 },
   ]);
@@ -59,22 +66,33 @@ async function maxInOneDay(userObjectId, unit) {
 /** Every metric a requirement can name, computed fresh from the data. */
 async function computeMetrics(userId) {
   const uid = new mongoose.Types.ObjectId(String(userId));
-  const [activitiesLogged, challengesCompleted, user, dayRows, repsInDay, stepsInDay] = await Promise.all([
+  const [activitiesLogged, challengesCompleted, user] = await Promise.all([
     Activity.countDocuments({ user: uid }),
     ChallengeParticipant.countDocuments({ user: uid, completed: true }),
-    User.findById(uid).select("teamId"),
+    User.findById(uid).select("teamId timezone").lean(),
+  ]);
+  const timeZone = safeZone(user?.timezone || "UTC");
+
+  // Mongo's $dateToString accepts an IANA timezone directly, so both the
+  // streak days and the personal bests are grouped in the user's calendar.
+  const [dayRows, repsInDay, stepsInDay] = await Promise.all([
     Activity.aggregate([
       { $match: { user: uid, recordedAt: { $gte: new Date(Date.now() - 400 * DAY_MS) } } },
-      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$recordedAt" } } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$recordedAt", timezone: timeZone } },
+        },
+      },
     ]),
-    maxInOneDay(uid, "reps"),
-    maxInOneDay(uid, "steps"),
+    maxInOneDay(uid, "reps", timeZone),
+    maxInOneDay(uid, "steps", timeZone),
   ]);
+
   return {
     activities_logged: activitiesLogged,
     challenges_completed: challengesCompleted,
     team_joined: user?.teamId ? 1 : 0,
-    streak_days: currentStreak(dayRows.map((r) => r._id)),
+    streak_days: currentStreak(dayRows.map((r) => r._id), new Date(), timeZone),
     reps_in_day: repsInDay,
     steps_in_day: stepsInDay,
   };

@@ -1,4 +1,5 @@
 import { formatCount } from "./challenge-card";
+import { dayKey, normalizeTimeZone } from "./dates";
 import { pluralize } from "./pluralize";
 import type { ChallengeDetail } from "./types";
 
@@ -52,14 +53,17 @@ export interface ChallengeWin {
  *   part; the team total is shown as context, never as theirs.
  * Teammates' individual entries never reach the card. Null means no win.
  */
-export function challengeWinFromDetail(detail: ChallengeDetail): ChallengeWin | null {
+export function challengeWinFromDetail(detail: ChallengeDetail, timeZone = "UTC"): ChallengeWin | null {
   const { challenge, activities, contributions } = detail;
   const mine = activities.filter((a) => a.isCurrentUser);
   const ownTotal = contributions.find((c) => c.isCurrentUser)?.total ?? mine.reduce((sum, a) => sum + a.value, 0);
   const isTeam = Boolean(challenge.teamId);
   if (isTeam ? challenge.current < challenge.goal || ownTotal <= 0 : ownTotal < challenge.goal) return null;
 
-  const loggedDays = new Set(mine.map((a) => a.recordedAt.slice(0, 10))).size;
+  // A personal milestone uses the viewer's calendar days; an instant's UTC date
+  // would give a different count just after local midnight.
+  const zone = normalizeTimeZone(timeZone);
+  const loggedDays = new Set(mine.map((a) => dayKey(a.recordedAt, zone))).size;
   return {
     total: ownTotal,
     days: loggedDays > 0 ? loggedDays : challenge.dayIndex > 0 ? challenge.dayIndex : null,

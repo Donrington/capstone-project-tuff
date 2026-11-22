@@ -5,8 +5,7 @@ const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
 const { canViewChallenge } = require("../utils/challengeAccess");
 const { challengeCreateFields, challengeUpdateFields } = require("../utils/challengeInput");
-
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const { dayKey, dayNumber } = require("../utils/zonedTime");
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 12).toUpperCase();
@@ -16,16 +15,18 @@ function generateInviteCode() {
  *  computed here, never stored — see the WhatsApp thread this matches:
  *  current is the sum of every participant's progress, not whoever's
  *  closest to goal; dayIndex/totalDays come from startDate/endDate so they
- *  can't go stale. */
-async function withComputedProgress(challenge) {
+ *  can't go stale. Day numbers are in the *viewer's* zone, so "Day 3" rolls
+ *  over at their midnight rather than at 00:00 UTC. */
+async function withComputedProgress(challenge, timeZone = "UTC") {
   const participants = await ChallengeParticipant.find({ challenge: challenge._id });
   const current = participants.reduce((total, p) => total + p.progress, 0);
 
-  const totalDays = Math.max(1, Math.ceil((new Date(challenge.endDate) - new Date(challenge.startDate)) / MS_PER_DAY));
-  const dayIndex = Math.min(
-    Math.max(Math.floor((Date.now() - new Date(challenge.startDate)) / MS_PER_DAY) + 1, 0),
-    totalDays,
-  );
+  const start = dayNumber(dayKey(new Date(challenge.startDate), timeZone));
+  // endDate is exclusive (created as start + totalDays), hence no +1 here.
+  const end = dayNumber(dayKey(new Date(challenge.endDate), timeZone));
+  const totalDays = Math.max(1, end - start);
+  const today = dayNumber(dayKey(new Date(), timeZone));
+  const dayIndex = Math.min(Math.max(today - start + 1, 0), totalDays);
 
   return { ...challenge.toObject(), current, dayIndex, totalDays };
 }
@@ -75,9 +76,14 @@ async function getChallengeByInviteCode(req, res) {
 
 // GET /api/challenges/get/:id
 async function getChallenge(req, res) {
-  const challenge = await Challenge.findById(req.params.id);
+  // Tests (and, in practice, a malformed token) may carry a non-ObjectId
+  // user id — don't let the timezone lookup turn that into a CastError.
+  const viewerLookup = mongoose.isValidObjectId(req.user.id)
+    ? User.findById(req.user.id).select("timezone").lean()
+    : Promise.resolve(null);
+  const [challenge, viewer] = await Promise.all([Challenge.findById(req.params.id), viewerLookup]);
   if (!(await canViewChallenge(challenge, req.user))) throw ApiError.notFound("Challenge not found.");
-  res.json(await withComputedProgress(challenge));
+  res.json(await withComputedProgress(challenge, viewer?.timezone || "UTC"));
 }
 
 // GET /api/challenges — the challenges you've joined, plus every challenge
@@ -86,7 +92,7 @@ async function getChallenge(req, res) {
 async function listMyChallenges(req, res) {
   const [mine, me] = await Promise.all([
     ChallengeParticipant.find({ user: req.user.id }).select("challenge"),
-    User.findById(req.user.id).select("teamId"),
+    User.findById(req.user.id).select("teamId timezone").lean(),
   ]);
   const yours = [{ _id: mongoose.trusted({ $in: mine.map((p) => p.challenge) }) }];
   if (me?.teamId) yours.push({ teamId: me.teamId });
@@ -94,7 +100,8 @@ async function listMyChallenges(req, res) {
     featured: -1,
     startDate: -1,
   });
-  res.json(await Promise.all(challenges.map(withComputedProgress)));
+  const timeZone = me?.timezone || "UTC";
+  res.json(await Promise.all(challenges.map((c) => withComputedProgress(c, timeZone))));
 }
 
 // DELETE /api/challenges/delete/:id

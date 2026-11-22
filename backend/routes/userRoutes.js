@@ -22,6 +22,9 @@ router.patch("/me/password", limiters.passwordChange, asyncHandler(user.updatePa
 router.patch("/me/goals", asyncHandler(user.updateGoals));
 router.patch("/me/notification-prefs", asyncHandler(user.updateNotificationPrefs));
 router.patch("/me/privacy", asyncHandler(user.updatePrivacy));
+// Captured once per session by the browser timezone reporter; the controller
+// validates the IANA name with Intl and returns 400 for anything invalid.
+router.patch("/me/timezone", asyncHandler(user.updateTimezone));
 router.post("/me/onboarding", asyncHandler(user.completeOnboarding));
 router.delete("/me", limiters.accountDelete, asyncHandler(user.deleteAccount));
 

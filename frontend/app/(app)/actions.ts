@@ -9,6 +9,7 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { api, ApiError } from "@/lib/api/client";
 import { DATA_SOURCE } from "@/lib/api/config";
 import { clearSessionCookies } from "@/lib/api/cookies";
+import { isValidTimeZone, normalizeTimeZone } from "@/lib/dates";
 import {
   PERSONA_COOKIE,
   addActivity,
@@ -31,6 +32,7 @@ import {
   updatePrivacy,
   updateProfile,
   updateProfilePhoto,
+  updateTimezone,
   type DailyStepsLogged,
   type LoggedActivity,
 } from "@/lib/data";
@@ -551,6 +553,20 @@ export async function updatePrivacyAction(
   }
   refresh();
   return { ok: true, message: "Saved." };
+}
+
+/** Fire-and-forget capture from the browser. A missing or unknown zone is
+ *  ignored rather than reported as a form error — the account keeps its
+ *  server-side zone until a valid one arrives. */
+export async function saveBrowserTimezone(timezone: string): Promise<void> {
+  const name = normalizeTimeZone(timezone);
+  if (!name || !isValidTimeZone(name)) return;
+  try {
+    await updateTimezone(name);
+    refresh();
+  } catch {
+    // A failed detection must never interrupt the page that reported it.
+  }
 }
 
 export type DeleteAccountState = ActionState<"confirm">;

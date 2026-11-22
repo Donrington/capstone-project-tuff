@@ -21,16 +21,17 @@ export default async function ProfilePage() {
 
       <ProfileHero user={profile.user} />
       <StatTiles stats={profile.stats} />
-      <AchievementsGrid achievements={profile.achievements} />
+      <AchievementsGrid achievements={profile.achievements} timeZone={profile.user.timezone} />
 
       <div className={styles.row}>
-        <PersonalBestsList bests={profile.personalBests} />
+        <PersonalBestsList bests={profile.personalBests} timeZone={profile.user.timezone} />
         <ActiveChallengeTiles challenges={profile.activeChallenges} />
       </div>
 
       <ActivityHistory
         entries={profile.recentActivity}
         now={now}
+        timeZone={profile.user.timezone}
         title="Recent activity"
         showChallenge
         headingId="recent-heading"

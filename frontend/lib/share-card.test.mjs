@@ -52,6 +52,20 @@ test("a challenge win uses the current user's own total, days and camera entries
   );
 });
 
+test("share-card days use the viewer's calendar, not UTC dates", () => {
+  const win = challengeWinFromDetail(
+    detail({
+      activities: [
+        { ...activity({ value: 200 }), recordedAt: "2026-01-01T23:30:00.000Z" },
+        { ...activity({ value: 200 }), recordedAt: "2026-01-02T00:30:00.000Z" },
+      ],
+    }),
+    "America/Los_Angeles",
+  );
+  // Both instants are 1 January in Los Angeles; UTC would have counted two days.
+  assert.deepEqual(win, { total: 400, days: 1, cameraCounted: false, teamTotal: null });
+});
+
 test("a finished team challenge is a win for everyone who put in — showing only their own part", () => {
   const finished = detail({
     teamId: "t1",

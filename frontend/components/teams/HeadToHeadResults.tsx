@@ -1,11 +1,11 @@
+import { formatDay } from "@/lib/dates";
 import type { HeadToHeadResult } from "@/lib/types";
 import styles from "./teams.module.css";
 
-const weekLabel = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-
-/** The last four weeks against a rival — "Won" and "Lost" in words, not just color. */
-export function HeadToHeadResults({ results }: { results: HeadToHeadResult[] }) {
+/** The last four weeks against a rival — "Won" and "Lost" in words, not just color.
+ *  `weekOf` is a calendar day key from the shared (UTC) week window; formatDay
+ *  renders such keys as labels without shifting them into another day. */
+export function HeadToHeadResults({ results, timeZone }: { results: HeadToHeadResult[]; timeZone: string }) {
   return (
     <section className={styles.panel} aria-labelledby="results-heading">
       <h2 id="results-heading" className={styles.kicker}>
@@ -23,7 +23,8 @@ export function HeadToHeadResults({ results }: { results: HeadToHeadResult[] }) 
               <span className={styles.resultText}>
                 vs {r.opponentName}
                 <span className={styles.resultSub}>
-                  Week of {weekLabel(r.weekOf)} · {r.points.toLocaleString("en-US")} to{" "}
+                  Week of {formatDay(r.weekOf, timeZone, { day: "numeric", month: "short" })} ·{" "}
+                  {r.points.toLocaleString("en-US")} to{" "}
                   {r.opponentPoints.toLocaleString("en-US")}
                 </span>
               </span>
