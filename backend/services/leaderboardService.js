@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Activity = require("../models/Activity");
 const Challenge = require("../models/Challenge");
 const Team = require("../models/Team");
@@ -74,9 +75,9 @@ async function rankedUsers(window) {
   const points = await pointsByUser(window);
   const ids = [...points.keys()].filter((id) => points.get(id) > 0);
   const users = await User.find({
-    _id: { $in: ids },
-    "privacy.showOnLeaderboards": { $ne: false },
-    status: { $ne: "suspended" },
+    _id: mongoose.trusted({ $in: ids }),
+    "privacy.showOnLeaderboards": mongoose.trusted({ $ne: false }),
+    status: mongoose.trusted({ $ne: "suspended" }),
   })
     .select("firstName lastName displayName teamId profilePicture privacy.profileVisibility")
     .lean();
@@ -108,7 +109,7 @@ async function individualBoard(period, viewerId, now = Date.now()) {
 
   const shown = ranked.filter((r, i) => i < BOARD_SIZE || String(r.user._id) === String(viewerId));
   const teamIds = [...new Set(shown.map((r) => r.user.teamId).filter(Boolean).map(String))];
-  const teams = await Team.find({ _id: { $in: teamIds } }).select("name").lean();
+  const teams = await Team.find({ _id: mongoose.trusted({ $in: teamIds }) }).select("name").lean();
   const teamName = new Map(teams.map((t) => [String(t._id), t.name]));
 
   return shown.map((r) => {
@@ -148,11 +149,11 @@ function teamStreak(memberIds, daysByUser, now) {
  */
 async function teamStandings(period, viewerId, now = Date.now()) {
   const [teams, points, viewer] = await Promise.all([
-    Team.find({ status: { $ne: "inactive" } }).select("name").lean(),
+    Team.find({ status: mongoose.trusted({ $ne: "inactive" }) }).select("name").lean(),
     pointsByUser(windowFor(period, now)),
     User.findById(viewerId).select("teamId").lean(),
   ]);
-  const members = await User.find({ teamId: { $in: teams.map((t) => t._id) } })
+  const members = await User.find({ teamId: mongoose.trusted({ $in: teams.map((t) => t._id) }) })
     .select("teamId")
     .lean();
 
@@ -211,10 +212,10 @@ function ymd(ms) {
  */
 async function weeklyTeamRanks(now = Date.now()) {
   const [teams, points] = await Promise.all([
-    Team.find({ status: { $ne: "inactive" } }).select("name").lean(),
+    Team.find({ status: mongoose.trusted({ $ne: "inactive" }) }).select("name").lean(),
     pointsByUser(windowFor("week", now)),
   ]);
-  const members = await User.find({ teamId: { $in: teams.map((t) => t._id) } })
+  const members = await User.find({ teamId: mongoose.trusted({ $in: teams.map((t) => t._id) }) })
     .select("teamId")
     .lean();
 

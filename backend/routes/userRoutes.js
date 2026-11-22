@@ -2,6 +2,7 @@ const express = require("express");
 const user = require("../controllers/userController");
 const asyncHandler = require("../middleware/asyncHandler");
 const { requireAuth } = require("../middleware/authMiddleware");
+const limiters = require("../middleware/limiters");
 
 const router = express.Router();
 
@@ -11,15 +12,17 @@ router.use(requireAuth);
 
 router.get("/me/stats", asyncHandler(user.getMyStats));
 router.get("/me/activities", asyncHandler(user.getMyActivities));
-router.post("/me/activities", asyncHandler(user.logDailySteps));
-router.post("/me/activities/parse", asyncHandler(user.parseActivityText));
+router.post("/me/activities", limiters.logActivity, asyncHandler(user.logDailySteps));
+router.post("/me/activities/parse", limiters.parseActivity, asyncHandler(user.parseActivityText));
 router.patch("/me", asyncHandler(user.updateProfile));
-router.put("/me/photo", asyncHandler(user.updatePhoto));
-router.patch("/me/password", asyncHandler(user.updatePassword));
+// The photo arrives as a base64 data URL; only this route gets the 3mb parser
+// (the global one is 100kb — see server.js).
+router.put("/me/photo", express.json({ limit: "3mb" }), asyncHandler(user.updatePhoto));
+router.patch("/me/password", limiters.passwordChange, asyncHandler(user.updatePassword));
 router.patch("/me/goals", asyncHandler(user.updateGoals));
 router.patch("/me/notification-prefs", asyncHandler(user.updateNotificationPrefs));
 router.patch("/me/privacy", asyncHandler(user.updatePrivacy));
 router.post("/me/onboarding", asyncHandler(user.completeOnboarding));
-router.delete("/me", asyncHandler(user.deleteAccount));
+router.delete("/me", limiters.accountDelete, asyncHandler(user.deleteAccount));
 
 module.exports = router;

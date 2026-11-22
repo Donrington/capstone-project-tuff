@@ -2,12 +2,24 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const RefreshToken = require("../models/RefreshToken");
 const ApiError = require("../utils/ApiError");
-const { ACCESS_COOKIE, REFRESH_COOKIE, accessCookieOptions, signAccessToken, hashRefreshToken } = require("../utils/jwt");
+const {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  accessCookieOptions,
+  refreshCookieOptions,
+  signAccessToken,
+  hashRefreshToken,
+  generateRefreshToken,
+} = require("../utils/jwt");
 const { toSafeUser } = require("../utils/serializeUser");
 const { issueSession, clearSession } = require("../utils/session");
 const googleAuth = require("../services/googleAuth");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/; // matches frontend/app/(auth)/actions.ts exactly
+const BCRYPT_COST = 12;
+// A real cost-12 hash for a password nobody can sign in with. Unknown emails
+// pay the same bcrypt cost as known ones, so timing can't enumerate accounts.
+const DUMMY_HASH = "$2a$12$i0NAQeYIDfD0/AjXG/aCv.3y7k7ecxWE5xiHigjiwqFECBnV52m/m";
 
 // POST /api/auth/sign-up — frontend: app/(auth)/actions.ts signUp
 async function signUp(req, res) {
@@ -28,7 +40,7 @@ async function signUp(req, res) {
   const existing = await User.findOne({ email });
   if (existing) throw ApiError.conflict("That email already has an account.");
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
   const user = await User.create({ firstName, lastName, email, passwordHash });
 
   await issueSession(res, user);
@@ -50,13 +62,21 @@ async function signIn(req, res) {
   // Same message either way — don't tell an attacker which part was wrong.
   const WRONG = "Wrong email or password.";
   const user = await User.findOne({ email }).select("+passwordHash");
-  if (!user) throw ApiError.unauthorized(WRONG);
-  // Sign-up already says whether an email has an account, so naming the
-  // way in gives nothing extra away.
-  if (!user.passwordHash) throw ApiError.unauthorized("That account signs in with Google. Use Continue with Google instead.");
+  // Google-only accounts have no hash to compare, so they take the dummy path
+  // as well; their distinct message is fine (sign-up already reveals the email).
+  const hash = user?.passwordHash || DUMMY_HASH;
+  const ok = await bcrypt.compare(password, hash);
 
-  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!user) throw ApiError.unauthorized(WRONG);
+  if (!user.passwordHash) throw ApiError.unauthorized("That account signs in with Google. Use Continue with Google instead.");
   if (!ok) throw ApiError.unauthorized(WRONG);
+
+  // Hashes from before the cost increase are upgraded on the one occasion we
+  // know the plaintext, instead of locking their owners out or resetting them.
+  if (bcrypt.getRounds(user.passwordHash) < BCRYPT_COST) {
+    user.passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+    await user.save();
+  }
 
   await issueSession(res, user);
   res.json(toSafeUser(user));
@@ -117,9 +137,12 @@ async function googleSignIn(req, res) {
 async function signOut(req, res) {
   const refreshToken = req.cookies?.[REFRESH_COOKIE];
   if (refreshToken) {
-    // Revoke it server-side, not just delete the cookie — otherwise a
-    // stolen refresh token would keep working after "signing out".
-    await RefreshToken.deleteOne({ token: hashRefreshToken(refreshToken) });
+    // Keep the row but mark it revoked: a stolen copy replayed later must
+    // still trip reuse detection and revoke the rest of the family.
+    await RefreshToken.updateOne(
+      { token: hashRefreshToken(refreshToken), revokedAt: null },
+      { $set: { revokedAt: new Date() } },
+    );
   }
   clearSession(res);
   res.status(204).end();
@@ -127,20 +150,45 @@ async function signOut(req, res) {
 
 // POST /api/auth/refresh — the access token is short-lived (15m); the
 // frontend calls this when a request comes back 401 to get a new one
-// silently. Reissues the access token only, not the refresh token —
-// simpler than rotating on every call, at the cost of a refresh token
-// being valid for its full 30 days rather than shrinking its window.
+// silently. Every call exchanges the presented refresh token for a new one,
+// so a stolen token can only be used once. Presenting a used one means the
+// cookie leaked (or the owner replayed it), so the whole family is revoked.
+const SESSION_EXPIRED = "Your session expired. Sign in again.";
+
 async function refresh(req, res) {
   const refreshToken = req.cookies?.[REFRESH_COOKIE];
   if (!refreshToken) throw ApiError.unauthorized();
 
   const stored = await RefreshToken.findOne({ token: hashRefreshToken(refreshToken) });
-  if (!stored || stored.expiresAt < new Date()) throw ApiError.unauthorized("Your session expired. Sign in again.");
+  if (!stored) throw ApiError.unauthorized(SESSION_EXPIRED);
+
+  if (stored.revokedAt) {
+    await RefreshToken.updateMany({ user: stored.user, revokedAt: null }, { $set: { revokedAt: new Date() } });
+    clearSession(res);
+    throw ApiError.unauthorized(SESSION_EXPIRED);
+  }
+  if (stored.expiresAt < new Date()) throw ApiError.unauthorized(SESSION_EXPIRED);
 
   const user = await User.findById(stored.user);
   if (!user || user.status === "suspended") throw ApiError.unauthorized();
 
+  const { token, hash, expiresAt } = generateRefreshToken();
+  const replacement = await RefreshToken.create({ user: stored.user, token: hash, expiresAt });
+  // Compare-and-set on revokedAt: if two requests present the same token at
+  // once, only one can win. The loser is the replay, not a second refresh.
+  const rotated = await RefreshToken.updateOne(
+    { _id: stored._id, revokedAt: null },
+    { $set: { revokedAt: new Date(), replacedBy: replacement._id } },
+  );
+  if (!rotated?.modifiedCount) {
+    await RefreshToken.updateMany({ user: stored.user, revokedAt: null }, { $set: { revokedAt: new Date() } });
+    await RefreshToken.deleteOne({ _id: replacement._id });
+    clearSession(res);
+    throw ApiError.unauthorized(SESSION_EXPIRED);
+  }
+
   res.cookie(ACCESS_COOKIE, signAccessToken({ sub: user._id.toString(), role: user.role }), accessCookieOptions);
+  res.cookie(REFRESH_COOKIE, token, refreshCookieOptions);
   res.status(204).end();
 }
 

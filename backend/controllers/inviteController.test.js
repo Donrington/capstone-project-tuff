@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const mongoose = require("mongoose");
 const Team = require("../models/Team");
 const Challenge = require("../models/Challenge");
 const User = require("../models/User");
@@ -149,7 +150,9 @@ test("challenge previews contain only the public fields", async () => {
       const res = response();
       await getInvitePreview({ params: { code: "push9" } }, res);
       // Cancelled challenges can't be joined, so they never get a preview.
-      assert.deepEqual(challengeQuery, { inviteCode: "PUSH9", status: { $ne: "cancelled" } });
+      // The trusted marker is part of the object Mongoose receives — without
+      // it sanitizeFilter would strip the operator this query relies on.
+      assert.deepEqual(challengeQuery, { inviteCode: "PUSH9", status: mongoose.trusted({ $ne: "cancelled" }) });
       assert.equal(res.statusCode, null);
       assert.deepEqual(res.body, {
         kind: "challenge",

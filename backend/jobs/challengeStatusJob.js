@@ -1,4 +1,5 @@
 const cron = require("node-cron");
+const mongoose = require("mongoose");
 const Challenge = require("../models/Challenge");
 
 // Run every minute
@@ -10,7 +11,7 @@ cron.schedule("* * * * *", async () => {
         const activatedChallenges = await Challenge.updateMany(
             {
                 status: "draft",
-                startDate: { $lte: now },
+                startDate: mongoose.trusted({ $lte: now }),
             },
             {
                 $set: {
@@ -23,7 +24,7 @@ cron.schedule("* * * * *", async () => {
         const completedChallenges = await Challenge.updateMany(
             {
                 status: "active",
-                endDate: { $lte: now },
+                endDate: mongoose.trusted({ $lte: now }),
             },
             {
                 $set: {

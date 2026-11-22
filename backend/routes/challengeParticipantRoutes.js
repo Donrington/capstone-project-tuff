@@ -2,13 +2,14 @@ const express = require("express");
 const challengeParticipant = require("../controllers/challengeParticipantController");
 const asyncHandler = require("../middleware/asyncHandler");
 const { requireAuth, requireRole } = require("../middleware/authMiddleware");
+const limiters = require("../middleware/limiters");
 
 const router = express.Router();
 
 router.post("/:challengeId/join", requireAuth, asyncHandler(challengeParticipant.joinChallenge));
 router.get("/:challengeId/me", requireAuth, asyncHandler(challengeParticipant.getMyParticipation));
 router.get("/:challengeId", requireAuth, asyncHandler(challengeParticipant.getChallengeParticipants));
-router.post("/:challengeId/activities", requireAuth, asyncHandler(challengeParticipant.logActivity));
+router.post("/:challengeId/activities", requireAuth, limiters.logActivity, asyncHandler(challengeParticipant.logActivity));
 router.get("/:challengeId/activities", requireAuth, asyncHandler(challengeParticipant.getChallengeActivities));
 router.patch(
   "/:challengeId/progress",

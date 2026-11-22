@@ -62,11 +62,11 @@ async function getOverview(req, res) {
       User.countDocuments(),
       User.countDocuments({ role: "admin" }),
       User.countDocuments({ status: "suspended" }),
-      User.countDocuments({ createdAt: { $gte: weekAgo } }),
-      Team.countDocuments({ status: { $ne: "inactive" } }),
+      User.countDocuments({ createdAt: mongoose.trusted({ $gte: weekAgo }) }),
+      Team.countDocuments({ status: mongoose.trusted({ $ne: "inactive" }) }),
       Challenge.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
       Activity.countDocuments(),
-      Activity.countDocuments({ recordedAt: { $gte: weekAgo } }),
+      Activity.countDocuments({ recordedAt: mongoose.trusted({ $gte: weekAgo }) }),
       Activity.aggregate([{ $match: { recordedAt: { $gte: weekAgo } } }, { $group: { _id: "$user" } }, { $count: "n" }]),
       User.aggregate([
         { $match: { createdAt: { $gte: new Date(firstDay) } } },
@@ -116,7 +116,7 @@ async function listUsers(req, res) {
   ]);
 
   const [teams, activity] = await Promise.all([
-    Team.find({ _id: { $in: users.map((u) => u.teamId).filter(Boolean) } }).select("name").lean(),
+    Team.find({ _id: mongoose.trusted({ $in: users.map((u) => u.teamId).filter(Boolean) }) }).select("name").lean(),
     Activity.aggregate([
       { $match: { user: { $in: idsOf(users) } } },
       { $group: { _id: "$user", count: { $sum: 1 }, last: { $max: "$recordedAt" } } },

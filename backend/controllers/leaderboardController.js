@@ -4,6 +4,7 @@ const Challenge = require("../models/Challenge");
 const Team = require("../models/Team");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
+const { canViewChallenge } = require("../utils/challengeAccess");
 const { individualBoard, teamStandings } = require("../services/leaderboardService");
 
 const PERIODS = ["week", "all-time"];
@@ -14,9 +15,12 @@ function periodOf(req) {
   return period;
 }
 
-async function findChallenge(id) {
+// A challenge's leaderboard lists its members' names and points, so it
+// follows the same visibility rule as the challenge itself: a stranger gets
+// the same 404 as for an id that doesn't exist.
+async function findChallenge(id, user) {
   const challenge = mongoose.isValidObjectId(id) ? await Challenge.findById(id) : null;
-  if (!challenge) throw ApiError.notFound("Challenge not found.");
+  if (!challenge || !(await canViewChallenge(challenge, user))) throw ApiError.notFound("Challenge not found.");
   return challenge;
 }
 
@@ -32,7 +36,7 @@ const getTeamStandings = async (req, res) => {
 
 // GET /api/leaderboard/challenge/:challengeId — every participant, ranked.
 const getChallengeLeaderboard = async (req, res) => {
-  const challenge = await findChallenge(req.params.challengeId);
+  const challenge = await findChallenge(req.params.challengeId, req.user);
 
   const participants = await ChallengeParticipant.find({ challenge: challenge._id })
     .populate("user", "firstName lastName profilePicture")
@@ -55,7 +59,7 @@ const getChallengeLeaderboard = async (req, res) => {
 
 // GET /api/leaderboard/challenge/:challengeId/teams — participating teams, ranked.
 const getTeamLeaderboard = async (req, res) => {
-  const challenge = await findChallenge(req.params.challengeId);
+  const challenge = await findChallenge(req.params.challengeId, req.user);
 
   const participants = await ChallengeParticipant.find({ challenge: challenge._id }).populate(
     "user",
@@ -74,7 +78,7 @@ const getTeamLeaderboard = async (req, res) => {
     teamScores[teamId].members += 1;
   }
 
-  const teams = await Team.find({ _id: { $in: Object.keys(teamScores) } }).select("name description");
+  const teams = await Team.find({ _id: mongoose.trusted({ $in: Object.keys(teamScores) }) }).select("name description");
   const teamMap = Object.fromEntries(teams.map((team) => [team._id.toString(), team]));
 
   const leaderboard = Object.values(teamScores)
@@ -97,7 +101,7 @@ const getTeamLeaderboard = async (req, res) => {
 
 // GET /api/leaderboard/challenge/:challengeId/team/:teamId — one team's members in a challenge, ranked.
 const getTeamMemberLeaderboard = async (req, res) => {
-  const challenge = await findChallenge(req.params.challengeId);
+  const challenge = await findChallenge(req.params.challengeId, req.user);
   const { teamId } = req.params;
   const team = mongoose.isValidObjectId(teamId) ? await Team.findById(teamId) : null;
   if (!team) throw ApiError.notFound("Team not found.");
@@ -106,7 +110,7 @@ const getTeamMemberLeaderboard = async (req, res) => {
 
   const participants = await ChallengeParticipant.find({
     challenge: challenge._id,
-    user: { $in: members.map((member) => member._id) },
+    user: mongoose.trusted({ $in: members.map((member) => member._id) }),
   })
     .populate("user", "firstName lastName profilePicture")
     .sort({ points: -1, progress: -1 });

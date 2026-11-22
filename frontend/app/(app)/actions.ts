@@ -350,6 +350,10 @@ export async function createChallengeAction(
 
   const errors: CreateChallengeState["errors"] = {};
   if (title.length < 3) errors.title = "Give the challenge a name people will recognise.";
+  // Same limits the API enforces (backend/utils/challengeInput.js), so people
+  // get a form message instead of a server rejection.
+  else if (title.length > 80) errors.title = "Keep the name under 80 characters.";
+  if (description.length > 500) errors.title ??= "Keep the description under 500 characters.";
   if (!Number.isInteger(goal) || goal <= 0) errors.goal = "Use a whole number above zero.";
   if (!Number.isInteger(totalDays) || totalDays < 3 || totalDays > 90) {
     errors.days = "Pick a length between 3 and 90 days.";

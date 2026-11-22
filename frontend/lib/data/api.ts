@@ -892,7 +892,10 @@ export async function joinChallengeByCode(
   const raw = await apiOptional<RawChallenge>(`/api/challenges/getbyCode/${normalizeCode(code)}`);
   if (!raw) return { ok: false, error: "That code doesn't match a challenge." };
   try {
-    await api(`/api/challenge-participants/${raw._id}/join`, { method: "POST" });
+    await api(`/api/challenge-participants/${raw._id}/join`, {
+      method: "POST",
+      body: { inviteCode: code },
+    });
   } catch (err) {
     if (!(err instanceof ApiError && /already joined/i.test(err.message))) {
       return { ok: false, error: messageOf(err, "Couldn't join that challenge.") };

@@ -22,7 +22,7 @@ async function getNotifications(req, res) {
   if (req.query.before) {
     const before = new Date(req.query.before);
     if (Number.isNaN(before.getTime())) throw ApiError.badRequest("before must be an ISO date.");
-    filter.createdAt = { $lt: before };
+    filter.createdAt = mongoose.trusted({ $lt: before });
   }
 
   const items = await Notification.find(filter).sort({ createdAt: -1 }).limit(limit);

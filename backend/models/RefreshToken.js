@@ -19,6 +19,19 @@ const refreshTokenSchema = new mongoose.Schema(
             required: true,
         },
 
+        // Kept after rotation rather than deleted: replaying a revoked token
+        // is how the server detects a stolen session and kills its family.
+        revokedAt: {
+            type: Date,
+            default: null,
+        },
+
+        replacedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "RefreshToken",
+            default: null,
+        },
+
         createdAt: {
             type: Date,
             default: Date.now,

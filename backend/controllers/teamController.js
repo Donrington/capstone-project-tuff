@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Team = require("../models/Team");
 const User = require("../models/User");
 const ApiError = require("../utils/ApiError");
@@ -99,7 +100,7 @@ async function joinTeam(req, res) {
       title: `Welcome to ${team.name}`,
       message: "You're on the team. Log activity to climb the team leaderboard together.",
     });
-    const teammates = await User.find({ teamId: team._id, _id: { $ne: user._id } }).select("_id");
+    const teammates = await User.find({ teamId: team._id, _id: mongoose.trusted({ $ne: user._id }) }).select("_id");
     await notifyMany(
       teammates.map((t) => t._id),
       {
@@ -169,7 +170,7 @@ async function getTeamActivity(req, res) {
     throw ApiError.forbidden("Only members of this team can see its activity.");
   }
   const memberIds = (await User.find({ teamId: id }).select("_id")).map((u) => u._id);
-  const activities = await Activity.find({ user: { $in: memberIds } })
+  const activities = await Activity.find({ user: mongoose.trusted({ $in: memberIds }) })
     .sort({ recordedAt: -1 })
     .limit(limitFrom(req.query, 30, 200))
     .populate("user", USER_FIELDS)

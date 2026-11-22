@@ -5,6 +5,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/dbConfig");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const securityHeaders = require("./middleware/securityHeaders");
+const { assertProductionJwtSecret } = require("./utils/jwt");
 const { syncAchievementCatalog } = require("./services/achievementService");
 
 // Registers every schema with Mongoose before any route can use it — a
@@ -21,6 +23,9 @@ require("./models/Notification");
 require("./models/RefreshToken");
 
 const app = express();
+
+app.disable("x-powered-by");
+app.use(securityHeaders); // first, so even error and 404 responses carry the headers
 
 // The app sits behind one reverse proxy in production. Without this, Express
 // sees the proxy's address as req.ip and the public invite limiter would count
@@ -47,9 +52,13 @@ app.use(
     credentials: true,
   }),
 );
-// 3mb, not the 100kb default, so a profile photo (sent as a data URL —
-// see controllers/userController.js uploadPhoto) fits in the body.
-app.use(express.json({ limit: "3mb" }));
+// Everything except the avatar upload gets the small limit; a photo is a
+// base64 data URL and needs the route-level 3mb parser in userRoutes.js.
+const jsonParser = express.json({ limit: "100kb" });
+app.use((req, res, next) => {
+  if (req.path === "/api/users/me/photo") return next();
+  return jsonParser(req, res, next);
+});
 app.use(cookieParser());
 
 app.get("/health", (req, res) => res.json({ ok: true }));
@@ -74,6 +83,8 @@ app.use(errorHandler); // must be last — Express finds it by its 4-arg signatu
 // opening a DB connection or starting the cron jobs; `npm start` still runs
 // this block because it's the entry module.
 if (require.main === module) {
+  assertProductionJwtSecret(); // fail before connecting or listening with a weak secret
+
   require("./jobs/challengeStatusJob");
   require("./jobs/rivalBanterJob");
 

@@ -1,35 +1,49 @@
 /**
- * Small fixed-window limiter for the one public endpoint that needs it. No new
- * dependency: each instance keeps its own in-memory map, keyed by `req.ip`.
+ * Small fixed-window limiter shared by the auth and user endpoints. No new
+ * dependency: each instance keeps its own in-memory map. `now` is injectable
+ * so tests can advance a window without waiting, and expired windows are
+ * swept on every request so a stream of unique keys can't grow it forever.
  *
- * `now` is injectable so the tests can advance a window without waiting a
- * minute. Expired windows are swept on every request, so a stream of unique
- * visitor IPs can't leave entries behind forever.
+ * `key` is "ip" (default) or "user" for authenticated routes; a function is
+ * accepted for anything more specific. Every request counts, including the
+ * ones that end in a successful sign-in — otherwise an attacker could keep a
+ * limit parked at zero by interleaving successful attempts.
  */
 function createRateLimit({
   limit = 30,
   windowMs = 60 * 1000,
   now = () => Date.now(),
+  key = "ip",
+  message = "Too many requests. Please slow down and try again.",
 } = {}) {
   const windows = new Map();
 
+  function keyFor(req) {
+    if (typeof key === "function") return String(key(req));
+    if (key === "user") return `user:${req.user?.id ?? "unknown"}`;
+    return `ip:${req.ip || req.socket?.remoteAddress || "unknown"}`;
+  }
+
   return function rateLimit(req, res, next) {
-    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    const id = keyFor(req);
     const time = now();
 
-    for (const [key, window] of windows) {
-      if (time >= window.resetAt) windows.delete(key);
+    for (const [windowKey, window] of windows) {
+      if (time >= window.resetAt) windows.delete(windowKey);
     }
 
-    let window = windows.get(ip);
+    let window = windows.get(id);
     if (!window) {
       window = { count: 0, resetAt: time + windowMs };
-      windows.set(ip, window);
+      windows.set(id, window);
     }
     window.count += 1;
 
     if (window.count > limit) {
-      res.status(429).json({ message: "Too many requests. Try again shortly." });
+      const seconds = Math.max(1, Math.ceil((window.resetAt - time) / 1000));
+      res.set("Retry-After", String(seconds));
+      // errorHandler's shape — the frontend's ApiError parser reads error.message.
+      res.status(429).json({ error: { message } });
       return;
     }
     next();

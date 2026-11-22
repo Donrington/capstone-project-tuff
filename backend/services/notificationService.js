@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 
@@ -32,7 +33,7 @@ async function notifyMany(userIds, { type, title, message, pref }) {
   if (userIds.length === 0) return;
   let recipients = userIds;
   if (pref) {
-    const users = await User.find({ _id: { $in: userIds } }).select(`notificationPrefs.${pref}`);
+    const users = await User.find({ _id: mongoose.trusted({ $in: userIds }) }).select(`notificationPrefs.${pref}`);
     recipients = users.filter((u) => u.notificationPrefs?.[pref] !== false).map((u) => u._id);
   }
   if (recipients.length === 0) return;
