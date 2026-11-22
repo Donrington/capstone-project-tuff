@@ -10,9 +10,9 @@ import {
   type RefObject,
 } from "react";
 import { useFormStatus } from "react-dom";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Info, Loader2 } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import { FormField } from "@/components/ui/FormField";
 import { PasswordField } from "@/components/ui/PasswordField";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -146,7 +146,8 @@ export function AuthSplit({ initialMode, next }: { initialMode: AuthMode; next: 
 
         <div className={styles.mediaTop}>
           <span className={styles.wordmark}>
-            <Image src="/logo/logo_2.png" alt="TUFF" width={340} height={113} loading="eager" className={styles.wordmarkLogo} />
+            {/* The wordmark sits on the video panel, so it stays the colour mark in both themes. */}
+            <Logo surface="dark" alt="TUFF" width={340} height={113} loading="eager" className={styles.wordmarkLogo} />
           </span>
           <div className={styles.mediaActions}>
             <Link href="/about" className={styles.aboutPill} aria-label="About TUFF">

@@ -334,6 +334,11 @@ a.tileLink:hover {
   color: var(--accent-surge);
   border-color: color-mix(in srgb, var(--accent-surge) 55%, transparent);
 }
+/* The confirm button keeps its surge fill in light mode; surge text on that
+   fill is unreadable, so light uses the fill's intended dark label. */
+:global([data-theme="light"]) .dangerButton {
+  color: var(--ink-on-vivid);
+}
 .spin {
   animation: spin 0.9s linear infinite;
 }

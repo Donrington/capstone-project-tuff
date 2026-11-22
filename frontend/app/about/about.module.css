@@ -284,6 +284,12 @@
     0 0 0 2px #0a0a0c,
     0 0 0 4px var(--volt-ink);
 }
+/* In light mode --surface-3 turns pale while --on-media stays white: without
+   this the floating initials are ~1.1:1. Keep the chip dark in both themes,
+   and keep --on-media's white ink (this chip sits over a video still). */
+:global([data-theme="light"]) .floatAvatar {
+  background: var(--surface-inverse);
+}
 .floatBody {
   display: flex;
   flex-direction: column;
@@ -367,7 +373,8 @@
 }
 .arc path {
   fill: none;
-  stroke: var(--accent-volt);
+  /* volt-ink is volt in dark mode and a readable olive on the light page. */
+  stroke: var(--volt-ink);
   stroke-width: 3;
   stroke-linecap: round;
   /* The gap is a hair longer than the path, so while hidden no zero-length

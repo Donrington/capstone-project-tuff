@@ -73,10 +73,10 @@
 .remove {
   border-color: transparent;
   background: transparent;
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 .remove:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+  background: color-mix(in srgb, var(--danger-ink) 12%, transparent);
 }
 .change:disabled,
 .remove:disabled {
@@ -93,7 +93,7 @@
   color: var(--ink-tertiary);
 }
 .error {
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 
 /* Phones: the avatar centers above its controls instead of squeezing into a

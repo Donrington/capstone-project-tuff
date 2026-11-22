@@ -1,0 +1,21 @@
+/* Both marks are rendered; only one is displayed at a time. Switching via CSS
+   keeps the server and client trees identical — the head script sets
+   data-theme before paint, so the right logo is there on the first frame. */
+.colour {
+  display: block;
+}
+.mono {
+  /* The mono SVG's viewBox (1079 x 194) is wider than the colour PNG's box
+     (1133 x 375, with vertical padding). Keeping the PNG's intrinsic box and
+     containing the SVG inside it makes both marks occupy the same space. */
+  object-fit: contain;
+  display: none;
+}
+
+:global([data-theme="light"]) .colour {
+  display: none;
+}
+:global([data-theme="light"]) .mono {
+  /* The SVG has no fill, so it paints in the light ink colour (#0b0b0d). */
+  display: block;
+}

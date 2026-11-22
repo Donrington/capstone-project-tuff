@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { AboutNavMenu } from "./about-nav-menu";
 import { AboutSectionLinks } from "./about-section-links";
@@ -42,14 +42,7 @@ export function AboutNav({ context }: { context: AboutContext }) {
       <AboutNavMenu homeHref={homeHref} homeLabel={homeLabel} actions={drawerActions} />
 
       <Link href={homeHref} className={styles.brand} aria-label={homeLabel}>
-        <Image
-          src="/logo/logo_2.png"
-          alt=""
-          width={340}
-          height={113}
-          loading="eager"
-          className={styles.logo}
-        />
+        <Logo alt="" width={340} height={113} loading="eager" className={styles.logo} />
       </Link>
 
       <AboutSectionLinks variant="bar" />

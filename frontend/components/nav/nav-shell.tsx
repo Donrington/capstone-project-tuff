@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { Logo } from "@/components/brand/Logo";
 import { usePathname } from "next/navigation";
 import { Check, Menu as MenuIcon, X } from "lucide-react";
 import { NAV_STATE_COOKIE, type NavState } from "@/lib/nav/state";
@@ -83,8 +83,7 @@ export function NavShell({ initialState, body, topBarAction }: NavShellProps) {
             <span className={styles.brandMark} aria-hidden="true">
               <Check size={20} strokeWidth={3.25} />
             </span>
-            <Image
-              src="/logo/logo_2.png"
+            <Logo
               alt=""
               width={340}
               height={113}
@@ -109,14 +108,7 @@ export function NavShell({ initialState, body, topBarAction }: NavShellProps) {
           <MenuIcon size={20} aria-hidden="true" />
         </button>
         <Link href="/dashboard" className={styles.topBrand} aria-label="TUFF dashboard">
-          <Image
-            src="/logo/logo_2.png"
-            alt=""
-            width={340}
-            height={113}
-            loading="eager"
-            className={styles.topLogo}
-          />
+          <Logo alt="" width={340} height={113} loading="eager" className={styles.topLogo} />
         </Link>
         <div className={styles.topActions}>{topBarAction}</div>
       </header>
@@ -134,13 +126,7 @@ export function NavShell({ initialState, body, topBarAction }: NavShellProps) {
         <div className={styles.drawerPanel} data-state="expanded">
           <div className={styles.drawerHead}>
             <Link href="/dashboard" className={styles.drawerBrand} aria-label="TUFF dashboard">
-              <Image
-                src="/logo/logo_2.png"
-                alt=""
-                width={340}
-                height={113}
-                className={styles.drawerLogo}
-              />
+              <Logo alt="" width={340} height={113} className={styles.drawerLogo} />
             </Link>
             <button
               type="button"

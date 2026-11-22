@@ -17,7 +17,7 @@
 .error {
   margin-top: var(--space-3);
   font: 400 13px/18px var(--font-sans);
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 .spin {
   animation: spin 0.8s linear infinite;

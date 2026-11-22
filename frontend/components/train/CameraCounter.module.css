@@ -187,7 +187,8 @@
   font: 800 clamp(44px, 4vw, 64px) / 0.95 var(--font-heading);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
-  color: var(--accent-volt);
+  /* Desktop side panel is a light surface in light mode. */
+  color: var(--volt-ink);
 }
 .statUnit {
   font: 700 11px/1 var(--font-sans);
@@ -224,7 +225,7 @@
   color: var(--ink);
 }
 .statRow dd[data-tone="good"] {
-  color: var(--accent-volt);
+  color: var(--volt-ink);
 }
 .statRow dd[data-tone="warning"] {
   color: var(--status-warning);
