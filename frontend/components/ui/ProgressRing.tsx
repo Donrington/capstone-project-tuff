@@ -10,9 +10,9 @@ interface ProgressRingProps {
 
 /**
  * SVG circular progress indicator. Track always draws first in
- * border-strong, the arc on top in accent-volt — swapping to
- * status-success at 100%, per the ProgressRing usage rules. Only
- * stroke-dashoffset (and, at completion, stroke color) ever animates.
+ * border-strong, the arc on top in volt-ink — swapping to success-ink at
+ * 100%, per the ProgressRing usage rules. Only stroke-dashoffset (and, at
+ * completion, stroke color) ever animates.
  */
 export function ProgressRing({ percent, size = "hero", sublabel }: ProgressRingProps) {
   const clamped = Math.min(100, Math.max(0, percent));
@@ -26,7 +26,7 @@ export function ProgressRing({ percent, size = "hero", sublabel }: ProgressRingP
 
   return (
     <div
-      className={`${isHero ? styles.hero : styles.compact} theme-dark-island`}
+      className={isHero ? styles.hero : styles.compact}
       style={{ width: dimension, height: dimension }}
     >
       {isHero && <div className={styles.glow} aria-hidden="true" />}
@@ -38,6 +38,7 @@ export function ProgressRing({ percent, size = "hero", sublabel }: ProgressRingP
         aria-label={`${Math.round(clamped)}% complete`}
       >
         <circle
+          className={styles.track}
           cx={center}
           cy={center}
           r={radius}
@@ -51,7 +52,8 @@ export function ProgressRing({ percent, size = "hero", sublabel }: ProgressRingP
           cy={center}
           r={radius}
           fill="none"
-          stroke={clamped >= 100 ? "var(--status-success)" : "var(--accent-volt)"}
+          /* Semantic inks are volt/success in dark mode, so dark is unchanged. */
+          stroke={clamped >= 100 ? "var(--success-ink)" : "var(--volt-ink)"}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}

@@ -37,14 +37,15 @@
   --status-danger: #ff4d4d;
 
   /* Semantic accents (#19). Components use these, not the raw brand colors,
-     for volt/success/warning: in dark mode they're just the brand colors;
-     light mode darkens the *ink* versions (text, icons, rings, focus) for
-     contrast and turns the *fill* versions into surface-inverse with the
-     brand color moved onto whatever sits on top. Surge and danger don't
-     change between themes. */
+     for volt/success/warning/danger/surge: in dark mode they're just the brand
+     colors; light mode darkens the *ink* versions (text, icons, rings, focus)
+     for contrast and turns the *fill* versions into surface-inverse with the
+     brand color moved onto whatever sits on top. */
   --volt-ink: var(--accent-volt);
   --success-ink: var(--status-success);
   --warning-ink: var(--status-warning);
+  --danger-ink: var(--status-danger);
+  --surge-ink: var(--accent-surge);
   --volt-fill: var(--accent-volt);
   --volt-fill-hover: var(--accent-volt-hover);
   --on-volt-fill: var(--ink-on-vivid);
@@ -121,13 +122,18 @@
   --ink: #0b0b0d;
   --ink-secondary: #55555c;
   /* Darker than the design system's #85858c, which is ~3.7:1 on white —
-     under the 4.5:1 small text needs. */
-  --ink-tertiary: #6b6b72;
+     under the 4.5:1 small text needs. #66666d also clears 4.5:1 on the
+     surface-3 used by popovers (notification title/time were 4.35:1). */
+  --ink-tertiary: #66666d;
 
   /* Inks: ~5:1 or better on white and surface-2. */
   --volt-ink: #4f5e00;
   --success-ink: #0a7a6d;
   --warning-ink: #8a5600;
+  /* Raw danger/surge are ~3:1 on white; these inks clear 4.5:1 on cards,
+     popovers and tinted error surfaces without changing any dark value. */
+  --danger-ink: #b42318;
+  --surge-ink: #a63a00;
   /* Fills: dark plates carrying the brand color. */
   --volt-fill: var(--surface-inverse);
   --volt-fill-hover: #26262a;
@@ -156,6 +162,8 @@
   --volt-ink: var(--accent-volt);
   --success-ink: var(--status-success);
   --warning-ink: var(--status-warning);
+  --danger-ink: var(--status-danger);
+  --surge-ink: var(--accent-surge);
   --volt-fill: var(--accent-volt);
   --volt-fill-hover: var(--accent-volt-hover);
   --on-volt-fill: var(--ink-on-vivid);

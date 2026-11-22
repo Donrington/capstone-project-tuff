@@ -17,6 +17,14 @@
   margin-inline: auto;
   padding-bottom: var(--space-4);
 }
+/* In light mode the card is white: bright volt in the mask would disappear, so
+   fill the mono logo with readable ink tones instead. Dark is untouched. */
+:global([data-theme="light"]) .footer {
+  --grad: linear-gradient(90deg, var(--volt-ink), var(--accent-surge));
+}
+:global([data-theme="light"]) .card::before {
+  background: linear-gradient(90deg, transparent, var(--volt-ink) 30%, var(--accent-surge) 70%, transparent);
+}
 @media (min-width: 720px) {
   .footer {
     width: min(1240px, calc(100% - var(--space-8) * 2));

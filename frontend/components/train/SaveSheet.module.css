@@ -90,7 +90,9 @@
   background: var(--surface-2);
   font: 700 14px/20px var(--font-sans);
   font-variant-numeric: tabular-nums;
-  color: var(--accent-volt);
+  /* The save sheet sits in the light side panel on desktop / below the stage
+     on tablet, so bright volt text would disappear there. */
+  color: var(--volt-ink);
 }
 .text {
   margin: 0 0 var(--space-3);
@@ -107,7 +109,7 @@
 .error {
   margin: var(--space-2) 0 0;
   font: 600 13px/19px var(--font-sans);
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 .actions {
   display: flex;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Logo } from "@/components/brand/Logo";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { getNextCookie } from "@/lib/auth/next-cookie";
 import { getCurrentUser, getSuggestedChallenges } from "@/lib/data";
@@ -22,7 +22,7 @@ export default async function OnboardingPage() {
     <div className={styles.page}>
       <header className={styles.top}>
         <Link href="/dashboard" aria-label="TUFF dashboard" className={styles.brand}>
-          <Image src="/logo/logo_2.png" alt="" width={340} height={113} priority className={styles.logo} />
+          <Logo alt="" width={340} height={113} priority className={styles.logo} />
         </Link>
       </header>
       <main className={styles.main}>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { KeyRound, Target, UsersRound } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { JoinForm } from "@/components/invite/JoinForm";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -50,7 +50,7 @@ export default async function JoinPage({ params }: { params: Params }) {
     <div className={styles.page}>
       <header className={styles.top}>
         <Link href="/" className={styles.brand} aria-label="TUFF home">
-          <Image src="/logo/logo_2.png" alt="" width={300} height={100} priority className={styles.logo} />
+          <Logo alt="" width={300} height={100} priority className={styles.logo} />
         </Link>
         <span className={styles.topTag}>You&apos;re invited</span>
       </header>

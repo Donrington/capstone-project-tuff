@@ -45,7 +45,7 @@
   color: var(--ink-secondary);
 }
 .bronze {
-  color: var(--accent-surge);
+  color: var(--surge-ink);
 }
 .avatar {
   width: 40px;
@@ -108,7 +108,7 @@
   color: var(--success-ink);
 }
 .down {
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 
 /* Phones: tighter rows so full names fit before truncating. */

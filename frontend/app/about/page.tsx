@@ -335,7 +335,10 @@ export default async function AboutPage({
 
         {/* ------------------------------------------------------ final call */}
         <section className={`${styles.container} ${styles.section}`} aria-labelledby="cta-title">
-          <div className={styles.ctaPanel}>
+          {/* This panel is a deliberately dark island on the light page. The
+              shared utility re-declares the dark tokens on it, so its ghost
+              button and volt headline keep the same colours in both themes. */}
+          <div className={`${styles.ctaPanel} theme-dark-island`}>
             <div className={styles.ctaMesh} aria-hidden="true" />
             <h2 id="cta-title" className={styles.ctaTitle}>
               <span>Your next rep</span>

@@ -83,6 +83,18 @@
   background: var(--volt-fill);
   box-shadow: 0 0 22px -4px color-mix(in srgb, var(--accent-volt) 70%, transparent);
 }
+/* Light mode: the dark-mode mid-grey bar reads as flat on a white card. Use a
+   soft neutral for past days and the olive ink for today; both keep ≥3:1. */
+:global([data-theme="light"]) .bar {
+  background: var(--surface-3);
+}
+:global([data-theme="light"]) .today .bar {
+  background: var(--volt-ink);
+  box-shadow: none;
+}
+:global([data-theme="light"]) .tooltip {
+  box-shadow: 0 12px 30px -14px rgba(11, 11, 13, 0.35);
+}
 /* Days still to come: an empty outlined slot, not a bar. */
 .future .bar {
   background: none;

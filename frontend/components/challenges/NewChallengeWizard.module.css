@@ -106,9 +106,9 @@
 .error {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+  background: color-mix(in srgb, var(--danger-ink) 12%, transparent);
   font: 600 14px/20px var(--font-sans);
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 
 .actions {

@@ -53,10 +53,16 @@
   margin-top: var(--space-5);
 }
 .danger {
-  border-color: color-mix(in srgb, var(--status-danger) 45%, var(--border-subtle));
+  border-color: color-mix(in srgb, var(--danger-ink) 45%, var(--border-subtle));
 }
 .dangerButton {
-  color: var(--status-danger);
+  color: var(--danger-ink);
+}
+/* The destructive action keeps the surge-coloured secondary fill in light
+   mode. Red-on-orange is ~1:1 there, so the fill's own dark label is used
+   instead; dark mode keeps the existing red label. */
+:global([data-theme="light"]) .dangerButton {
+  color: var(--ink-on-vivid);
 }
 .split {
   margin-top: var(--space-6);

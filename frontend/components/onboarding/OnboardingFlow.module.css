@@ -147,7 +147,7 @@
   min-height: 20px;
   margin: 0;
   font: 600 13px/20px var(--font-sans);
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }
 .nav {
   display: flex;

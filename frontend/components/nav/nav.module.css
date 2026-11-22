@@ -338,6 +338,11 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* The vivid surge-hover orange is only ~2.5:1 on a light card. Light mode
+   uses the darker surge ink; dark keeps the original badge colour. */
+:global([data-theme="light"]) .soon {
+  color: var(--surge-ink);
+}
 
 .profile {
   display: flex;

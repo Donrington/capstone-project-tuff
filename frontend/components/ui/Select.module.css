@@ -49,11 +49,11 @@
 }
 .error,
 .error:hover:not(:disabled):not(:focus-visible) {
-  border-color: var(--status-danger);
+  border-color: var(--danger-ink);
 }
 .error:focus-visible {
-  border-color: var(--status-danger);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-danger) 22%, transparent);
+  border-color: var(--danger-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger-ink) 22%, transparent);
 }
 .chevron {
   position: absolute;
@@ -70,5 +70,5 @@
   color: var(--ink-tertiary);
 }
 .helperError {
-  color: var(--status-danger);
+  color: var(--danger-ink);
 }

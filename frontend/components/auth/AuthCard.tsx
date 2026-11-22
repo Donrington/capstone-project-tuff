@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import styles from "./AuthCard.module.css";
 
 /** A centered panel for the small auth pages (forgot and reset password),
@@ -12,7 +12,7 @@ export function AuthCard({ title, lede, children }: { title: string; lede?: Reac
       <div className={styles.mesh} aria-hidden="true" />
       <main className={styles.card}>
         <Link href="/" className={styles.brand} aria-label="TUFF home">
-          <Image src="/logo/logo_2.png" alt="" width={340} height={113} priority className={styles.logo} />
+          <Logo alt="" width={340} height={113} priority className={styles.logo} />
         </Link>
         <h1 className={styles.title}>{title}</h1>
         {lede && <p className={styles.lede}>{lede}</p>}

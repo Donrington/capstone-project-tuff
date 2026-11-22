@@ -9,8 +9,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPoseEngine, type PoseEngine } from "@/lib/pose/engine";
-import Image from "next/image";
 import { ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
 import { createCounter, type Counter, type CounterState, type Exercise, type FormFlag } from "@/lib/rep-counter/counter";
@@ -642,7 +642,8 @@ export function CameraCounter({
 
         <div className={styles.topRow}>
           <div className={`${styles.glass} ${styles.brand}`}>
-            <Image src="/logo/logo_2.png" alt="TUFF" width={84} height={28} priority />
+            {/* Immersive pill sits over the camera feed — always the colour mark. */}
+            <Logo surface="dark" alt="TUFF" width={84} height={28} priority />
           </div>
           <p className={`${styles.glass} ${styles.privacy}`} title="Runs on your device. Video never leaves your phone.">
             <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" />
