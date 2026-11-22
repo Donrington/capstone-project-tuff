@@ -1,15 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import type { PoseLandmarker as PoseLandmarkerInstance } from "@mediapipe/tasks-vision";
-import Link from "next/link";
-import { AlertTriangle, Camera, Loader2, RotateCcw, ShieldCheck, Square } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { RadioChips, type ChipOption } from "@/components/ui/RadioChips";
-import { Select } from "@/components/ui/Select";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type KeyboardEvent,
+} from "react";
+import { createPoseEngine, type PoseEngine } from "@/lib/pose/engine";
+import Image from "next/image";
+import { ShieldCheck } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { formatCount } from "@/lib/challenge-card";
-import { createCounter, type Counter, type CounterState, type Exercise } from "@/lib/rep-counter/counter";
+import { createCounter, type Counter, type CounterState, type Exercise, type FormFlag } from "@/lib/rep-counter/counter";
+import type { Landmark2D } from "@/lib/rep-counter/geometry";
 import { createHoldTimer, MIN_SEGMENT_MS, type HoldState, type HoldTimer } from "@/lib/rep-counter/hold";
 import type { Challenge } from "@/lib/types";
 import {
@@ -17,17 +22,41 @@ import {
   saveCameraSession,
   type SaveCameraSessionState,
 } from "@/app/(app)/actions";
-import { drawPose } from "./draw-pose";
+import { coverTransform } from "@/lib/train-ui/cover";
+import { depthFromAngle } from "@/lib/train-ui/depth";
+import { bodyFitsFrame } from "@/lib/train-ui/framing";
+import {
+  playRepFeedback,
+  primeFeedback,
+  readSoundPreference,
+  writeSoundPreference,
+} from "@/lib/train-ui/feedback";
+import { drawPose, type OverlayTransform } from "./draw-pose";
+import { FramingGuide, StageMessage, TrainHud } from "./TrainHud";
+import { averageRepSeconds, SaveSheet } from "./SaveSheet";
+import { TrainControls } from "./TrainControls";
+import { useImmersive } from "./useImmersive";
+import { useWakeLock } from "./useWakeLock";
 import styles from "./CameraCounter.module.css";
 
 export type TrainExercise = Exercise | "plank";
 
-type CameraStatus = "idle" | "loading-model" | "starting-camera" | "live" | "denied" | "no-camera" | "error";
+type CameraStatus =
+  | "idle"
+  | "loading-model"
+  | "starting-camera"
+  | "framing"
+  | "countdown"
+  | "live"
+  | "denied"
+  | "no-camera"
+  | "error";
 
-const MODEL_PATH = "/mediapipe/pose_landmarker_lite.task";
-const WASM_PATH = "/mediapipe/wasm";
 const FRAME_INTERVAL = 1000 / 30;
 const MIN_HOLD_MS = 5000;
+const FRAME_STABLE_MS = 700;
+const COUNTDOWN_STEP_MS = 700;
+const CUE_MS = 2800;
 
 const INITIAL_STATE: CounterState = { reps: 0, repTimes: [], phase: "not-visible", angle: null, flags: [] };
 const INITIAL_HOLD: HoldState = {
@@ -39,16 +68,12 @@ const INITIAL_HOLD: HoldState = {
   segments: [],
 };
 
-const OPTIONS: ChipOption[] = [
-  { value: "pushups", label: "Push-ups", hint: "Tracks your elbow angle" },
-  { value: "squats", label: "Squats", hint: "Tracks your knee angle" },
-  { value: "plank", label: "Plank (hold)", hint: "Times a straight-body hold" },
-];
-
 const STATUS_COPY: Record<CameraStatus, string> = {
-  idle: "Press start camera to begin counting.",
+  idle: "Press start to frame yourself, then counting begins.",
   "loading-model": "Loading the pose model…",
   "starting-camera": "Starting the camera…",
+  framing: "",
+  countdown: "",
   live: "",
   denied: "Camera access was blocked — allow it in your browser settings to count reps and holds.",
   "no-camera": "No camera found — connect a camera and try again.",
@@ -73,15 +98,38 @@ const TITLE_HINT: Record<TrainExercise, RegExp> = {
   plank: /plank/i,
 };
 
+const TIP: Record<TrainExercise, string> = {
+  // Device-neutral: the same tip shows beside a laptop webcam and on a phone.
+  pushups: "Side-on to the camera, about 2 m away, at hip height — head to feet in frame.",
+  squats: "Side-on to the camera, about 2 m away, at hip height — head to feet in frame.",
+  plank: "Side-on to the camera, about 2 m away, at floor level — head to heels in frame.",
+};
+
 /** m:ss, from the time the camera actually spent holding the plank. */
 function formatTimer(heldMs: number) {
   const total = Math.floor(heldMs / 1000);
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
-/** The challenge that best matches what's being counted: the library slug
- *  when there is one, otherwise the challenge's name, otherwise the first
- *  challenge in the matching unit. */
+const flagsKey = (flags: readonly FormFlag[]) => flags.map((flag) => flag.id).join("|");
+
+/**
+ * ▼ THE SINGLE DETECTION CALL ▼
+ * The only place the pose runtime is invoked. When the engine is upgraded,
+ * swap this function's body for the new detector and keep the same signature.
+ */
+function runDetection(
+  engine: PoseEngine,
+  video: HTMLVideoElement,
+  timestampMs: number,
+): readonly Landmark2D[] {
+  // The engine picks the model tier (full on capable devices, lite otherwise,
+  // with one automatic downgrade if full runs slow) and the GPU/CPU delegate.
+  return engine.detect(video, timestampMs)?.landmarks ?? [];
+}
+/** ▲ END DETECTION CALL ▲ */
+
+/** The challenge that best matches what's being counted. */
 function bestChallenge(challenges: Challenge[], exercise: TrainExercise) {
   const unit = exercise === "plank" ? "seconds" : "reps";
   const candidates = challenges.filter((c) => c.unit === unit);
@@ -105,19 +153,36 @@ export function CameraCounter({
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [state, setState] = useState<CounterState>(INITIAL_STATE);
   const [hold, setHold] = useState<HoldState>(INITIAL_HOLD);
+  const [framed, setFramed] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [cue, setCue] = useState<string | null>(null);
+  const [soundOn, setSoundOn] = useState(true);
   const [challengeId, setChallengeId] = useState(() => bestChallenge(challenges, initialExercise)?.id ?? "");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
+  const stageRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const landmarkerRef = useRef<PoseLandmarkerInstance | null>(null);
+  const landmarkerRef = useRef<PoseEngine | null>(null);
   const rafRef = useRef<number | null>(null);
   const counterRef = useRef<Counter>(createCounter(initialExercise === "plank" ? "pushups" : initialExercise));
   const holdTimerRef = useRef<HoldTimer>(createHoldTimer("plank"));
-  // `tick` is a stable callback, so it reads the live exercise from a ref.
+  const overlayRef = useRef<OverlayTransform | null>(null);
+  // The stable rAF callback reads mutable snapshots; React state is only for
+  // HUD fields that actually changed, never per-frame landmark data.
+  const stateRef = useRef<CounterState>(INITIAL_STATE);
+  const holdRef = useRef<HoldState>(INITIAL_HOLD);
   const exerciseRef = useRef<TrainExercise>(initialExercise);
+  const statusRef = useRef<CameraStatus>("idle");
+  const soundOnRef = useRef(true);
+  const cueRef = useRef<FormFlag | null>(null);
+  const cueTimerRef = useRef<number | null>(null);
+  const framedRef = useRef(false);
+  const framedSinceRef = useRef<number | null>(null);
+  const countdownStartRef = useRef<number | null>(null);
+  const countdownRef = useRef<number | null>(null);
   const lastFrameRef = useRef(0);
   const mountedRef = useRef(true);
   /** performance.now() marks for the current set, used to describe its pacing. */
@@ -126,28 +191,106 @@ export function CameraCounter({
 
   const isHold = exercise === "plank";
   const seconds = Math.floor(hold.heldMs / 1000);
-  const relevantChallenges = challenges.filter((c) => c.unit === (isHold ? "seconds" : "reps"));
-  const canReset = isHold ? hold.heldMs > 0 : state.reps > 0;
-  const hasResult = isHold ? hold.heldMs >= MIN_HOLD_MS : state.reps > 0;
+  const cameraOn = status === "framing" || status === "countdown" || status === "live";
+  const immersive = useImmersive(stageRef);
+  useWakeLock(cameraOn);
 
-  const stop = useCallback(() => {
+  const changeStatus = useCallback((next: CameraStatus) => {
+    statusRef.current = next;
+    setStatus(next);
+  }, []);
+
+  const resizeOverlay = useCallback(() => {
+    const stage = stageRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!stage || !video || !canvas) return;
+    const rect = stage.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+    const width = Math.round(rect.width * pixelRatio);
+    const height = Math.round(rect.height * pixelRatio);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    overlayRef.current = {
+      ...coverTransform(
+        { width: video.videoWidth || 720, height: video.videoHeight || 1280 },
+        { width: rect.width, height: rect.height },
+      ),
+      pixelRatio,
+    };
+  }, []);
+
+  const clearCue = useCallback(() => {
+    if (cueTimerRef.current !== null) window.clearTimeout(cueTimerRef.current);
+    cueTimerRef.current = null;
+    cueRef.current = null;
+    setCue(null);
+  }, []);
+
+  const pushCue = useCallback((flags: readonly FormFlag[]) => {
+    const latest = flags[flags.length - 1] ?? null;
+    if (latest?.id === cueRef.current?.id) return;
+    if (cueTimerRef.current !== null) window.clearTimeout(cueTimerRef.current);
+    cueTimerRef.current = null;
+    cueRef.current = latest;
+    if (!latest) {
+      setCue(null);
+      return;
+    }
+    setCue(latest.message);
+    cueTimerRef.current = window.setTimeout(() => {
+      if (cueRef.current?.id === latest.id) {
+        cueRef.current = null;
+        setCue(null);
+      }
+      cueTimerRef.current = null;
+    }, CUE_MS);
+  }, []);
+
+  /** Stops every camera resource without changing the visible status. */
+  const cleanupCamera = useCallback(() => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
-    }
-    // The set ends when the camera does, so the saved duration is the span
-    // the counter was actually watching — not the time spent on this panel.
-    if (sessionStartRef.current !== null && sessionEndRef.current === null) {
-      sessionEndRef.current = performance.now();
     }
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     landmarkerRef.current?.close();
     landmarkerRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    drawPose(canvasRef.current, null);
-    setStatus("idle");
-  }, []);
+    drawPose(canvasRef.current, null, overlayRef.current);
+    framedRef.current = false;
+    framedSinceRef.current = null;
+    countdownStartRef.current = null;
+    countdownRef.current = null;
+    setFramed(false);
+    setCountdown(null);
+    clearCue();
+  }, [clearCue]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resizeOverlay);
+    if (stageRef.current && observer) observer.observe(stageRef.current);
+    return () => {
+      mountedRef.current = false;
+      observer?.disconnect();
+      cleanupCamera();
+    };
+  }, [cleanupCamera, resizeOverlay]);
+
+  const stop = useCallback(() => {
+    // The set ends when the camera does, so the saved duration is the span
+    // the counter was actually watching — not the time spent on this panel.
+    if (sessionStartRef.current !== null && sessionEndRef.current === null) {
+      sessionEndRef.current = performance.now();
+    }
+    cleanupCamera();
+    changeStatus("idle");
+  }, [changeStatus, cleanupCamera]);
 
   const tick = useCallback((now: number) => {
     rafRef.current = requestAnimationFrame(tick);
@@ -157,108 +300,160 @@ export function CameraCounter({
     const video = videoRef.current;
     const landmarker = landmarkerRef.current;
     if (!video || !landmarker || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    if (!overlayRef.current) resizeOverlay();
 
     const timestamp = performance.now();
-    const detected = landmarker.detectForVideo(video, timestamp).landmarks[0] ?? [];
-    let phase: string;
+    const detected = runDetection(landmarker, video, timestamp);
+    drawPose(canvasRef.current, detected.length > 0 ? detected : null, overlayRef.current);
+
+    // Framing and countdown are detection-only: frames here never reach a
+    // counter, so the 3-2-1 lead-in cannot score a rep or a hold.
+    if (statusRef.current === "framing") {
+      const fits = bodyFitsFrame(detected);
+      if (framedRef.current !== fits) {
+        framedRef.current = fits;
+        setFramed(fits);
+      }
+      if (fits) {
+        if (framedSinceRef.current === null) framedSinceRef.current = now;
+        if (now - framedSinceRef.current >= FRAME_STABLE_MS) {
+          changeStatus("countdown");
+          countdownStartRef.current = now;
+          countdownRef.current = 3;
+          setCountdown(3);
+        }
+      } else {
+        framedSinceRef.current = null;
+      }
+      return;
+    }
+    if (statusRef.current === "countdown") {
+      const elapsed = now - (countdownStartRef.current ?? now);
+      const next = Math.max(1, 3 - Math.floor(elapsed / COUNTDOWN_STEP_MS));
+      if (countdownRef.current !== next) {
+        countdownRef.current = next;
+        setCountdown(next);
+      }
+      if (elapsed >= COUNTDOWN_STEP_MS * 3) {
+        changeStatus("live");
+        setCountdown(null);
+        sessionStartRef.current = performance.now();
+        sessionEndRef.current = null;
+      }
+      return;
+    }
+    if (statusRef.current !== "live") return;
+
     if (exerciseRef.current === "plank") {
       const next = holdTimerRef.current.update(detected, timestamp);
-      phase = next.phase;
-      setHold(next);
-    } else {
-      const next = counterRef.current.update(detected, timestamp);
-      phase = next.phase;
+      const previous = holdRef.current;
+      holdRef.current = next;
+      const bucket = Math.floor(next.heldMs / 100);
+      if (
+        next.phase !== previous.phase ||
+        next.holding !== previous.holding ||
+        flagsKey(next.flags) !== flagsKey(previous.flags) ||
+        bucket !== Math.floor(previous.heldMs / 100)
+      ) {
+        setHold(next);
+      }
+      pushCue(next.flags);
+      return;
+    }
+
+    const next = counterRef.current.update(detected, timestamp);
+    const previous = stateRef.current;
+    stateRef.current = next;
+    if (next.reps > previous.reps) playRepFeedback(soundOnRef.current);
+    const depthBucket = Math.round(
+      (next.depth ?? depthFromAngle(exerciseRef.current as Exercise, next.angle)) * 40,
+    );
+    if (
+      next.reps !== previous.reps ||
+      next.phase !== previous.phase ||
+      flagsKey(next.flags) !== flagsKey(previous.flags) ||
+      depthBucket !== Math.round((previous.depth ?? depthFromAngle(exerciseRef.current as Exercise, previous.angle)) * 40)
+    ) {
       setState(next);
     }
-    const visible = detected.length > 0 && phase !== "not-visible" ? detected : null;
-    drawPose(canvasRef.current, visible);
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      stop();
-    };
-  }, [stop]);
+    pushCue(next.flags);
+  }, [changeStatus, pushCue, resizeOverlay]);
 
   async function start() {
-    // A partial hold below the save threshold has no panel to clear it, so a
-    // new session always begins with fresh counters.
     clearSet();
-    setStatus("loading-model");
+    changeStatus("loading-model");
+    primeFeedback();
     try {
-      // Loaded on click so the (large) WASM bundle never touches the server
+      // Created on click so the (large) WASM bundle never touches the server
       // render, and so the browser sees the user gesture for getUserMedia.
-      const vision = await import("@mediapipe/tasks-vision");
-      const fileset = await vision.FilesetResolver.forVisionTasks(WASM_PATH);
-      const options = (delegate: "GPU" | "CPU") => ({
-        baseOptions: { modelAssetPath: MODEL_PATH, delegate },
-        runningMode: "VIDEO" as const,
-        numPoses: 1,
-      });
-
-      let landmarker: PoseLandmarkerInstance;
-      try {
-        landmarker = await vision.PoseLandmarker.createFromOptions(fileset, options("GPU"));
-      } catch {
-        // WebGL isn't available on every device; CPU is slower but portable.
-        landmarker = await vision.PoseLandmarker.createFromOptions(fileset, options("CPU"));
-      }
+      // The engine owns model tier, delegate fallback and slow-device downgrade.
+      const landmarker = await createPoseEngine();
       if (!mountedRef.current) {
         landmarker.close();
         return;
       }
       landmarkerRef.current = landmarker;
 
-      setStatus("starting-camera");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false,
-      });
+      changeStatus("starting-camera");
+      // Phones in portrait keep the approved portrait stream. Desktop asks for
+      // a proper HD landscape frame so the 16:10 stage isn't fed a cropped 4:3
+      // one; tablets use 4:3. Whatever the camera returns, the overlay reads
+      // videoWidth/videoHeight and maps through the real cover crop.
+      const desktop = window.matchMedia("(min-width: 1024px)").matches;
+      const portrait = !desktop && window.matchMedia("(orientation: portrait)").matches && window.innerWidth < 1024;
+      const video: MediaTrackConstraints = portrait
+        ? { facingMode: "user", width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { ideal: 9 / 16 } }
+        : desktop
+          ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: { ideal: 16 / 9 } }
+          : { facingMode: "user", width: { ideal: 960 }, height: { ideal: 720 }, aspectRatio: { ideal: 4 / 3 } };
+      const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
       if (!mountedRef.current || !landmarkerRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
       streamRef.current = stream;
 
-      const video = videoRef.current;
-      if (!video) throw new Error("Video element missing");
-      video.srcObject = stream;
-      await video.play();
-
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-      }
-      setStatus("live");
-      sessionStartRef.current = performance.now();
+      const element = videoRef.current;
+      if (!element) throw new Error("Video element missing");
+      element.srcObject = stream;
+      await element.play();
+      resizeOverlay();
+      changeStatus("framing");
+      sessionStartRef.current = null;
       sessionEndRef.current = null;
       lastFrameRef.current = 0;
       rafRef.current = requestAnimationFrame(tick);
     } catch (error) {
       if (!mountedRef.current) return;
+      let next: CameraStatus = "error";
       if (error instanceof DOMException && (error.name === "NotAllowedError" || error.name === "SecurityError")) {
-        setStatus("denied");
+        next = "denied";
       } else if (
         error instanceof DOMException &&
         (error.name === "NotFoundError" || error.name === "OverconstrainedError")
       ) {
-        setStatus("no-camera");
-      } else {
-        setStatus("error");
+        next = "no-camera";
       }
-      stop();
+      cleanupCamera();
+      changeStatus(next);
     }
   }
 
   function clearSet(next: TrainExercise = exercise) {
     counterRef.current = createCounter(next === "plank" ? "pushups" : next);
     holdTimerRef.current = createHoldTimer("plank");
+    stateRef.current = INITIAL_STATE;
+    holdRef.current = INITIAL_HOLD;
     setState(INITIAL_STATE);
     setHold(INITIAL_HOLD);
     setSaveError(null);
+    framedRef.current = false;
+    framedSinceRef.current = null;
+    countdownStartRef.current = null;
+    countdownRef.current = null;
+    setFramed(false);
+    setCountdown(null);
+    clearCue();
   }
 
   function reset() {
@@ -299,9 +494,7 @@ export function CameraCounter({
       description: `${logged.challengeName} · Camera-counted.`,
       tone: "success",
     });
-    clearSet();
-    sessionStartRef.current = null;
-    sessionEndRef.current = null;
+    discard();
   }
 
   function save() {
@@ -319,7 +512,7 @@ export function CameraCounter({
       // server checks value === floor(sum of segments / 1000), and rounding
       // each end separately can tip the sum across a whole second. The open
       // segment at Stop can also be shorter than the server accepts.
-      const segmentsMs = hold.segments
+      const segmentsMs = holdRef.current.segments
         .map(
           (segment) =>
             [Math.round(segment.startMs - startedAt), Math.round(segment.endMs - startedAt)] as [number, number],
@@ -336,8 +529,8 @@ export function CameraCounter({
       return;
     }
 
-    const value = state.reps;
-    const repOffsetsMs = state.repTimes.map((time) => Math.round(time - startedAt));
+    const value = stateRef.current.reps;
+    const repOffsetsMs = stateRef.current.repTimes.map((time) => Math.round(time - startedAt));
     startSaving(async () => {
       finishSave(
         await saveCameraSession({ challengeId, value, exercise, durationMs, repOffsetsMs }),
@@ -346,184 +539,223 @@ export function CameraCounter({
     });
   }
 
-  const latestFlag = isHold ? hold.flags[hold.flags.length - 1] : state.flags[state.flags.length - 1];
+  function toggleSound() {
+    const next = !soundOnRef.current;
+    soundOnRef.current = next;
+    setSoundOn(next);
+    writeSoundPreference(next);
+  }
+
+  useEffect(() => {
+    setSoundOn(readSoundPreference());
+  }, []);
+
+  useEffect(() => {
+    soundOnRef.current = soundOn;
+  }, [soundOn]);
+
+  const canReset = isHold ? hold.heldMs > 0 : state.reps > 0;
+  const hasResult = isHold ? hold.heldMs >= MIN_HOLD_MS : state.reps > 0;
   const busy = status === "loading-model" || status === "starting-camera";
-  const locked = busy || status === "live";
+  const notVisible = status === "live" && (isHold ? hold.phase === "not-visible" : state.phase === "not-visible");
+  const phaseLabel = isHold ? HOLD_PHASE_LABEL[hold.phase] : PHASE_LABEL[state.phase];
+  const phaseTone: "neutral" | "good" | "warning" = isHold
+    ? hold.phase === "holding"
+      ? "good"
+      : "warning"
+    : state.phase === "down"
+      ? "good"
+      : state.phase === "not-visible"
+        ? "warning"
+        : "neutral";
+  const depth = isHold
+    ? hold.holding
+      ? Math.min(1, hold.heldMs / 60000)
+      : 0
+    : (state.depth ?? depthFromAngle(exercise as Exercise, state.angle));
+  const message =
+    status === "idle" && hasResult
+      ? isHold
+        ? "Hold finished — save it below."
+        : "Set finished — save it below."
+      : STATUS_COPY[status];
   const announcement = isHold
-    ? `${formatTimer(hold.heldMs)} held. ${HOLD_PHASE_LABEL[hold.phase]}. ${latestFlag?.message ?? ""}`.trim()
-    : `${state.reps} ${state.reps === 1 ? "rep" : "reps"}. ${latestFlag?.message ?? ""}`.trim();
+    ? `${formatTimer(hold.heldMs)} held. ${HOLD_PHASE_LABEL[hold.phase]}. ${cue ?? ""}`.trim()
+    : `${state.reps} ${state.reps === 1 ? "rep" : "reps"}. ${cue ?? ""}`.trim();
+
+  // Values shared by the side panel's live stats and the save sheet. Refs are
+  // read during render only for these display values; rAF still owns counting.
+  const showSave = hasResult && status !== "live";
+  const durationMs =
+    sessionStartRef.current !== null && sessionEndRef.current !== null
+      ? Math.max(0, Math.round(sessionEndRef.current - sessionStartRef.current))
+      : 0;
+  const idle = !cameraOn && !hasResult;
+  const tempo = isHold ? null : averageRepSeconds(state.repTimes, durationMs);
+  // Idle shows a real zero, not a dash: at this size a dash reads as a bar.
+  const statValue = idle ? (isHold ? "0:00" : "0") : isHold ? formatTimer(hold.heldMs) : String(state.reps);
+  // No verdict on form while nobody is in frame — "Looking good" next to
+  // "Not visible" would contradict itself.
+  const formValue = idle || notVisible ? "—" : cue ?? "Looking good";
+
+  function onStageKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      immersive.exit();
+      return;
+    }
+    if (event.code !== "Space" && event.key !== " ") return;
+    // Let focused buttons own their own Space activation.
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    if (cameraOn) stop();
+    else if (!busy && !hasResult) void start();
+  }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.layout}>
-        <section className={styles.panel} aria-labelledby="preview-heading">
-          <h2 id="preview-heading" className={styles.sectionTitle}>
-            Live preview
-          </h2>
-          <div className={styles.stage} data-live={status === "live" ? "true" : undefined}>
-            <video
-              ref={videoRef}
-              className={styles.video}
-              autoPlay
-              playsInline
-              muted
-              aria-label="Mirrored camera preview"
-            />
-            <canvas ref={canvasRef} className={styles.overlay} aria-hidden="true" />
-            {status !== "live" && (
-              <p className={styles.placeholder} role="status">
-                {status === "idle" && hasResult
-                  ? isHold
-                    ? "Hold finished — save it below."
-                    : "Set finished — save it below."
-                  : STATUS_COPY[status]}
-              </p>
-            )}
+    <div
+      className={styles.page}
+      data-immersive={immersive.active ? "true" : undefined}
+      data-result={showSave ? "true" : undefined}
+    >
+      <section
+        ref={stageRef}
+        className={`${styles.stage} theme-dark-island`}
+        data-live={status === "live" ? "true" : undefined}
+        data-camera={cameraOn ? "true" : undefined}
+        data-immersive={immersive.active ? "true" : undefined}
+        tabIndex={0}
+        role="group"
+        aria-label="Camera training stage. Press Space to start or stop."
+        onKeyDown={onStageKeyDown}
+      >
+        <video
+          ref={videoRef}
+          className={styles.video}
+          autoPlay
+          playsInline
+          muted
+          aria-label="Mirrored camera preview"
+          onLoadedMetadata={resizeOverlay}
+        />
+        <canvas ref={canvasRef} className={styles.overlay} aria-hidden="true" />
+        <div className={styles.vignette} aria-hidden="true" />
+
+        <div className={styles.topRow}>
+          <div className={`${styles.glass} ${styles.brand}`}>
+            <Image src="/logo/logo_2.png" alt="TUFF" width={84} height={28} priority />
           </div>
-
-          <div className={styles.readout}>
-            {isHold ? (
-              <div>
-                <span className={styles.repNumber}>{formatTimer(hold.heldMs)}</span>
-                <span className={styles.repLabel}>held</span>
-              </div>
-            ) : (
-              <div>
-                <span className={styles.repNumber}>{state.reps}</span>
-                <span className={styles.repLabel}>reps</span>
-              </div>
-            )}
-            <p className={styles.phase}>
-              Phase <strong>{isHold ? HOLD_PHASE_LABEL[hold.phase] : PHASE_LABEL[state.phase]}</strong>
-            </p>
-          </div>
-
-          {latestFlag && (
-            <p className={styles.callout} aria-live="polite">
-              <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
-              {latestFlag.message}
-            </p>
-          )}
-          {status === "live" && (isHold ? hold.phase === "not-visible" : state.phase === "not-visible") && (
-            <p className={styles.hint}>Step back so your whole body is in frame.</p>
-          )}
-
-          <div className={styles.controls}>
-            {status === "live" ? (
-              <Button variant="secondary" onClick={stop}>
-                <Square size={16} strokeWidth={2.25} aria-hidden="true" />
-                Stop camera
-              </Button>
-            ) : (
-              <Button onClick={start} disabled={busy || hasResult} aria-busy={busy}>
-                <Camera size={18} strokeWidth={2.25} aria-hidden="true" />
-                Start camera
-              </Button>
-            )}
-            <Button variant="ghost" onClick={reset} disabled={!canReset || saving}>
-              <RotateCcw size={16} strokeWidth={2.25} aria-hidden="true" />
-              Reset
-            </Button>
-          </div>
-
-          {hasResult && status === "live" && (
-            <p className={styles.saveHint}>
-              {isHold ? "Stop the camera when your hold's done, then save it." : "Stop the camera when the set's done, then save it."}
-            </p>
-          )}
-
-          {hasResult && status !== "live" && (
-            <div className={styles.save}>
-              <h3 className={styles.saveTitle}>Save this {isHold ? "hold" : "set"}</h3>
-              {relevantChallenges.length === 0 ? (
-                <p className={styles.saveText}>
-                  {isHold ? (
-                    <Link href="/challenges">Join or start a seconds challenge — like Plank a Day — to save holds.</Link>
-                  ) : (
-                    <>
-                      {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted, but you&rsquo;re not in a
-                      reps challenge yet — <Link href="/challenges">find a reps challenge</Link> to save them to.
-                    </>
-                  )}
-                </p>
-              ) : (
-                <>
-                  <p className={styles.saveText}>
-                    {isHold ? (
-                      <>
-                        {seconds} seconds counted on your device. Saving adds them to the challenge as{" "}
-                        <strong>Camera-counted</strong>.
-                      </>
-                    ) : (
-                      <>
-                        {formatCount(state.reps)} {state.reps === 1 ? "rep" : "reps"} counted on your device. Saving
-                        adds them to the challenge as <strong>Camera-counted</strong>.
-                      </>
-                    )}
-                  </p>
-                  <Select
-                    label="Challenge"
-                    name="camera-challenge"
-                    value={challengeId}
-                    onChange={(event) => setChallengeId(event.target.value)}
-                    disabled={saving}
-                    options={relevantChallenges.map((c) => ({ value: c.id, label: c.title }))}
-                  />
-                </>
-              )}
-              {saveError && (
-                <p className={styles.saveError} role="alert">
-                  {saveError}
-                </p>
-              )}
-              <div className={styles.saveActions}>
-                {relevantChallenges.length > 0 && (
-                  <Button onClick={save} disabled={saving || !challengeId} aria-busy={saving || undefined}>
-                    {saving ? (
-                      <>
-                        <Loader2 size={18} className={styles.spin} aria-hidden="true" />
-                        Saving…
-                      </>
-                    ) : isHold ? (
-                      `Save ${seconds} seconds`
-                    ) : (
-                      `Save ${formatCount(state.reps)} ${state.reps === 1 ? "rep" : "reps"}`
-                    )}
-                  </Button>
-                )}
-                <Button variant="ghost" onClick={discard} disabled={saving}>
-                  Discard
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <p className={styles.privacy}>
-            <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
+          <p className={`${styles.glass} ${styles.privacy}`} title="Runs on your device. Video never leaves your phone.">
+            <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" />
             Runs on your device. Video never leaves your phone.
           </p>
-          <p className={styles.srOnly} aria-live="polite" aria-atomic="true">
-            {announcement}
-          </p>
-        </section>
+        </div>
 
-        <section className={styles.panel} aria-labelledby="exercise-heading">
-          <h2 id="exercise-heading" className={styles.sectionTitle}>
-            Exercise
-          </h2>
-          <RadioChips
-            legend="What are you counting?"
-            name="exercise"
-            options={OPTIONS.map((option) => ({ ...option, disabled: locked }))}
-            value={exercise}
-            onChange={changeExercise}
+        {(status === "framing" || status === "countdown") && (
+          <FramingGuide
+            ready={framed}
+            countdown={countdown}
+            message={framed ? "Looking good — hold still…" : "Step back until your whole body fits"}
           />
-          <p className={styles.helper}>
-            {isHold
-              ? "Prop your phone side-on at floor level, about 2 m away, so it sees you from head to heels."
-              : "Prop your phone side-on, about 2 m away at hip height, so the camera sees you in profile. Keep your head, hips and feet in frame."}
-          </p>
-        </section>
+        )}
+        {message && <StageMessage>{message}</StageMessage>}
+
+        {(status === "live" || hasResult) && (
+          <TrainHud
+            display={isHold ? formatTimer(hold.heldMs) : String(state.reps)}
+            unitLabel={isHold ? "held" : "reps"}
+            depth={depth}
+            phaseLabel={phaseLabel}
+            phaseTone={phaseTone}
+            cue={cue}
+            pulseKey={isHold ? 0 : state.reps}
+          />
+        )}
+        {notVisible && <p className={`${styles.glass} ${styles.liveHint}`}>Step back so your whole body is in frame.</p>}
+        {/* The setup tip is for before the camera starts; once it's on, the framing guide takes over. */}
+        {!cameraOn && !hasResult && <p className={`${styles.glass} ${styles.tip}`}>{TIP[exercise]}</p>}
+
+        <p className={styles.srOnly} aria-live="polite" aria-atomic="true">
+          {announcement}
+        </p>
+      </section>
+
+      {/* One DOM tree for every breakpoint: CSS turns this into the phone's
+          glass bar over the video, the tablet's row below it, or the desktop
+          side card. That keeps state, handlers and focus order identical. */}
+      <div className={styles.panelSlot}>
+        <aside className={styles.panel} aria-label="Training controls and live stats">
+          <div className={styles.controls}>
+            <TrainControls
+              exercise={exercise}
+              onExerciseChange={changeExercise}
+              // Framing and the countdown are "on" too: the camera is running and
+              // the person must be able to cancel, so the button is Stop from the
+              // moment the stream starts, not only once counting begins.
+              running={cameraOn}
+              busy={busy}
+              hasResult={hasResult}
+              locked={busy || cameraOn}
+              canReset={canReset}
+              saving={saving}
+              immersive={immersive.active}
+              onFullscreen={() => void immersive.toggle()}
+              soundOn={soundOn}
+              onSoundToggle={toggleSound}
+              onStartStop={() => (cameraOn ? stop() : void start())}
+              onReset={reset}
+              variant={immersive.active ? "overlay" : "panel"}
+            />
+          </div>
+
+          <div className={styles.stats}>
+            <div className={styles.statHero}>
+              <span className={styles.statValue}>{statValue}</span>
+              <span className={styles.statUnit}>{isHold ? "held" : "reps"}</span>
+            </div>
+            <dl className={styles.statRows}>
+              <div className={styles.statRow}>
+                <dt>Phase</dt>
+                <dd data-tone={idle ? undefined : phaseTone}>{idle ? "—" : phaseLabel}</dd>
+              </div>
+              <div className={styles.statRow}>
+                <dt>Tempo</dt>
+                <dd>{tempo === null ? "—" : `${tempo.toFixed(1)} s/rep`}</dd>
+              </div>
+              <div className={styles.statRow}>
+                <dt>Form</dt>
+                <dd data-clean={formValue === "Looking good" ? "true" : undefined}>{formValue}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className={styles.panelFooter}>
+            <p className={styles.tipText}>{TIP[exercise]}</p>
+            <p className={styles.privacyNote}>
+              <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
+              Runs on your device. Video never leaves your device.
+            </p>
+          </div>
+        </aside>
+
+        <div className={styles.sheetLayer}>
+          {showSave && (
+            <SaveSheet
+              isHold={isHold}
+              reps={state.reps}
+              repTimes={state.repTimes}
+              heldSeconds={seconds}
+              holdCount={hold.segments.length}
+              durationMs={durationMs}
+              challenges={challenges}
+              challengeId={challengeId}
+              onChallengeChange={setChallengeId}
+              saveError={saveError}
+              saving={saving}
+              onSave={save}
+              onDiscard={discard}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -40,9 +40,13 @@ function feed(counter, exercise, angles) {
 }
 
 const repeat = (angles, times) => Array.from({ length: times }, () => angles).flat();
-const squatRep = [...Array(12).fill(170), ...Array(14).fill(80), ...Array(14).fill(170)];
-const shallowSquat = [...Array(12).fill(170), ...Array(14).fill(120), ...Array(14).fill(170)];
-const pushupRep = [...Array(12).fill(170), ...Array(14).fill(70), ...Array(14).fill(170)];
+// The bottom hold is 20 frames (~660ms) rather than the old 14 (~460ms):
+// the new engine rejects reps whose bottom-to-top time is under 600ms.
+const squatRep = [...Array(12).fill(170), ...Array(20).fill(80), ...Array(14).fill(170)];
+// A short-top rep needs 500ms above the return line before it is finalised,
+// so the shallow fixture holds the top for 20 frames too.
+const shallowSquat = [...Array(12).fill(170), ...Array(20).fill(120), ...Array(20).fill(170), ...Array(20).fill(170)];
+const pushupRep = [...Array(12).fill(170), ...Array(20).fill(70), ...Array(14).fill(170)];
 const jitter = Array.from({ length: 60 }, (_, index) => (index % 2 === 0 ? 159 : 161));
 
 test("three clean squats count three reps", () => {

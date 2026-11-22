@@ -1,0 +1,16 @@
+.page {
+  width: 100%;
+}
+
+/* On a phone the stage is the page; the usual page header would only push the
+   camera below the fold. Desktop keeps it for context beside the stage. */
+.header {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 719px) {
+  .header {
+    display: none;
+  }
+}

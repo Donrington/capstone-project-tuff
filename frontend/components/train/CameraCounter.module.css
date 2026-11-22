@@ -1,195 +1,144 @@
 .page {
-  width: 100%;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: start;
-}
-
-.panel {
-  padding: var(--space-5);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-}
-
-.sectionTitle {
-  margin-bottom: var(--space-4);
-  font: 700 12px/16px var(--font-sans);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-secondary);
+  /* The app shell gives every page padding; the camera stage owns the whole
+     viewport instead, so cancel it and let the stage reach the screen edges.
+     Width must stay auto: with width: 100% the negative side margins only
+     shift the block left and leave a gutter-wide strip on the right.
+     Relative makes this the containing block for the phone's bottom sheet. */
+  position: relative;
+  width: auto;
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-4)) calc(-1 * var(--space-12));
 }
 
 .stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: calc(100dvh - var(--topbar-h) - var(--space-3));
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--surface-inverse);
+  border-radius: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  isolation: isolate;
+}
+.stage:focus-visible {
+  outline: 2px solid var(--volt-ink);
+  outline-offset: -4px;
 }
 
-.video,
-.overlay {
+.video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  /* The pose runs on unmirrored frames, so mirroring both layers keeps the
-     drawn joints aligned with what the user sees. */
-  transform: scaleX(-1);
-}
-
-.video {
+  /* The preview is mirrored; the skeleton mapping mirrors its landmarks too. */
   object-fit: cover;
+  transform: scaleX(-1);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 240ms var(--ease-out-expo);
 }
-.stage[data-live="true"] .video {
+.stage[data-camera="true"] .video {
   opacity: 1;
 }
 .overlay {
-  pointer-events: none;
-}
-
-.placeholder {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  margin: 0;
-  padding: var(--space-6);
-  text-align: center;
-  font: 600 15px/22px var(--font-sans);
-  color: var(--ink-secondary);
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-inverse) 48%, transparent) 0%,
+    transparent 26%,
+    transparent 58%,
+    color-mix(in srgb, var(--surface-inverse) 62%, transparent) 100%
+  );
 }
 
-.readout {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: var(--space-5);
-  margin-top: var(--space-5);
+.glass {
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent),
+    0 18px 48px -30px rgba(0, 0, 0, 0.95);
 }
-.repNumber {
-  font: 800 clamp(56px, 18vw, 92px) / 0.9 var(--font-heading);
-  letter-spacing: -0.05em;
-  color: var(--accent-volt);
-}
-.repLabel {
-  margin-left: var(--space-2);
-  font: 700 14px/1 var(--font-sans);
-  color: var(--ink-secondary);
-}
-.phase {
-  margin: 0 0 6px;
-  font: 500 13px/18px var(--font-sans);
-  color: var(--ink-tertiary);
-}
-.phase strong {
-  color: var(--ink);
-}
-
-.callout,
-.hint {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-4) 0 0;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  font: 600 14px/20px var(--font-sans);
-}
-.callout {
-  background: color-mix(in srgb, var(--status-danger) 14%, transparent);
-  color: var(--status-danger);
-}
-.hint {
-  background: color-mix(in srgb, var(--status-warning) 14%, transparent);
-  color: var(--status-warning);
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
-}
-
-.save {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-2);
-}
-
-.saveTitle {
-  margin: 0 0 var(--space-2);
-  font: 700 13px/18px var(--font-sans);
-  color: var(--ink);
-}
-
-.saveText {
-  margin: 0 0 var(--space-3);
-  font: 400 14px/21px var(--font-sans);
-  color: var(--ink-secondary);
-}
-
-.saveText strong {
-  color: var(--ink);
-}
-
-.saveText a {
-  color: var(--volt-ink);
-  font-weight: 600;
-}
-
-.saveHint {
-  margin: var(--space-4) 0 0;
-  font: 500 13px/19px var(--font-sans);
-  color: var(--ink-tertiary);
-}
-
-.saveError {
-  margin: var(--space-2) 0 0;
-  font: 600 13px/19px var(--font-sans);
-  color: var(--status-danger);
-}
-
-.saveActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to {
-    rotate: 360deg;
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface);
   }
 }
 
+.topRow {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--space-3));
+  left: var(--space-3);
+  right: var(--space-3);
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+/* The app bar already shows the logo; inside the stage it only earns its place
+   when immersive mode hides that bar. */
+.stage:not([data-immersive="true"]) .brand {
+  display: none;
+}
+.brand {
+  display: grid;
+  place-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+}
+.brand img {
+  display: block;
+  width: 78px;
+  height: auto;
+}
 .privacy {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-4) 0 0;
-  font: 400 12px/18px var(--font-sans);
-  color: var(--ink-tertiary);
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: 190px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font: 500 11px/15px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.privacy svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--success-ink);
 }
 
-.helper {
-  margin: var(--space-4) 0 0;
-  font: 400 14px/21px var(--font-sans);
+.tip,
+.liveHint {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  width: min(440px, calc(100% - 2 * var(--space-6)));
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  transform: translateX(-50%);
+  border-radius: var(--radius-full);
+  font: 600 12px/18px var(--font-sans);
+  text-align: center;
+}
+.tip {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 148px);
   color: var(--ink-secondary);
+}
+.liveHint {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 148px);
+  color: var(--status-warning);
 }
 
 .srOnly {
@@ -204,29 +153,308 @@
   border: 0;
 }
 
-@media (min-width: 1040px) {
-  .layout {
-    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+/* Phone: the panel is only the glass bar, pinned exactly where the old
+   .bottomBar sat. No background, border or padding is added here — the bar's
+   own glass styling is the approved mobile look. */
+.panelSlot {
+  position: static;
+}
+.panel {
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+  z-index: 5;
+}
+.controls {
+  min-width: 0;
+}
+.stats,
+.panelFooter {
+  display: none;
+}
+.sheetLayer {
+  position: static;
+}
+
+/* Stats are shared by the tablet row and the desktop card. */
+.statHero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.statValue {
+  font: 800 clamp(44px, 4vw, 64px) / 0.95 var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--accent-volt);
+}
+.statUnit {
+  font: 700 11px/1 var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+.statRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+}
+.statRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  font: 500 13px/18px var(--font-sans);
+}
+.statRow dt {
+  color: var(--ink-secondary);
+}
+.statRow dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.statRow dd[data-tone="good"] {
+  color: var(--accent-volt);
+}
+.statRow dd[data-tone="warning"] {
+  color: var(--status-warning);
+}
+.statRow dd[data-clean="true"] {
+  color: var(--success-ink);
+}
+
+.tipText,
+.privacyNote {
+  margin: 0;
+  font: 500 13px/20px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.privacyNote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.privacyNote svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--success-ink);
+}
+
+/* Tablet: landscape stage, controls in the flow beneath it, compact stats. */
+@media (min-width: 720px) and (max-width: 1023px) {
+  .page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    margin: 0;
+  }
+  .stage {
+    width: 100%;
+    height: auto;
+    /* Cap width from the same height budget so a short tablet keeps 4:3 and
+       stays left-aligned instead of stretching into a wide letterbox. */
+    max-width: calc((100dvh - 220px) * 4 / 3);
+    max-height: calc(100dvh - 220px);
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 40px 80px -55px rgba(0, 0, 0, 0.9);
+  }
+  .privacy,
+  .tip,
+  .liveHint {
+    display: none;
+  }
+  .panel {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    background: var(--surface);
+    box-shadow: 0 30px 60px -45px rgba(0, 0, 0, 0.9);
+  }
+  .stats {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    background: var(--surface-2);
+  }
+  .statHero {
+    flex: 0 0 auto;
+  }
+  .statValue {
+    font-size: clamp(34px, 5vw, 48px);
+  }
+  .statRows {
+    flex: 1 1 auto;
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+  .statRow {
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 12px;
+  }
+  .statRow dd {
+    text-align: left;
+  }
+  .panelFooter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+  .page[data-result="true"] .stats {
+    display: none;
   }
 }
 
-@media (max-width: 719px) {
+/* Desktop: the stage and the side card share one grid row and one top edge.
+   The row is sized by the stage alone (the slot's children are out of flow),
+   so the card is always exactly as tall as the video. Capping max-width from
+   max-height keeps the 16:10 ratio when the viewport is short, and leaves the
+   stage top/left aligned with the header instead of centring it. */
+@media (min-width: 1024px) {
+  .page {
+    --train-header-h: 140px;
+    --stage-max-h: calc(100dvh - var(--train-header-h) - var(--space-16));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 380px);
+    align-items: start;
+    gap: var(--space-6);
+    width: 100%;
+    margin: 0;
+  }
+  .stage {
+    width: 100%;
+    height: auto;
+    max-width: calc(var(--stage-max-h) * 16 / 10);
+    max-height: var(--stage-max-h);
+    aspect-ratio: 16 / 10;
+    /* The stage keeps its 16:10 shape; the panel beside it stretches to at
+       least the stage's height and may grow past it, never clip. */
+    align-self: start;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 40px 80px -55px rgba(0, 0, 0, 0.9);
+  }
+  .privacy,
+  .tip,
+  .liveHint {
+    display: none;
+  }
+  .panelSlot {
+    position: relative;
+    align-self: stretch;
+    min-height: 0;
+  }
   .panel {
+    /* In flow, not absolutely pinned to the stage's height: pinned, it
+       silently scrolled its footer out of view on laptop screens. */
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: 100%;
+    padding: var(--space-5);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    background: var(--surface);
+    box-shadow: 0 30px 60px -45px rgba(0, 0, 0, 0.9);
+  }
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
     padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    background: var(--surface-2);
   }
-  .controls > button {
-    flex: 1 1 auto;
+  .panelFooter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
   }
-  .saveActions > button {
-    flex: 1 1 auto;
+  .tipText,
+  .privacyNote {
+    font-size: 14px;
+    line-height: 21px;
   }
+  /* The save sheet takes over the whole card; the controls stay behind it. */
+  .page[data-result="true"] .panel {
+    display: none;
+  }
+}
+
+/* Element fullscreen (Android Chrome, desktop) and the iOS fallback layer are
+   deliberately the same visual: an edge-to-edge camera stage. The panel is
+   hidden, but its control bar moves to the bottom of the stage so Stop and
+   Exit remain reachable; Esc is handled by useImmersive / the stage keydown. */
+.stage[data-immersive="true"],
+.stage:fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.page[data-immersive="true"] .panelSlot {
+  position: fixed;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+  z-index: 1001;
+  margin: 0;
+}
+.page[data-immersive="true"] .panel {
+  position: static;
+  display: block;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.page[data-immersive="true"] .stats,
+.page[data-immersive="true"] .panelFooter,
+.page[data-immersive="true"] .sheetLayer {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .video {
     transition: none;
-  }
-  .spin {
-    animation: none;
   }
 }

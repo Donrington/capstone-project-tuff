@@ -1,0 +1,229 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-2xl);
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent),
+    0 18px 48px -30px rgba(0, 0, 0, 0.95);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bar {
+    background: var(--surface);
+  }
+}
+
+.segmentGroup {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.segments {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--surface-inverse) 55%, transparent);
+}
+.selection {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--count));
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  box-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.8);
+  transform: translateX(calc(var(--index) * 100%));
+  transition: transform 280ms var(--ease-spring);
+  pointer-events: none;
+}
+.segment {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.input:disabled {
+  cursor: not-allowed;
+}
+.input:focus-visible + .segmentLabel {
+  outline: 2px solid var(--volt-ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-full);
+}
+.segmentLabel {
+  font: 700 13px/1 var(--font-sans);
+  white-space: nowrap;
+  color: var(--ink-secondary);
+  transition: color 200ms var(--ease-out-expo);
+}
+.segment[data-selected="true"] .segmentLabel {
+  color: var(--ink);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* The wrappers are transparent on the phone: contents keeps the three icon
+   buttons direct flex children of .actions, so the approved bar is unchanged. */
+.secondaryRow {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.secondaryItem {
+  display: contents;
+}
+.secondaryLabel {
+  display: none;
+}
+.primary {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: var(--accent-volt);
+  color: var(--ink-on-vivid);
+  font: 800 15px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 180ms var(--ease-spring), background 180ms var(--ease-out-expo);
+}
+.primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.primary[data-running="true"] {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--surface-inverse) 72%, transparent);
+  color: var(--ink);
+}
+.liveDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-on-vivid);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink-on-vivid) 18%, transparent);
+}
+.iconButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 180ms var(--ease-out-expo), transform 180ms var(--ease-spring);
+}
+.iconButton:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.iconButton[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent-volt) 50%, var(--border-subtle));
+  color: var(--accent-volt);
+}
+.primary:disabled,
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (min-width: 720px) {
+  .bar {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+}
+
+/* Only the desktop side panel gets the flat, labelled layout. The overlay bar
+   (phone, tablet and fullscreen) keeps its glass pill treatment above. */
+@media (min-width: 1024px) {
+  .bar[data-variant="panel"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .bar[data-variant="panel"] .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+  .bar[data-variant="panel"] .secondaryRow {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+    width: 100%;
+  }
+  .bar[data-variant="panel"] .secondaryItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .bar[data-variant="panel"] .secondaryLabel {
+    display: block;
+    font: 600 12px/16px var(--font-sans);
+    color: var(--ink-secondary);
+    text-align: center;
+  }
+  .bar[data-variant="panel"] .primary {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 56px;
+    font-size: 16px;
+  }
+  .bar[data-variant="panel"] .iconButton {
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selection,
+  .primary,
+  .iconButton,
+  .segmentLabel {
+    transition: none;
+  }
+}

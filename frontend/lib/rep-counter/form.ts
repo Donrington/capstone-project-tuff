@@ -14,6 +14,10 @@ export const FORM_FLAGS = {
   hipsSagging: { id: "hips-sagging", message: "Keep a straight line from shoulders to heels." },
   partialRep: { id: "partial-rep", message: "Go lower — chest toward the floor." },
   shallowSquat: { id: "shallow", message: "Squat deeper — hips to knee height." },
+  // New cues. Neither changes whether a rep counts: they coach the top/bottom
+  // of a rep that already met the fixed depth standard.
+  chestUp: { id: "chest-up", message: "Keep your chest up" },
+  lockout: { id: "lockout", message: "Finish the rep at the top" },
 } as const;
 
 export interface RepResult {

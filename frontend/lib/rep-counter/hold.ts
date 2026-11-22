@@ -1,11 +1,24 @@
 import {
-  angle,
   isVisible,
   JOINTS,
-  pickVisibleSide,
+  type BodySide,
   type Landmark2D,
+  type Landmark3D,
 } from "./geometry";
+import { ANGLE_FILTER_OPTIONS, createOneEuroFilter, fusedJointAngle, type JointTrio } from "./filters";
 import type { FormFlag } from "./form";
+
+/**
+ * Joint angles for COUNTING use 2D image landmarks, not worldLandmarks.
+ * Benchmarked on real clips (5-rep loops, clean / grainy / 2x speed / half
+ * depth): 3D world angles dropped push-ups from 5/5 to 2-3/5 and fast
+ * push-ups to 0/5, and raised a false "chest up" on clean front-view squats —
+ * the model's metric depth for a side-on elbow is noisier than the image
+ * angle, and the thresholds are 2D-calibrated. The 3D path stays in
+ * geometry.ts (jointAngle/angle3D) for a future, re-benchmarked use; the
+ * update() signature still accepts worldLandmarks so callers needn't change.
+ */
+const USE_WORLD_FOR_ANGLES = false;
 
 export interface HoldSegment {
   /** Milliseconds on the same clock as `update`'s `timestampMs`. */
@@ -19,7 +32,7 @@ export interface HoldState {
   heldMs: number;
   holding: boolean;
   phase: HoldPhase;
-  /** Smoothed shoulder–hip–ankle angle in degrees; null until a usable frame. */
+  /** Filtered shoulder–hip–ankle angle in degrees; null until a usable frame. */
   angle: number | null;
   flags: FormFlag[];
   /** One entry per continuous holding stretch, in time order. */
@@ -27,7 +40,11 @@ export interface HoldState {
 }
 
 export interface HoldTimer {
-  update(landmarks: readonly Landmark2D[], timestampMs: number): HoldState;
+  update(
+    landmarks: readonly Landmark2D[],
+    timestampMs: number,
+    worldLandmarks?: readonly Landmark3D[] | null,
+  ): HoldState;
 }
 
 /** One copy of each plank cue, shared by the timer and the screen-reader callout. */
@@ -48,7 +65,18 @@ export const MIN_SEGMENT_MS = 500;
  *  make it a plank. A forearm plank puts the elbow about an upper arm below. */
 const MIN_SUPPORT_RATIO = 0.25;
 
-const EMA_ALPHA = 0.4;
+const BODY_LINE: JointTrio = {
+  left: [
+    JOINTS.left.shoulder,
+    JOINTS.left.hip,
+    JOINTS.left.ankle,
+  ],
+  right: [
+    JOINTS.right.shoulder,
+    JOINTS.right.hip,
+    JOINTS.right.ankle,
+  ],
+};
 const STRAIGHT_ANGLE = 160;
 const MAX_TILT_DEG = 35;
 /** Debounce windows: slow to credit a hold, slow to take one away. */
@@ -56,7 +84,9 @@ const START_HOLD_MS = 500;
 const BREAK_HOLD_MS = 400;
 const DEGENERATE = 1e-6;
 
-/** Angle between the shoulder→ankle vector and either horizontal direction. */
+/** Angle between the shoulder→ankle vector and either horizontal direction.
+ *  Deliberately 2D: horizontal relative to the CAMERA is the thing being
+ *  judged, not an anatomical joint angle. */
 function tiltFromHorizontal(shoulder: Landmark2D, ankle: Landmark2D): number {
   const dx = ankle.x - shoulder.x;
   const dy = ankle.y - shoulder.y;
@@ -73,11 +103,12 @@ function lineYAt(shoulder: Landmark2D, ankle: Landmark2D, x: number): number {
 }
 
 /** Is the body held up on forearms or hands? y grows downward, so a
- *  supporting elbow/wrist has a larger y than the shoulder. */
+ *  supporting elbow/wrist has a larger y than the shoulder. Image-space on
+ *  purpose: this is a question about what the camera sees. */
 function isSupported(shoulder: Landmark2D, hip: Landmark2D, elbow: Landmark2D, wrist: Landmark2D): boolean {
   const torso = Math.hypot(hip.x - shoulder.x, hip.y - shoulder.y);
   if (!(torso > DEGENERATE)) return false;
-  const drops = [elbow, wrist].filter(isVisible).map((joint) => joint.y - shoulder.y);
+  const drops = [elbow, wrist].filter(isVisible).map((joint) => (joint as Landmark2D).y - shoulder.y);
   return drops.length > 0 && Math.max(...drops) >= MIN_SUPPORT_RATIO * torso;
 }
 
@@ -102,10 +133,15 @@ function formFlags(
  * Deterministic hold state machine: no React, no timers, no side effects.
  * `heldMs` is derived from the recorded segments, so the timer the user sees
  * and the segments saved with the session can never disagree.
+ *
+ * The body-line JOINT angle uses metric world landmarks when available (and
+ * both sides, fused by visibility); tilt, sag/pike and arm support stay in 2D
+ * because they describe the camera image rather than the body itself.
  */
 export function createHoldTimer(exercise: string): HoldTimer {
   if (exercise !== "plank") throw new Error(`Unsupported hold exercise: ${exercise}`);
 
+  const filter = createOneEuroFilter(ANGLE_FILTER_OPTIONS);
   let lastTimestamp = -Infinity;
   let smoothed: number | null = null;
   let segments: HoldSegment[] = [];
@@ -127,7 +163,7 @@ export function createHoldTimer(exercise: string): HoldTimer {
   }
 
   return {
-    update(landmarks, timestampMs) {
+    update(landmarks, timestampMs, worldLandmarks) {
       // A duplicated or out-of-order rAF timestamp must never advance the machine.
       if (!Number.isFinite(timestampMs) || timestampMs <= lastTimestamp) return snapshot();
       lastTimestamp = timestampMs;
@@ -141,24 +177,22 @@ export function createHoldTimer(exercise: string): HoldTimer {
 
       let visible = false;
       let good = false;
-      const side = pickVisibleSide(landmarks);
-      if (side) {
+      const fused = fusedJointAngle(landmarks, USE_WORLD_FOR_ANGLES ? worldLandmarks : null, BODY_LINE);
+      if (fused) {
+        const side: BodySide = fused.side === "right" ? "right" : "left";
         const joints = JOINTS[side];
         const shoulder = landmarks[joints.shoulder];
         const hip = landmarks[joints.hip];
         const ankle = landmarks[joints.ankle];
-        // pickVisibleSide already scores the whole side; the explicit check
-        // keeps the three joints this hold depends on unambiguous.
+        // pickVisibleSide used to score all six joints; fusion already checks
+        // the three joints this hold depends on on at least one side.
         if (isVisible(shoulder) && isVisible(hip) && isVisible(ankle)) {
-          const measured = angle(shoulder, hip, ankle);
-          if (Number.isFinite(measured)) {
-            smoothed = smoothed === null ? measured : smoothed + EMA_ALPHA * (measured - smoothed);
-            const tilt = tiltFromHorizontal(shoulder, ankle);
-            const supported = isSupported(shoulder, hip, landmarks[joints.elbow], landmarks[joints.wrist]);
-            good = smoothed >= STRAIGHT_ANGLE && tilt <= MAX_TILT_DEG && supported;
-            flags = formFlags(smoothed, tilt, supported, shoulder, hip, ankle);
-            visible = true;
-          }
+          smoothed = filter.filter(fused.angle, timestampMs);
+          const tilt = tiltFromHorizontal(shoulder, ankle);
+          const supported = isSupported(shoulder, hip, landmarks[joints.elbow], landmarks[joints.wrist]);
+          good = smoothed >= STRAIGHT_ANGLE && tilt <= MAX_TILT_DEG && supported;
+          flags = formFlags(smoothed, tilt, supported, shoulder, hip, ankle);
+          visible = true;
         }
       }
 
