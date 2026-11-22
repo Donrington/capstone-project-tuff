@@ -30,8 +30,11 @@ import type {
   DayActivity,
   FitnessLevel,
   Gender,
+  HeadToHeadResult,
   LeaderboardEntry,
   LeaderboardPeriod,
+  Matchup,
+  MatchupReactionState,
   MemberContribution,
   Motivation,
   NotificationPrefs,
@@ -369,6 +372,31 @@ export const getMyTeam = cache(async (): Promise<Team | null> => {
   const me = await getCurrentUser();
   return me.teamId ? ((await getTeam(me.teamId)) ?? null) : null;
 });
+
+/* The live card is deliberately not wrapped in `cache`: every poll must reach
+ * the backend, and the client only ever calls the Next route (which calls
+ * these functions) so the Express URL and session stay server-side. */
+
+export async function getMatchup(teamId: string): Promise<Matchup> {
+  return api<Matchup>(`/api/teams/${encodeURIComponent(teamId)}/matchup`);
+}
+
+export async function getMatchupResults(teamId: string, weeks = 6): Promise<HeadToHeadResult[]> {
+  return api<HeadToHeadResult[]>(`/api/teams/${encodeURIComponent(teamId)}/results?weeks=${weeks}`);
+}
+
+export async function setMatchupReaction(teamId: string, emoji: MatchupReactionState["mine"]): Promise<MatchupReactionState> {
+  return api<MatchupReactionState>(`/api/teams/${encodeURIComponent(teamId)}/matchup/reaction`, {
+    method: "PUT",
+    body: { emoji },
+  });
+}
+
+export async function clearMatchupReaction(teamId: string): Promise<MatchupReactionState> {
+  return api<MatchupReactionState>(`/api/teams/${encodeURIComponent(teamId)}/matchup/reaction`, {
+    method: "DELETE",
+  });
+}
 
 export const getTeamActivity = cache(async (teamId: string, limit = 30): Promise<ActivityEntry[]> => {
   const me = await getCurrentUser();

@@ -33,6 +33,7 @@ import {
   updateProfile,
   updateProfilePhoto,
   updateTimezone,
+  getCurrentUser,
   type DailyStepsLogged,
   type LoggedActivity,
 } from "@/lib/data";
@@ -562,8 +563,13 @@ export async function saveBrowserTimezone(timezone: string): Promise<void> {
   const name = normalizeTimeZone(timezone);
   if (!name || !isValidTimeZone(name)) return;
   try {
+    // Nothing to do when the stored zone already matches — the common case.
+    const me = await getCurrentUser();
+    if (normalizeTimeZone(me.timezone ?? "") === name) return;
     await updateTimezone(name);
-    refresh();
+    // No refresh(): revalidating the whole layout re-rendered whatever page
+    // the person had just opened, mid-interaction (a form shifted under a
+    // click). The next navigation picks the new zone up.
   } catch {
     // A failed detection must never interrupt the page that reported it.
   }

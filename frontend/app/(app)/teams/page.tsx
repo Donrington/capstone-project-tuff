@@ -9,22 +9,16 @@ import { HeadToHead } from "@/components/teams/HeadToHead";
 import { TeamOverview } from "@/components/teams/TeamOverview";
 import { TeamStandings } from "@/components/teams/TeamStandings";
 import { DemoCrewPreview } from "@/components/demo/DemoCrewPreview";
-import { getMyTeam, getTeamMembers, getTeams } from "@/lib/data";
+import { getCurrentUser, getMatchup, getMyTeam, getTeamMembers, getTeams } from "@/lib/data";
 import styles from "./teams.module.css";
 
 export const metadata: Metadata = { title: "Teams" };
 
-/** Days left in the weekly matchup, which ends Sunday (UTC). */
-function daysLeftThisWeek() {
-  return (7 - new Date().getUTCDay()) % 7;
-}
-
 export default async function TeamsPage() {
-  const [teams, myTeam] = await Promise.all([getTeams(), getMyTeam()]);
+  const [teams, myTeam, user] = await Promise.all([getTeams(), getMyTeam(), getCurrentUser()]);
   const members = myTeam ? await getTeamMembers(myTeam.id) : [];
-  const rival = myTeam ? teams.find((t) => t.id === myTeam.rivalId) : undefined;
-  // Head to head needs points for both sides — from the leaderboard.
-  const showHeadToHead = rival && myTeam?.weeklyPoints != null && rival.weeklyPoints != null;
+  // Seeded on the server; the client takes over the 15s refresh from here.
+  const matchup = myTeam ? await getMatchup(myTeam.id) : null;
 
   // One team per person, so Join and Create only make sense without one.
   const actions = myTeam ? (
@@ -65,7 +59,14 @@ export default async function TeamsPage() {
           {myTeam ? (
             <>
               <TeamOverview team={myTeam} members={members} totalTeams={teams.length} />
-              {showHeadToHead && <HeadToHead team={myTeam} rival={rival} daysLeft={daysLeftThisWeek()} />}
+              {matchup && (
+                <HeadToHead
+                  initialMatchup={matchup}
+                  teamId={myTeam.id}
+                  timeZone={user.timezone}
+                  canReact
+                />
+              )}
             </>
           ) : (
             <>

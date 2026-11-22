@@ -17,6 +17,7 @@ import { validateCameraSession } from "@/lib/camera-session";
 import * as seed from "@/data/mock-data";
 import { suggestedChallenges } from "@/data/suggested-challenges";
 import { DAILY_STEPS_ID } from "@/lib/daily-steps";
+import { isMatchupReaction, MATCHUP_REACTIONS, type MatchupReactionKey } from "@/lib/matchup";
 import type { InvitePreview } from "@/lib/invite";
 import type {
   Achievement,
@@ -37,8 +38,11 @@ import type {
   DayActivity,
   FitnessLevel,
   Gender,
+  HeadToHeadResult,
   LeaderboardEntry,
   LeaderboardPeriod,
+  Matchup,
+  MatchupReactionState,
   MemberContribution,
   Motivation,
   NotificationPrefs,
@@ -78,7 +82,7 @@ import type {
 
 /** Bump when the seed or MockDb's shape changes, so a hot reload re-seeds
  *  instead of serving stale demo data (or crashing on a missing field). */
-const SEED_VERSION = 16;
+const SEED_VERSION = 17;
 
 /** Mock only (#20): `new` serves a just-signed-up account with nothing in it. */
 export const PERSONA_COOKIE = "tuff-persona";
@@ -96,6 +100,12 @@ interface MockDb {
   userWeeklyPoints: number;
   allTimePoints: Record<string, number>;
   previousRanks: Record<string, number>;
+  /** One row per (team, week, user). The key joins the first two; the mock
+   *  has one signed-in user, but the shape mirrors the backend's unique index. */
+  matchupReactions: { key: string; weekStart: string; emoji: MatchupReactionKey }[];
+  /** Only moves when MOCK_MATCHUP_DRIFT is explicitly enabled, so an ordinary
+   *  demo (and every e2e spec) has stable points between polls. */
+  matchupDrift: number;
   notifications: AppNotification[];
   /** Achievement id → ISO date earned. */
   earnedAt: Record<string, string>;
@@ -144,6 +154,8 @@ function seedReturning(): MockDb {
     userWeeklyPoints: 11940,
     allTimePoints,
     previousRanks,
+    matchupReactions: [],
+    matchupDrift: 0,
     notifications: [],
     earnedAt: Object.fromEntries(
       Object.entries(seed.returningEarnedDaysAgo).map(([id, days]) => [id, seed.isoDay(now - days * seed.DAY_MS)]),
@@ -180,6 +192,8 @@ function seedNew(input: { firstName: string; lastName: string; email: string }):
     userWeeklyPoints: 0,
     allTimePoints,
     previousRanks: {},
+    matchupReactions: [],
+    matchupDrift: 0,
     notifications: seed.newUserNotifications(now),
     earnedAt: {},
     personalBests: [],
@@ -339,6 +353,39 @@ function rivalLineFor(teamName: string, rivalName: string, ahead: boolean) {
   const pool = ahead ? RIVAL_LINE_AHEAD : RIVAL_LINE_BEHIND;
   const line = pool[teamName.length % pool.length];
   return `${teamName} vs ${rivalName}: ${line}`;
+}
+
+/** Same Monday-to-Monday UTC week as leaderboardService.weekBounds — the mock
+ *  must not invent its own week or reactions would reset on a different day. */
+function matchupWeekStart(now = Date.now()) {
+  return seed.startOfUtcDay(now) - ((new Date(now).getUTCDay() + 6) % 7) * seed.DAY_MS;
+}
+
+const reactionKeyOf = (teamId: string, weekStart: number, userId: string) =>
+  `${teamId}:${weekStart}:${userId}`;
+
+function reactionState(d: MockDb, teamId: string, userId: string): MatchupReactionState {
+  const weekStart = matchupWeekStart();
+  const counts = Object.fromEntries(MATCHUP_REACTIONS.map((emoji) => [emoji, 0])) as MatchupReactionState["counts"];
+  let mine: MatchupReactionKey | null = null;
+  for (const row of d.matchupReactions) {
+    if (!row.key.startsWith(`${teamId}:${weekStart}:`)) continue;
+    counts[row.emoji] += 1;
+    if (row.emoji && row.key === reactionKeyOf(teamId, weekStart, userId)) mine = row.emoji;
+  }
+  return { counts, mine };
+}
+
+/** Mirrors the backend's 404-for-strangers rule. An admin may read any card,
+ *  but only members get to vote (see setMatchupReaction below). */
+async function requireMatchupViewer(d: MockDb, teamId: string) {
+  const isMember = d.user.teamId === teamId;
+  const isAdmin = (await storeKey()) === "admin";
+  if (!isMember && !isAdmin) throw new ApiError(404, "Team not found.");
+}
+
+async function requireMatchupMember(d: MockDb, teamId: string) {
+  if (d.user.teamId !== teamId) throw new ApiError(404, "Team not found.");
 }
 
 /** Every team with its computed numbers, best first. */
@@ -530,6 +577,89 @@ export const getTeamSummary = cache(async (): Promise<TeamSummary | null> => {
     extraMembers: Math.max(0, members.length - 4),
   });
 });
+
+// TODO(backend): GET /api/teams/:id/matchup
+export async function getMatchup(teamId: string): Promise<Matchup> {
+  const d = await db();
+  await requireMatchupViewer(d, teamId);
+  const teams = teamViews(d);
+  const team = teams.find((t) => t.id === teamId);
+  if (!team) throw new ApiError(404, "Team not found.");
+  const rival = teams.find((t) => t.id === team.rivalId) ?? null;
+
+  // Opt-in only: the live card should stand still in demos and tests unless
+  // someone deliberately asks to watch the bars move.
+  const drift = (process.env.MOCK_MATCHUP_DRIFT ?? "").toLowerCase();
+  if (drift === "1" || drift === "true") d.matchupDrift += 1;
+  const minePoints = (team.weeklyPoints ?? 0) + d.matchupDrift;
+  const rivalPoints = rival?.weeklyPoints ?? 0;
+
+  return settle({
+    weekStart: new Date(matchupWeekStart()).toISOString(),
+    weekEnd: new Date(matchupWeekStart() + 7 * seed.DAY_MS).toISOString(),
+    team: { id: team.id, name: team.name, points: minePoints },
+    rival: rival ? { id: rival.id, name: rival.name, points: rivalPoints } : null,
+    topContributors: {
+      team: team.memberIds
+        .map((id) => ({
+          name: personFor(d, id).name,
+          initials: personFor(d, id).initials,
+          points: weeklyPointsOf(d, id),
+        }))
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3),
+      rival: (rival?.memberIds ?? [])
+        .map((id) => ({
+          name: (() => {
+            const p = d.people.find((x) => x.id === id);
+            return p ? `${p.firstName}${p.lastName ? ` ${p.lastName[0]}.` : ""}` : "Someone";
+          })(),
+          initials: personFor(d, id).initials,
+          points: weeklyPointsOf(d, id),
+        }))
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3),
+    },
+    reactions: reactionState(d, team.id, d.user.id),
+    rivalLine: rival ? team.rivalLine : null,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+// TODO(backend): GET /api/teams/:id/results?weeks=6
+export async function getMatchupResults(teamId: string, weeks = 6): Promise<HeadToHeadResult[]> {
+  const d = await db();
+  await requireMatchupViewer(d, teamId);
+  const team = d.teams.find((t) => t.id === teamId);
+  if (!team) throw new ApiError(404, "Team not found.");
+  const rows = team.headToHead.slice(0, Math.min(12, Math.max(1, weeks)));
+  // A week with no rival is skipped, never filled in with a made-up opponent.
+  return settle(rows.filter((r) => Boolean(r.opponentId)));
+}
+
+// TODO(backend): PUT /api/teams/:id/matchup/reaction
+export async function setMatchupReaction(teamId: string, emoji: MatchupReactionState["mine"]): Promise<MatchupReactionState> {
+  const d = await db();
+  await requireMatchupMember(d, teamId);
+  if (!isMatchupReaction(emoji)) throw new ApiError(400, "Choose fire, muscle, clap or grit.");
+  const weekStart = matchupWeekStart();
+  const key = reactionKeyOf(teamId, weekStart, d.user.id);
+  const existing = d.matchupReactions.findIndex((row) => row.key === key);
+  const row = { key, weekStart: new Date(weekStart).toISOString(), emoji };
+  if (existing >= 0) d.matchupReactions[existing] = row;
+  else d.matchupReactions.push(row);
+  return settle(reactionState(d, teamId, d.user.id));
+}
+
+// TODO(backend): DELETE /api/teams/:id/matchup/reaction
+export async function clearMatchupReaction(teamId: string): Promise<MatchupReactionState> {
+  const d = await db();
+  await requireMatchupMember(d, teamId);
+  const weekStart = matchupWeekStart();
+  const key = reactionKeyOf(teamId, weekStart, d.user.id);
+  d.matchupReactions = d.matchupReactions.filter((row) => row.key !== key);
+  return settle(reactionState(d, teamId, d.user.id));
+}
 
 // TODO(backend): GET /api/challenges (the ones you're in)
 export const getChallenges = cache(async (): Promise<Challenge[]> => {

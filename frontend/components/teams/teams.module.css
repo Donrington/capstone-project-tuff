@@ -103,6 +103,33 @@
 }
 
 /* ---------------------------------------------------------- head to head */
+.h2hHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.pollStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 500 11px/16px var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.liveDot,
+.quietDot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.liveDot {
+  background: var(--status-success);
+}
+.quietDot {
+  background: var(--ink-tertiary);
+}
 .h2hTeams {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -117,9 +144,36 @@
   color: var(--ink-secondary);
 }
 .h2hPoints {
+  position: relative;
   font: 800 clamp(24px, 3vw, 32px)/1.1 var(--font-heading);
   letter-spacing: -0.02em;
   color: var(--ink);
+}
+.pointPop {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font: 800 13px/1 var(--font-sans);
+  color: var(--volt-ink);
+  animation: point-pop 1.6s var(--ease-out-expo) forwards;
+  pointer-events: none;
+}
+@keyframes point-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.8);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 .vs {
   padding-bottom: 6px;
@@ -138,6 +192,7 @@
   width: var(--w);
   background: var(--accent-surge);
   border-radius: var(--radius-full) 0 0 var(--radius-full);
+  transition: width 500ms var(--ease-out-expo);
 }
 .splitTheirs {
   flex: 1;
@@ -156,6 +211,66 @@
   font: 600 14px/20px var(--font-sans);
   font-style: italic;
   color: var(--volt-ink);
+}
+
+/* Reactions: a quiet pill until picked, then an outline and accent ink. The
+   ink token is darkened in light mode, so never raw volt on a white card. */
+.reactions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.reactionsLabel {
+  margin: 0;
+  font: 600 13px/18px var(--font-sans);
+  color: var(--ink-secondary);
+}
+.reactionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.reactionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  font: 600 13px/1 var(--font-sans);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.reactionButton:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.reactionButton[aria-pressed="true"] {
+  border-color: var(--volt-ink);
+  background: color-mix(in srgb, var(--volt-ink) 12%, var(--surface-2));
+  color: var(--volt-ink);
+}
+.reactionCount {
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  font-size: 11px;
+  text-align: center;
+  color: inherit;
+}
+.reactionNote,
+.weekStamp {
+  margin: 0;
+  font: 400 12px/16px var(--font-sans);
+  color: var(--ink-tertiary);
+}
+.weekStamp {
+  margin-top: var(--space-1);
 }
 
 /* ------------------------------------------------------------- standings */
@@ -323,6 +438,10 @@
   background: var(--surface-2);
   color: var(--ink-secondary);
 }
+.drew {
+  background: var(--surface-2);
+  color: var(--volt-ink);
+}
 .resultText {
   display: flex;
   flex-direction: column;
@@ -377,7 +496,13 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .spin {
+  .spin,
+  .pointPop {
     animation: none;
+  }
+  /* No width tween: the new total still lands, it just arrives at once. */
+  .splitMine,
+  .reactionButton {
+    transition: none;
   }
 }

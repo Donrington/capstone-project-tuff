@@ -198,6 +198,31 @@ test.describe("new user", () => {
     await expect(page.getByText("You're not ranked yet.")).toBeVisible();
   });
 
+  test("live head to head: one reaction sticks for the week", async ({ page }) => {
+    await page.goto("/teams/ironclad");
+    const card = page.getByRole("region", { name: "Head to head" });
+    // The name also appears in the results list; the card header is the first match.
+    await expect(card.getByText("Team Voltage", { exact: true }).first()).toBeVisible();
+
+    const fire = card.getByRole("button", { name: /^Fire/ });
+    await expect(fire).toHaveAttribute("aria-pressed", "false");
+    const before = Number((await fire.textContent())?.match(/\d+/)?.[0] ?? 0);
+
+    // Wait for the write itself: the optimistic state is true before the
+    // response arrives, so asserting only on the button would hide a 404.
+    const saved = page.waitForResponse(
+      (res) => res.url().endsWith("/matchup/reaction") && res.request().method() === "PUT",
+    );
+    await fire.click();
+    expect((await saved).status()).toBe(200);
+    await expect(fire).toHaveAttribute("aria-pressed", "true");
+    await expect(fire).toContainText(String(before + 1));
+
+    // The route is the only path to the backend; a second read must agree.
+    await page.reload();
+    await expect(card.getByRole("button", { name: /^Fire/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("leaving a team, then starting one", async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: "tuff-persona", value: "new", url: baseURL! }]);
     await page.goto("/teams/ironclad");

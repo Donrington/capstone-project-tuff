@@ -1,3 +1,5 @@
+import type { MatchupReactionKey } from "./matchup";
+
 export type Theme = "dark" | "light";
 
 export type Plan = "free" | "pro";
@@ -102,9 +104,34 @@ export interface HeadToHeadResult {
   weekOf: string;
   opponentId: string;
   opponentName: string;
-  outcome: "won" | "lost";
+  /** A level week is a draw, not a missing result. */
+  outcome: "won" | "lost" | "drew";
   points: number;
   opponentPoints: number;
+}
+
+/** This week's live matchup. One shared UTC week and one ranking feed it, so
+ *  the bar, the gap and the rival always agree with the leaderboard. */
+export interface Matchup {
+  weekStart: string;
+  /** Exclusive Monday 00:00 UTC — used for "days left", not as a scoring bound. */
+  weekEnd: string;
+  team: { id: string; name: string; points: number };
+  /** Null until another ranked team is in the standings. */
+  rival: { id: string; name: string; points: number } | null;
+  topContributors: {
+    team: { name: string; initials: string; points: number }[];
+    rival: { name: string; initials: string; points: number }[];
+  };
+  reactions: MatchupReactionState;
+  rivalLine: string | null;
+  updatedAt: string;
+}
+
+/** One vote per member per week: the whole week's tally plus this viewer's pick. */
+export interface MatchupReactionState {
+  counts: Record<MatchupReactionKey, number>;
+  mine: MatchupReactionKey | null;
 }
 
 /** Named to match backend/models/Team.js (`inviteCode`, `createdBy`,
